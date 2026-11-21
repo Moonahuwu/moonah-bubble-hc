@@ -242,7 +242,7 @@ Event types for your own: `horde` (`entity` or `entities`, `count`, `min`/`max` 
 
 When a new world starts (Next world or Retry seed), a wheel spins for everyone as soon as the lobby ends (or 10 seconds after
 the first player joins if the lobby is off).
-It's drawn over the game, ticks as it slows down, and whatever it lands on happens for everyone. Players who join later
+It's drawn over the game on the left edge of the screen, big, with only its right half showing and the pointer at 3 o'clock: every name runs along its slice, so the one at the pointer reads left to right, and the slice it's on is written out beside the pointer (then the result, big). It ticks as it slows down, and whatever it lands on happens for everyone. Players who join later
 still get the items. Default slices:
 
 - **Warship:** an Immersive Aircraft warship appears next to the group, with a stack of coal blocks.
@@ -417,8 +417,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.19.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.19.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.19.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.19.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
