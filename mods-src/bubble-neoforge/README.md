@@ -82,7 +82,8 @@ Everyone on the server is tied together inside one bubble, one death can end the
     swords and Apotheosis gear.
   - The Mod Case's Legendary tier also holds The Shooting Star's **Stellar Remote** (`shooting_star_demo:stellar_remote`),
     about 1 in 940 cases. It's added once to existing case files (migration `stellar_remote_v1`), and left out if that
-    mod isn't installed.
+    mod isn't installed. The remote (and its Stellar Core) can't be sold: the sell slot and Ctrl+click refuse it, also
+    inside a shulker box or bundle, "sell every matching item" skips it, and its tooltip says "Can't be sold".
   - Contents are in `config/bubble-cases.json` on the server: a list per tier, each entry an `item` (+ `count`), or a
     `command` with a `show` item and `name` (e.g. `bubble apothloot {player} epic`). Items from missing mods are left
     out. Restart the server after editing it by hand. The server log shows what each case sells back for on average.
@@ -417,8 +418,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.19.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.19.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.19.2.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.19.2.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

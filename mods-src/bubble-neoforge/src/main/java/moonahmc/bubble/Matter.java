@@ -138,10 +138,52 @@ public final class Matter {
 
 	// ------------------------------------------------------------------ selling
 
+	/** Items that can't be sold at all (they stay where they are). The Stellar Remote is a super-rare case prize whose
+	 *  crafting tree would make it worth tens of thousands of Strange Matter. */
+	private static final java.util.Set<String> UNSELLABLE = java.util.Set.of("shooting_star_demo:stellar_remote", "shooting_star_demo:stellar_core");
+
+	/** This stack can't be sold: it's on the list, or it's a shulker box / bundle with something on the list inside. */
+	public static boolean unsellable(ItemStack stack) {
+		if (stack.isEmpty()) {
+			return false;
+		}
+		if (UNSELLABLE.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString())) {
+			return true;
+		}
+		ItemContainerContents container = stack.get(DataComponents.CONTAINER);
+		if (container != null) {
+			for (ItemStack inner : container.nonEmptyItems()) {
+				if (unsellable(inner)) {
+					return true;
+				}
+			}
+		}
+		BundleContents bundle = stack.get(DataComponents.BUNDLE_CONTENTS);
+		if (bundle != null) {
+			for (ItemStack inner : bundle.items()) {
+				if (unsellable(inner)) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static void refuse(ServerPlayer p, ItemStack stack) {
+		boolean itself = UNSELLABLE.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString());
+		p.displayClientMessage(Component.empty().append(stack.getHoverName()).append(Component.literal(" can't be sold").withStyle(ChatFormatting.RED))
+				.append(Component.literal(itself ? "" : " (there's something inside that can't be)").withStyle(ChatFormatting.GRAY)), true);
+		p.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.7f, 1f);
+	}
+
 	static void sell(ServerPlayer p, boolean all) {
 		AbstractContainerMenu h = p.containerMenu;
 		ItemStack cursor = h.getCarried();
 		if (cursor.isEmpty()) {
+			return;
+		}
+		if (unsellable(cursor)) {
+			refuse(p, cursor);
 			return;
 		}
 		ItemStack sold = cursor.copy();
@@ -154,7 +196,7 @@ public final class Matter {
 			var inv = p.getInventory();
 			for (int i = 0; i < inv.items.size(); i++) {
 				ItemStack s = inv.items.get(i);
-				if (!s.isEmpty() && ItemStack.isSameItemSameComponents(s, sold)) {
+				if (!s.isEmpty() && ItemStack.isSameItemSameComponents(s, sold) && !unsellable(s)) {
 					double v = value(s) * bonus;
 					total += v;
 					count += s.getCount();
@@ -182,6 +224,10 @@ public final class Matter {
 			return; // only your own inventory (not chests), and not cursed armour
 		}
 		ItemStack sold = slot.getItem().copy();
+		if (unsellable(sold)) {
+			refuse(p, sold);
+			return;
+		}
 		double total = value(sold) * Eidolons.sellBonus(p);
 		slot.setByPlayer(ItemStack.EMPTY);
 		push(p, new Sale(sold, total));
@@ -236,7 +282,7 @@ public final class Matter {
 		java.util.List<Double> values = new java.util.ArrayList<>();
 		for (ItemStack s : stacks) {
 			out.add(s.copy());
-			values.add(s.isEmpty() ? 0 : value(s) * bonus);
+			values.add(s.isEmpty() ? 0 : unsellable(s) ? -1 : value(s) * bonus);
 		}
 		ServerPlayNetworking.send(p, new ShopPayloads.WorthResult(out, values));
 	}
@@ -247,7 +293,7 @@ public final class Matter {
 		}
 		ArrayDeque<Sale> d = lastSales.get(p.getUUID());
 		Sale last = d == null ? null : d.peekFirst();
-		ServerPlayNetworking.send(p, new ShopPayloads.QuoteResult(stack.copy(), stack.isEmpty() ? 0 : value(stack),
+		ServerPlayNetworking.send(p, new ShopPayloads.QuoteResult(stack.copy(), stack.isEmpty() ? 0 : unsellable(stack) ? -1 : value(stack),
 				last == null ? ItemStack.EMPTY : last.stack().copy(), last == null ? 0 : last.paid()));
 	}
 
@@ -262,7 +308,7 @@ public final class Matter {
 
 	/** What a whole stack sells for. */
 	public static double value(ItemStack stack) {
-		if (stack.isEmpty()) {
+		if (stack.isEmpty() || UNSELLABLE.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString())) {
 			return 0;
 		}
 		double each = baseValue(stack.getItem());

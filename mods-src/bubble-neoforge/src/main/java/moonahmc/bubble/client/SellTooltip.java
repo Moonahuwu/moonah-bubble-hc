@@ -52,7 +52,9 @@ final class SellTooltip {
 			int k = key(s);
 			Known kn = known.get(k);
 			if (kn != null && ItemStack.matches(kn.stack(), s) && now - kn.at() < KEEP_MS) {
-				if (kn.value() > 0) {
+				if (kn.value() < 0) {
+					e.getToolTip().add(Component.literal("Can't be sold").withStyle(ChatFormatting.DARK_RED));
+				} else if (kn.value() > 0) {
 					String each = s.getCount() > 1 ? " (" + Matter.format(kn.value() / s.getCount()) + " each)" : "";
 					e.getToolTip().add(Component.literal("Sells for " + Matter.format(kn.value()) + " Strange Matter" + each).withStyle(ChatFormatting.DARK_AQUA));
 				}

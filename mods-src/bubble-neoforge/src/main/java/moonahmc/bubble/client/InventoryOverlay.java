@@ -193,8 +193,12 @@ final class InventoryOverlay {
 			ShopPayloads.QuoteResult q = ClientState.quote;
 			boolean fresh = q != null && ItemStack.matches(q.stack(), cursor);
 			lines.add(Component.literal("Sell ").append(Component.literal(cursor.getCount() + "× ")).append(cursor.getHoverName()));
-			lines.add(Component.literal(fresh ? "for " + Matter.format(q.total()) + " Strange Matter" : "for ...").withStyle(ChatFormatting.AQUA));
-			lines.add(Component.literal("Shift-click: sell every matching item").withStyle(ChatFormatting.DARK_GRAY));
+			if (fresh && q.total() < 0) {
+				lines.add(Component.literal("can't be sold").withStyle(ChatFormatting.RED));
+			} else {
+				lines.add(Component.literal(fresh ? "for " + Matter.format(q.total()) + " Strange Matter" : "for ...").withStyle(ChatFormatting.AQUA));
+				lines.add(Component.literal("Shift-click: sell every matching item").withStyle(ChatFormatting.DARK_GRAY));
+			}
 		} else {
 			lines.add(Component.literal("Strange Matter exchange").withStyle(ChatFormatting.AQUA));
 			lines.add(Component.literal("Drop items here to sell them.").withStyle(ChatFormatting.GRAY));
