@@ -1,0 +1,8 @@
+# packwiz checks every file by hash, so pack files must keep LF line endings on every OS
+pack/** text eol=lf
+pack/**/*.jar binary
+pack/**/*.zip binary
+*.jar binary
+*.zip binary
+*.png binary
+gradlew text eol=lf
