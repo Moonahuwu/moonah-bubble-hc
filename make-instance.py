@@ -43,7 +43,9 @@ def main():
         "MaxMemAlloc=8192",
         "OverrideCommands=true",
         # Prism runs this in the instance's minecraft folder before every launch: it downloads anything new from the pack.
-        'PreLaunchCommand="$INST_JAVA" -jar packwiz-installer-bootstrap.jar ' + url,
+        # instance.cfg is read as a Qt INI file: the whole value has to be quoted with the inner quotes escaped, or Qt
+        # strips them and glues the Java path onto "-jar" ("javaw.exe-jar", which doesn't exist).
+        'PreLaunchCommand="\\"$INST_JAVA\\" -jar packwiz-installer-bootstrap.jar ' + url + '"',
         "",
     ])
     mmc = {
