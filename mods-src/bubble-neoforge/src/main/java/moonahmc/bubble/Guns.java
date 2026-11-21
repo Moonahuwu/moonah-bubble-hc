@@ -22,6 +22,12 @@ import net.neoforged.fml.ModList;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
+import net.neoforged.neoforge.common.damagesource.DamageContainer;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.damagesource.DamageType;
 
 import java.util.List;
 import java.util.Optional;
@@ -35,6 +41,7 @@ public final class Guns {
 	private static final ResourceLocation GUN_ITEM = ResourceLocation.fromNamespaceAndPath("tacz", "modern_kinetic_gun");
 	private static final ResourceLocation AMMO_ITEM = ResourceLocation.fromNamespaceAndPath("tacz", "ammo");
 	static final String GUNNER_TAG = "bubble_gunner";
+	private static final TagKey<DamageType> BULLETS = TagKey.create(Registries.DAMAGE_TYPE, ResourceLocation.fromNamespaceAndPath("tacz", "bullets"));
 
 	record Gun(String id, String ammo, int mag, String mode) {
 	}
@@ -127,6 +134,18 @@ public final class Guns {
 			return;
 		}
 		var bus = NeoForge.EVENT_BUS;
+		// Armour pen: bullets go through most of your armour (config/bubble.json gunArmorPen; gun damage itself is
+		// TACZ's DamageBaseMultiplier in config/tacz-server.toml). TACZ already sends the gun's own armour-piercing share
+		// as a separate hit that ignores armour; this is for the rest.
+		bus.addListener((LivingIncomingDamageEvent e) -> {
+			if (!e.getSource().is(BULLETS) || e.getSource().is(DamageTypeTags.BYPASSES_ARMOR)) {
+				return;
+			}
+			float pen = BubbleServer.config == null ? 0.8f : (float) BubbleServer.config.gunArmorPen;
+			if (pen > 0) {
+				e.addReductionModifier(DamageContainer.Reduction.ARMOR, (container, reduction) -> reduction * (1 - pen));
+			}
+		});
 		// Now and then a zombie, skeleton, piglin or illager spawns holding a gun. They can't fire it, but you get it
 		// (and some ammo) when you kill them.
 		bus.addListener((EntityJoinLevelEvent e) -> {

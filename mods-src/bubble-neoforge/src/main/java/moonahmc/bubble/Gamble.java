@@ -213,6 +213,56 @@ public final class Gamble {
 			p.displayClientMessage(Component.literal("That case doesn't exist (any more).").withStyle(ChatFormatting.RED), true);
 			return false;
 		}
+		return open(p, c, price, section, index, count);
+	}
+
+	/**
+	 * Shop action "attachment_case": a case made for the gun you're holding (or the first one you carry): every
+	 * attachment that fits it and isn't already on it, rarer the better it is.
+	 */
+	static boolean openAttachmentCase(ServerPlayer p, int price, int section, int index, int count) {
+		if (!Guns.available()) {
+			p.displayClientMessage(Component.literal("Guns aren't installed on this server.").withStyle(ChatFormatting.RED), true);
+			return false;
+		}
+		ItemStack gun = GunSupply.mainGun(p);
+		if (gun.isEmpty()) {
+			p.displayClientMessage(Component.literal("Hold the gun you want an attachment for.").withStyle(ChatFormatting.RED), true);
+			p.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.2f);
+			return false;
+		}
+		List<List<Drop>> tiers = new ArrayList<>();
+		for (List<ItemStack> pool : GunSupply.attachmentsFor(gun)) {
+			tiers.add(pool.stream().map(s -> new Drop(s, null)).toList());
+		}
+		if (tiers.stream().allMatch(List::isEmpty)) {
+			p.displayClientMessage(Component.literal("Nothing else fits that gun.").withStyle(ChatFormatting.RED), true);
+			p.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.2f);
+			return false;
+		}
+		String name = "Attachment Case (" + GunSupply.gunName(gun).getString() + ")";
+		return open(p, new Case("attachment", name, tiers, 0x9FD3FF, attachmentOdds()), price, section, index, count);
+	}
+
+	/** The Attachment Case's odds: from the cases file's "attachmentOdds" if it's there, otherwise the usual ones. */
+	private static double[] attachmentOdds() {
+		JsonObject root = casesRoot;
+		JsonObject holder = new JsonObject();
+		if (root != null && root.has("attachmentOdds")) {
+			holder.add("odds", root.get("attachmentOdds"));
+		}
+		return parseOdds(holder);
+	}
+
+	/** A prize's name for chat (TACZ items only know theirs on the client). */
+	static Component nameOf(ItemStack s) {
+		if (Guns.available() && BuiltInRegistries.ITEM.getKey(s.getItem()).getNamespace().equals("tacz")) {
+			return GunSupply.name(s);
+		}
+		return s.getHoverName();
+	}
+
+	private static boolean open(ServerPlayer p, Case c, int price, int section, int index, int count) {
 		if (pending.stream().anyMatch(x -> x.player.equals(p.getUUID()))) {
 			p.displayClientMessage(Component.literal("Wait for your case to finish spinning.").withStyle(ChatFormatting.YELLOW), true);
 			return false;
@@ -251,7 +301,7 @@ public final class Gamble {
 			long due = p.server.getTickCount() + (modded ? SPIN_TICKS + (long) STAGGER_TICKS * k : 0);
 			pending.add(new Pending(p.getUUID(), win, winTier, c.name, due));
 			Bubble.LOG.info("{} opened a {}: {} {} (luck {})", p.getGameProfile().getName(), c.name, TIERS[winTier],
-					win.show.getHoverName().getString(), luck);
+					nameOf(win.show).getString(), luck);
 		}
 		if (modded) {
 			ServerPlayNetworking.send(p, new Roll(c.name, reels, section, index, price, luck));
@@ -324,11 +374,11 @@ public final class Gamble {
 			}
 			p.containerMenu.broadcastChanges();
 		}
-		Eidolons.recordUnbox(p, pend.tier, pend.drop.show.getHoverName().getString());
+		Eidolons.recordUnbox(p, pend.tier, nameOf(pend.drop.show).getString());
 		if (!announce) {
 			return;
 		}
-		Component item = pend.drop.show.getHoverName().copy().withStyle(s -> s.withColor(TIER_COLORS[pend.tier] & 0xFFFFFF));
+		Component item = nameOf(pend.drop.show).copy().withStyle(s -> s.withColor(TIER_COLORS[pend.tier] & 0xFFFFFF));
 		String count = pend.drop.show.getCount() > 1 ? " ×" + pend.drop.show.getCount() : "";
 		if (pend.tier >= 3) {
 			p.server.getPlayerList().broadcastSystemMessage(Component.literal("★ ").withStyle(ChatFormatting.GOLD).append(p.getDisplayName())

@@ -37,6 +37,8 @@ public final class BubbleConfig {
 	public int reviveSeconds = 30;
 	/** Seconds a teammate has to stand next to you to get you up (0 = straight away). */
 	public int reviveHoldSeconds = 3;
+	/** How much of your armour bullets ignore (0 = none, 1 = all). Gun damage is TACZ's DamageBaseMultiplier (tacz-server.toml). */
+	public double gunArmorPen = 0.8;
 	/** Seed for the next new world (set with /bubble seed). Empty = random. */
 	public String nextSeed = "";
 
@@ -66,6 +68,7 @@ public final class BubbleConfig {
 		}
 		reviveSeconds = Math.max(MIN_REVIVE_SECONDS, Math.min(MAX_REVIVE_SECONDS, reviveSeconds));
 		reviveHoldSeconds = Math.max(0, Math.min(30, reviveHoldSeconds));
+		gunArmorPen = Double.isNaN(gunArmorPen) ? 0.8 : Math.max(0, Math.min(1, gunArmorPen));
 		if (nextSeed == null) {
 			nextSeed = "";
 		}

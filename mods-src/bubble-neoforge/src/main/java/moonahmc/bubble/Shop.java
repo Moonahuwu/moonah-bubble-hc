@@ -194,6 +194,17 @@ public final class Shop {
 				}
 			}
 		}
+		// 1.21.0: the Attachment Case (an attachment that fits the gun you're holding)
+		if (defaultsSeen.add("+Gamble:attachment_case")) {
+			for (JsonElement e : secs) {
+				JsonObject so = e.getAsJsonObject();
+				if ("Gamble".equals(so.get("name").getAsString()) && so.has("items") && so.getAsJsonArray("items").asList().stream()
+						.noneMatch(ie -> ie.getAsJsonObject().has("action") && "attachment_case".equals(ie.getAsJsonObject().get("action").getAsString()))) {
+					so.getAsJsonArray("items").add(attachmentCase());
+					Bubble.LOG.info("Shop: added the Attachment Case to the Gamble tab");
+				}
+			}
+		}
 		return secs;
 	}
 
@@ -345,8 +356,18 @@ public final class Shop {
 		caseItems.add(caseOffer("progression", "minecraft:ender_chest", "Progression Case", "dark_purple", "Pearls, eyes of ender, blaze rods, netherite...", 150));
 		caseItems.add(caseOffer("weapons", "minecraft:trapped_chest", "Weapon Case", "red", "Swords, bows and Apotheosis gear", 150));
 		caseItems.add(twilightCase());
+		caseItems.add(attachmentCase());
 		gamble.add("items", caseItems);
 		arr.add(gamble);
+		// Guns (TACZ): ammo for whatever guns you're carrying. Hidden without TACZ.
+		JsonObject guns = new JsonObject();
+		guns.addProperty("name", "Guns");
+		guns.addProperty("icon", "tacz:ammo_box");
+		JsonArray gunItems = new JsonArray();
+		gunItems.add(ammoOffer("ammo_crate", "tacz:9mm", "Ammo Crate", "gold", "3 magazines for every gun you're carrying", 30));
+		gunItems.add(ammoOffer("ammo_crate:8", "tacz:308", "Big Ammo Crate", "red", "8 magazines for every gun you're carrying", 70));
+		guns.add("items", gunItems);
+		arr.add(guns);
 		// Apothic rolls: give a random tool or weapon in your inventory a random Apotheosis rarity (with affixes)
 		JsonObject rolls = new JsonObject();
 		rolls.addProperty("name", "Apothic Rolls");
@@ -384,6 +405,39 @@ public final class Shop {
 	private static JsonObject twilightCase() {
 		return caseOffer("twilight", "twilightforest:magic_map_focus", "Twilight Forest Case", "dark_green",
 				"Ingots, charms, bows, scepters, trophies...", 120);
+	}
+
+	/** The Attachment Case: a case made for the gun you're holding (Gamble.openAttachmentCase). */
+	private static JsonObject attachmentCase() {
+		JsonObject custom = new JsonObject();
+		custom.addProperty("AttachmentId", "tacz:scope_acog_ta31");
+		JsonObject io = caseOffer("attachment", "tacz:attachment", "Attachment Case", "aqua", "An attachment that fits the gun you're holding", 400);
+		io.getAsJsonObject("item").getAsJsonObject("components").add("minecraft:custom_data", custom);
+		JsonArray lore = io.getAsJsonObject("item").getAsJsonObject("components").getAsJsonArray("minecraft:lore");
+		lore.set(lore.size() - 1, new com.google.gson.JsonPrimitive("{\"text\":\"Never one it already has\",\"color\":\"dark_gray\",\"italic\":true}"));
+		io.addProperty("action", "attachment_case");
+		return io;
+	}
+
+	private static JsonObject ammoOffer(String action, String ammo, String name, String color, String what, int price) {
+		JsonObject custom = new JsonObject();
+		custom.addProperty("AmmoId", ammo);
+		JsonObject components = new JsonObject();
+		components.addProperty("minecraft:custom_name", "{\"text\":\"" + name + "\",\"color\":\"" + color + "\",\"italic\":false}");
+		JsonArray lore = new JsonArray();
+		lore.add("{\"text\":\"" + what + "\",\"color\":\"gray\",\"italic\":false}");
+		lore.add("{\"text\":\"Hold or carry your guns when you buy it\",\"color\":\"dark_gray\",\"italic\":true}");
+		components.add("minecraft:lore", lore);
+		components.add("minecraft:custom_data", custom);
+		JsonObject item = new JsonObject();
+		item.addProperty("id", "tacz:ammo");
+		item.addProperty("count", 1);
+		item.add("components", components);
+		JsonObject io = new JsonObject();
+		io.add("item", item);
+		io.addProperty("price", price);
+		io.addProperty("action", action);
+		return io;
 	}
 
 	private static JsonObject caseOffer(String id, String icon, String name, String color, String what, int price) {
@@ -471,7 +525,8 @@ public final class Shop {
 
 	/** Tabs players don't see: Charging without an energy mod, Video without WaterMedia (or with no price). */
 	private static boolean hidden(Section sec) {
-		return (sec.charging && !EnergyCompat.available())
+		return (!sec.charging && !sec.video && !sec.entries.isEmpty() && sec.entries.stream().noneMatch(e -> e.stack != null))
+				|| (sec.charging && !EnergyCompat.available())
 				|| (sec.video && (!net.neoforged.fml.ModList.get().isLoaded("watermedia") || sec.entries.stream().noneMatch(e -> e.stack != null)));
 	}
 
@@ -584,6 +639,14 @@ public final class Shop {
 			Gamble.open(p, e.action.substring(5), price, b.section(), b.index(), times);
 			return;
 		}
+		if (e.action.equals("attachment_case")) {
+			Gamble.openAttachmentCase(p, price, b.section(), b.index(), times);
+			return;
+		}
+		if (e.action.startsWith("ammo_crate")) {
+			ammoCrate(p, e, price, times);
+			return;
+		}
 		if (!e.action.startsWith("apothic_roll") || !net.neoforged.fml.ModList.get().isLoaded("apotheosis")) {
 			p.displayClientMessage(Component.literal("This offer isn't available on this server.").withStyle(ChatFormatting.RED), true);
 			return;
@@ -606,6 +669,35 @@ public final class Shop {
 			done++;
 		}
 		p.containerMenu.broadcastChanges();
+	}
+
+	/** "ammo_crate[:magazines]": that many magazines (3 by default) for every gun you're carrying. */
+	private static void ammoCrate(ServerPlayer p, Entry e, int price, int times) {
+		if (!Guns.available()) {
+			p.displayClientMessage(Component.literal("Guns aren't installed on this server.").withStyle(ChatFormatting.RED), true);
+			return;
+		}
+		int mags = 3;
+		if (e.action.contains(":")) {
+			try {
+				mags = Math.max(1, Math.min(20, Integer.parseInt(e.action.substring(e.action.indexOf(':') + 1))));
+			} catch (NumberFormatException ignored) {
+			}
+		}
+		if (!GunSupply.armed(p)) {
+			p.displayClientMessage(Component.literal("You don't have a gun to buy ammo for.").withStyle(ChatFormatting.RED), true);
+			p.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.2f);
+			return;
+		}
+		long cost = (long) price * times;
+		if (!Matter.add(p, -cost)) {
+			p.displayClientMessage(Component.literal("Not enough Strange Matter (" + Matter.format(Matter.balance(p)) + " / " + cost + ")")
+					.withStyle(ChatFormatting.RED), true);
+			p.playNotifySound(SoundEvents.VILLAGER_NO, SoundSource.PLAYERS, 0.6f, 1.2f);
+			return;
+		}
+		GunSupply.give(p, GunSupply.ammoFor(p, mags * times), "Ammo:");
+		p.playNotifySound(SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 0.8f, 1.1f);
 	}
 
 	// ------------------------------------------------------------------ charging

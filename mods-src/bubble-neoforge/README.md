@@ -251,11 +251,13 @@ Every 10 to 20 minutes of a run (not in the lobby) something happens near a rand
 - **Meteor shower** and **Lightning storm** (the wheel's timed statuses).
 - **Supply drop:** a loot chest lands 20-40 blocks away with a beam of light over it (the announcement says where).
 - **Free Wheel Spin:** the mid-run wheel spins by itself.
+- **Ammo drop:** a barrel of ammo lands 6-14 blocks from everyone who has a gun, with 4 magazines for each gun they're
+  carrying and a beam over it. It only comes up when someone playing has a gun.
 
 Event mobs hunt the player they spawned near, and leave again after a few minutes (they puff away) so they don't pile
 up. Announced events get a chat line, a title and a horn. Ops: `/bubble event [id] [silent]` (no id = a random one).
 Event types for your own: `horde` (`entity` or `entities`, `count`, `min`/`max` distance, `side`, `air`,
-`leave_after`), `status`, `supply_drop`, `wheel`.
+`leave_after`), `status`, `supply_drop`, `wheel`, `ammo_drop` (`magazines`, `min`/`max` distance).
 
 ## Start-of-run wheel
 
@@ -318,6 +320,7 @@ Challenges (each timed one shows a countdown bar at the top of the screen and sw
 - **Lights out:** Blindness for 60 seconds.
 - **A Quiet Place:** a Warden digs up near the group and leaves again after 3 minutes.
 - **Meteor rain:** fireballs fall around everyone for 30 seconds.
+- **Locked and loaded:** 5 magazines of ammo for every gun each player is carrying (players without a gun get nothing).
 - **Mob ambush:** a ring of 6 zombies, skeletons, spiders and creepers around each player.
 - **Hunger drain:** Hunger V for 2 minutes.
 - **Random gravity:** every 10 seconds gravity turns heavy, floaty or launches you up, for 60 seconds (no fall damage
@@ -356,6 +359,25 @@ With TACZ installed, guns are super rare: in the Weapon and Mod cases' legendary
 Blocks, and on about 1 in 500 zombies, skeletons, piglins and illagers (they can't fire it, but drop it with ammo). Every
 gun comes with a full magazine and a stack of its ammo. Rocket and grenade launchers are left out. The chances are in
 `config/bubble-cases.json` under `extras` (`chestWheelSpin`, `chestGun`, `mobGunChance`).
+
+**Damage and armour:** guns hit much softer than TACZ's defaults (40%: TACZ's `DamageBaseMultiplier = 0.4` in the
+server's `config/tacz-server.toml`; players don't need to change anything), but bullets go through 80% of armour
+(`gunArmorPen` in `config/bubble.json`, 0 to 1). On top of that, each gun's own armour-piercing share still ignores armour
+completely, so a gun like the P90 goes through almost all of it.
+
+**Ammo:**
+
+- **Ammo Crate** (30) and **Big Ammo Crate** (70) in the shop's Guns tab: 3 or 8 magazines for every gun you're carrying
+  (one lot per kind of ammo, at least 10 rounds). You need a gun on you; with none you aren't charged.
+- The **Ammo drop** random event and the **Locked and loaded** mid-run wheel slice.
+- Ops: `/bubble ammo <players> [magazines]`.
+
+**Attachment Case** (400, in the Gamble tab): a case made for the gun you're holding (or the first one you carry). It
+only has attachments that fit that gun and aren't already on it. Grips, lasers and bayonets are common; sights, stocks
+and muzzle brakes uncommon; scopes and small extended mags rare; silencers, thermal scopes and bigger mags epic; the
+biggest mags and special rounds (hollow point, armour piercing, incendiary, slug...) legendary. Factory parts and
+high-explosive rounds are left out. Its odds are the usual case odds, or `attachmentOdds` (5 numbers) in
+`config/bubble-cases.json`. Ops: `/bubble attachments <gun>` lists what it has for a gun.
 
 ## Video tab (shop)
 
@@ -431,14 +453,15 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   `decide next|retry|life`, `seed <seed>|random`, `matter give <player> <amount>`, `shop reload`, `tier <name>`,
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
 - Ops: `/bubble start` (end the lobby), `/bubble wheel [reload|midrun]`, `/bubble wheel clear [status]` (take wheel statuses off: a run modifier, a timed status, `upside_down`, `ice`, `effects`, or everything), `/bubble wheel apply <slice>` (do one slice right now, no spin), `/bubble wheel move <slice>` (move it to the other wheel), `/bubble event [id] [silent]` (force a random event), `/bubble givecase <players> <case> [count]`,
-  `/bubble givespin <players> [count]`, `/bubble gun <players> [gun]`, `/bubble nuke [pos]` (a Lucky Block can do this).
+  `/bubble givespin <players> [count]`, `/bubble gun <players> [gun]`, `/bubble ammo <players> [magazines]`,
+  `/bubble attachments <gun>`, `/bubble nuke [pos]` (a Lucky Block can do this).
 - Everyone: `/bubble vote next|retry|life`, `/bubble saveseed`, `/bubble seeds`, `/bubble matter`, `/bubble matter worth <item>`.
 - Settings are saved in `config/bubble.json`, favourite seeds in `bubble-seeds.json`.
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.20.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.20.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.21.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.21.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

@@ -29,6 +29,8 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble givecase <p> <case> [n] (ops) give case items (right-click to open)
  * /bubble givespin <p> [n]         (ops) give Wheel Spins (right-click: spin the mid-run wheel)
  * /bubble gun <p> [gun]            (ops) give a TACZ gun (random if no gun given) with a full magazine and ammo
+ * /bubble ammo <p> [mags]          (ops) ammo for every gun they carry (3 magazines by default)
+ * /bubble attachments <gun>       (ops) what the Attachment Case can give for that gun
  * /bubble nuke [pos]               (ops) set off a nuke (Lucky Blocks use this)
  * /bubble video stop               (ops) stop the video someone is showing everyone (shop Video tab)
  * /bubble newrun                   (ops) end this run now (post-game vote)
@@ -109,6 +111,15 @@ final class BubbleCommand {
 						.then(argument("gun", StringArgumentType.word())
 								.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(Guns.GUNS.stream().map(Guns.Gun::id), b))
 								.executes(c -> giveGun(c, StringArgumentType.getString(c, "gun")))))));
+		d.register(literal("bubble").then(literal("ammo").requires(src -> src.hasPermission(2))
+				.then(argument("players", EntityArgument.players())
+						.executes(c -> giveAmmo(c, 3))
+						.then(argument("magazines", IntegerArgumentType.integer(1, 20))
+								.executes(c -> giveAmmo(c, IntegerArgumentType.getInteger(c, "magazines")))))));
+		d.register(literal("bubble").then(literal("attachments").requires(src -> src.hasPermission(2))
+				.then(argument("gun", StringArgumentType.word())
+						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(Guns.GUNS.stream().map(Guns.Gun::id), b))
+						.executes(c -> listAttachments(c.getSource(), StringArgumentType.getString(c, "gun"))))));
 		d.register(literal("bubble").then(literal("video").then(literal("stop").requires(src -> src.hasPermission(2)).executes(c -> {
 			if (!VideoShare.stop(c.getSource().getTextName())) {
 				c.getSource().sendFailure(Component.literal("No video is playing."));
@@ -279,6 +290,46 @@ final class BubbleCommand {
 		}
 		c.getSource().sendSuccess(() -> Component.literal("Gave a gun to " + players.size() + " player(s)"), true);
 		return players.size();
+	}
+
+	private static int giveAmmo(CommandContext<CommandSourceStack> c, int mags) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+		if (!Guns.available()) {
+			c.getSource().sendFailure(Component.literal("TACZ isn't installed."));
+			return 0;
+		}
+		int n = 0;
+		for (ServerPlayer p : EntityArgument.getPlayers(c, "players")) {
+			var stacks = GunSupply.ammoFor(p, mags);
+			if (!stacks.isEmpty()) {
+				GunSupply.give(p, stacks, "Ammo:");
+				n++;
+			}
+		}
+		int given = n;
+		c.getSource().sendSuccess(() -> Component.literal("Gave ammo to " + given + " player(s) with guns"), true);
+		return n;
+	}
+
+	/** What the Attachment Case can give for a gun, by rarity. */
+	private static int listAttachments(CommandSourceStack src, String id) {
+		if (!Guns.available()) {
+			src.sendFailure(Component.literal("TACZ isn't installed."));
+			return 0;
+		}
+		String plain = id.startsWith("tacz:") ? id.substring(5) : id;
+		var tiers = GunSupply.attachmentsFor(Guns.gun(new Guns.Gun(plain, "", 1, "SEMI")));
+		int total = tiers.stream().mapToInt(java.util.List::size).sum();
+		if (total == 0) {
+			src.sendFailure(Component.literal("Nothing fits '" + plain + "' (is that a TACZ gun?)."));
+			return 0;
+		}
+		src.sendSuccess(() -> Component.literal("Attachment Case for " + plain + ": " + total + " attachments"), false);
+		for (int t = 0; t < tiers.size(); t++) {
+			var names = tiers.get(t).stream().map(s -> GunSupply.name(s).getString()).toList();
+			String line = Gamble.TIERS[t] + " (" + names.size() + "): " + String.join(", ", names);
+			src.sendSuccess(() -> Component.literal(line), false);
+		}
+		return total;
 	}
 
 	private static int nuke(CommandSourceStack src, net.minecraft.core.BlockPos pos) {

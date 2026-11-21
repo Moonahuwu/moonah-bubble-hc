@@ -25,6 +25,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -135,7 +136,7 @@ public final class RandomEvents {
 	}
 
 	private static Event pickRandom() {
-		List<Event> on = events.stream().filter(e -> e.enabled() && e.weight() > 0).toList();
+		List<Event> on = events.stream().filter(e -> e.enabled() && e.weight() > 0 && possible(e)).toList();
 		int total = on.stream().mapToInt(Event::weight).sum();
 		if (total <= 0) {
 			return null;
@@ -148,6 +149,14 @@ public final class RandomEvents {
 			}
 		}
 		return on.get(0);
+	}
+
+	/** An ammo drop only comes up when someone playing has a gun. */
+	private static boolean possible(Event e) {
+		if (!"ammo_drop".equals(e.def().has("type") ? e.def().get("type").getAsString() : "")) {
+			return true;
+		}
+		return Guns.available() && server.getPlayerList().getPlayers().stream().filter(BubbleServer::counts).anyMatch(GunSupply::armed);
 	}
 
 	// ------------------------------------------------------------------ doing an event
@@ -176,6 +185,7 @@ public final class RandomEvents {
 					yield 1;
 				}
 				case "supply_drop" -> supplyDrop(target, d, loud);
+				case "ammo_drop" -> ammoDrop(playing, d, loud);
 				case "wheel" -> Wheel.spinMidRun(target) == null ? 1 : 0;
 				default -> {
 					Bubble.LOG.warn("Random event '{}': unknown type '{}'", ev.id(), type);
@@ -328,6 +338,49 @@ public final class RandomEvents {
 			return 1;
 		}
 		return 0;
+	}
+
+	/**
+	 * A crate of ammo near everyone who has a gun, for the guns they're carrying ("magazines" each, 4 by default),
+	 * with a beam over it. Returns how many crates landed.
+	 */
+	private static int ammoDrop(List<ServerPlayer> playing, JsonObject d, boolean loud) {
+		if (!Guns.available()) {
+			return 0;
+		}
+		int mags = d.has("magazines") ? Math.max(1, d.get("magazines").getAsInt()) : 4;
+		double min = d.has("min") ? d.get("min").getAsDouble() : 6;
+		double max = Math.max(min + 1, d.has("max") ? d.get("max").getAsDouble() : 14);
+		int landed = 0;
+		for (ServerPlayer p : playing) {
+			List<ItemStack> ammo = GunSupply.ammoFor(p, mags);
+			if (ammo.isEmpty()) {
+				continue;
+			}
+			ServerLevel level = p.serverLevel();
+			RandomSource r = level.random;
+			for (int tries = 0; tries < 20; tries++) {
+				double a = r.nextDouble() * Math.PI * 2;
+				double dist = min + r.nextDouble() * (max - min);
+				BlockPos pos = ground(level, (int) Math.floor(p.getX() + Math.cos(a) * dist), (int) Math.floor(p.getZ() + Math.sin(a) * dist), p.getBlockY());
+				if (pos == null) {
+					continue;
+				}
+				level.setBlock(pos, Blocks.BARREL.defaultBlockState().setValue(net.minecraft.world.level.block.BarrelBlock.FACING, Direction.UP), 3);
+				if (level.getBlockEntity(pos) instanceof net.minecraft.world.level.block.entity.BarrelBlockEntity barrel) {
+					for (int i = 0; i < ammo.size() && i < barrel.getContainerSize(); i++) {
+						barrel.setItem(i, ammo.get(i));
+					}
+				}
+				level.playSound(null, pos, SoundEvents.FIREWORK_ROCKET_LARGE_BLAST, SoundSource.BLOCKS, 2f, 1.2f);
+				beams.add(new Object[] {pos.immutable(), level, now() + 20 * 120});
+				p.sendSystemMessage(Component.literal("🔫 Your ammo crate (a barrel) landed " + (int) Math.sqrt(p.blockPosition().distSqr(pos)) + " blocks away at "
+						+ pos.getX() + ", " + pos.getY() + ", " + pos.getZ() + ". Follow the beam!").withStyle(ChatFormatting.GOLD));
+				landed++;
+				break;
+			}
+		}
+		return landed;
 	}
 
 	// ------------------------------------------------------------------ admin editor
@@ -508,7 +561,9 @@ public final class RandomEvents {
 				    {"id": "lightning_storm", "name": "Lightning storm", "weight": 2, "type": "status", "kind": "lightning", "seconds": 30, "message": "Stay off the hills."},
 				    {"id": "supply_drop", "name": "Supply drop", "weight": 3, "type": "supply_drop", "min": 20, "max": 40, "message": "Loot landed nearby.",
 				     "tables": ["minecraft:chests/simple_dungeon", "minecraft:chests/buried_treasure", "minecraft:chests/bastion_treasure", "minecraft:chests/end_city_treasure", "minecraft:chests/ancient_city"]},
-				    {"id": "free_spin", "name": "Free Wheel Spin", "weight": 2, "type": "wheel", "message": "The wheel spins itself."}
+				    {"id": "free_spin", "name": "Free Wheel Spin", "weight": 2, "type": "wheel", "message": "The wheel spins itself."},
+				    {"id": "ammo_drop", "name": "Ammo drop", "weight": 3, "type": "ammo_drop", "magazines": 4, "min": 6, "max": 14,
+				     "message": "Crates of ammo for everyone with a gun. Follow the beams."}
 				  ]
 				}""").getAsJsonObject();
 		return root;

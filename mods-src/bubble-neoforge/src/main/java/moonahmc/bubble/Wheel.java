@@ -72,6 +72,7 @@ import java.util.Set;
  *   {"type":"teleport", "radius":50}                                   somewhere safe nearby
  *   {"type":"ambush", "mobs":["minecraft:zombie"], "count":6, "radius":7}  a ring of mobs round each player
  *   {"type":"loot", "tables":["minecraft:chests/simple_dungeon"], "rolls":2}  a burst of loot round each player
+ *   {"type":"ammo", "magazines":5}                                     ammo for every gun each player carries (TACZ)
  *   summon also takes "count", "radius", "leave_after" (seconds, then it vanishes) and "spawn_type" ("triggered")
  */
 public final class Wheel {
@@ -387,6 +388,9 @@ public final class Wheel {
 				});
 				w.add("Does nothing if that rule is already on.");
 			}
+			if (type.equals("ammo")) {
+				w.add("Only gives ammo to players carrying a gun.");
+			}
 			if (!onMid && type.equals("status")) {
 				int secs = a.has("seconds") ? a.get("seconds").getAsInt() : 60;
 				w.add("Only lasts " + (secs % 60 == 0 ? secs / 60 + " min" : secs + " s") + " at the start of the run, not the whole run.");
@@ -675,6 +679,7 @@ public final class Wheel {
 					case "teleport" -> who.forEach(p -> WheelStatus.teleport(p, a.has("radius") ? a.get("radius").getAsInt() : 50));
 					case "ambush" -> who.stream().filter(BubbleServer::counts).forEach(p -> ambush(p, a));
 					case "loot" -> who.stream().filter(BubbleServer::counts).forEach(p -> loot(p, a));
+					case "ammo" -> who.forEach(p -> ammo(p, a));
 					case "gun", "apoth_loot" -> who.forEach(p -> givePlayer(p, a));
 					default -> Bubble.LOG.warn("Wheel: unknown action type '{}' in slice '{}'", type, slice.name());
 				}
@@ -924,6 +929,19 @@ public final class Wheel {
 	}
 
 	/** Loot piñata: rolls a few chest loot tables and sprays the items out round the player. */
+	/** {"type":"ammo", "magazines":5}: that many magazines for every gun each player is carrying (TACZ). */
+	private static void ammo(ServerPlayer p, JsonObject a) {
+		if (!Guns.available()) {
+			return;
+		}
+		var stacks = GunSupply.ammoFor(p, a.has("magazines") ? Math.max(1, a.get("magazines").getAsInt()) : 5);
+		if (stacks.isEmpty()) {
+			p.sendSystemMessage(Component.literal("No gun, no ammo. Better luck next spin.").withStyle(ChatFormatting.GRAY));
+			return;
+		}
+		GunSupply.give(p, stacks, "Locked and loaded:");
+	}
+
 	private static void loot(ServerPlayer p, JsonObject a) {
 		ServerLevel level = p.serverLevel();
 		List<String> tables = new ArrayList<>();
@@ -1123,6 +1141,7 @@ public final class Wheel {
 				    {"name": "A Quiet Place", "color": "#0D5C63", "actions": [
 				      {"type": "summon", "entity": "minecraft:warden", "radius": 16, "spawn_type": "triggered", "leave_after": 180}]},
 				    {"name": "Meteor rain", "color": "#FF7043", "actions": [{"type": "status", "kind": "meteor_rain", "seconds": 30}]},
+				    {"name": "Locked and loaded", "color": "#C9A227", "actions": [{"type": "ammo", "magazines": 5}]},
 				    {"name": "Mob ambush", "color": "#8BC34A", "actions": [
 				      {"type": "ambush", "mobs": ["minecraft:zombie", "minecraft:skeleton", "minecraft:spider", "minecraft:creeper"], "count": 6, "radius": 8}]},
 				    {"name": "Hunger drain", "color": "#A1887F", "actions": [{"type": "effect", "effect": "minecraft:hunger", "seconds": 120, "amplifier": 4}]},
