@@ -37,7 +37,7 @@ public final class BubbleScreen extends ScaledScreen {
 		return switch (tab) {
 			case 1 -> 62 + 13 * PRE_ROW + 16 + Math.max(1, pGroups.size()) * STRUCT_ROW + 40;
 			case 2 -> 62 + ADMIN.length * 36 + 36;
-			default -> 60 + 2 * (CARD_H + GAP) + 70 + GAP + 44 + 44;
+			default -> 60 + 2 * (CARD_H + GAP) + 70 + GAP + 44 + GAP + 44 + 44;
 		};
 	}
 
@@ -96,6 +96,35 @@ public final class BubbleScreen extends ScaledScreen {
 	/** Top of the "wall shows within" card (your own setting). */
 	private int wallY() {
 		return row(2) + 70 + GAP;
+	}
+
+	/** Top of the Revive card (under the wall card). */
+	private int reviveY() {
+		return wallY() + 44 + GAP;
+	}
+
+	private static final int[] REVIVE_SECONDS = {10, 15, 20, 30, 45, 60, 90, 120, 180};
+	private static final int[] REVIVE_HOLD = {0, 1, 2, 3, 5, 8};
+	private Toggle reviveToggle;
+	private Choice reviveSecs;
+	private Choice reviveHold;
+
+	private static int nearest(int[] options, int v) {
+		int best = 0;
+		for (int i = 0; i < options.length; i++) {
+			if (Math.abs(options[i] - v) < Math.abs(options[best] - v)) {
+				best = i;
+			}
+		}
+		return best;
+	}
+
+	private static String[] labels(int[] options, String zero) {
+		String[] out = new String[options.length];
+		for (int i = 0; i < options.length; i++) {
+			out[i] = options[i] == 0 ? zero : options[i] + "s";
+		}
+		return out;
 	}
 
 	// "Next run" tab (pre-game setup)
@@ -221,6 +250,24 @@ public final class BubbleScreen extends ScaledScreen {
 		}));
 		slider = addRenderableWidget(new RadiusSlider(left + 28, row(2) + 30, W - 56, 16));
 		addRenderableWidget(new WallSlider(left + 28, wallY() + 24, W - 56, 14));
+		reviveToggle = null;
+		moonahmc.bubble.Revive.Settings rs = ReviveClient.settings;
+		if (rs != null) {
+			// Revive: on/off, how long you have while down, how long someone has to stand next to you
+			reviveToggle = addRenderableWidget(new Toggle(left + 28, reviveY() + 22, () -> ReviveClient.settings != null && ReviveClient.settings.enabled(),
+					v -> ReviveClient.sendEdit(v, ReviveClient.settings.seconds(), ReviveClient.settings.holdSeconds()), DANGER));
+			reviveSecs = new Choice(left + 124, reviveY() + 23, 70, 16, labels(REVIVE_SECONDS, ""),
+					() -> nearest(REVIVE_SECONDS, ReviveClient.settings == null ? 30 : ReviveClient.settings.seconds()),
+					v -> ReviveClient.sendEdit(ReviveClient.settings.enabled(), REVIVE_SECONDS[v], ReviveClient.settings.holdSeconds()));
+			reviveHold = new Choice(left + 274, reviveY() + 23, 70, 16, labels(REVIVE_HOLD, "Instant"),
+					() -> nearest(REVIVE_HOLD, ReviveClient.settings == null ? 3 : ReviveClient.settings.holdSeconds()),
+					v -> ReviveClient.sendEdit(ReviveClient.settings.enabled(), ReviveClient.settings.seconds(), REVIVE_HOLD[v]));
+			addRenderableWidget(reviveSecs);
+			addRenderableWidget(reviveHold);
+			reviveToggle.active = rs.canEdit();
+			reviveSecs.active = rs.canEdit();
+			reviveHold.active = rs.canEdit();
+		}
 		fixedWidget(new FlatButton(left + W - 88, top + H - 30, 68, 20, Component.literal("Done"), this::onClose));
 		applyPermissions();
 	}
@@ -240,6 +287,10 @@ public final class BubbleScreen extends ScaledScreen {
 
 	/** Called when the server sends new settings (someone else changed them, or ours were accepted). */
 	void syncFromServer() {
+		if (tab == 0 && reviveToggle == null && ReviveClient.settings != null && bubbleToggle != null) {
+			rebuildWidgets(); // the revive settings just arrived: add the Revive card
+			return;
+		}
 		bubble = ClientState.bubbleEnabled;
 		push = ClientState.pushMode;
 		soulLink = ClientState.soulLink;
@@ -318,6 +369,18 @@ public final class BubbleScreen extends ScaledScreen {
 		ctx.drawString(font, Component.literal(wall), left + 28 + font.width("Wall shows within") + 8, wallY() + 9, ACCENT, false);
 		String mine = "Just for you";
 		ctx.drawString(font, Component.literal(mine), left + W - 28 - font.width(mine), wallY() + 9, MUTED, false);
+
+		// Revive (shared rule): go down instead of dying, a teammate next to you gets you up
+		cardAt(ctx, mouseX, mouseY, left + 14, reviveY(), W - 28, 44);
+		ctx.drawString(font, Component.literal("Revive"), left + 28, reviveY() + 8, TEXT, false);
+		String rdesc = ReviveClient.settings == null ? "Loading..." : ReviveClient.settings.enabled()
+				? "You go down instead of dying; stand next to someone to get them up" : "Off: dying is dying";
+		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(rdesc, W - 28 - 28 - font.width("Revive") - 8)),
+				left + 28 + font.width("Revive") + 8, reviveY() + 8, ReviveClient.settings != null && ReviveClient.settings.enabled() ? ACCENT : MUTED, false);
+		if (ReviveClient.settings != null) {
+			ctx.drawString(font, Component.literal("Bleed out"), left + 72, reviveY() + 27, MUTED, false);
+			ctx.drawString(font, Component.literal("Revive takes"), left + 206, reviveY() + 27, MUTED, false);
+		}
 
 		endClip(ctx);
 		// Footer

@@ -179,6 +179,11 @@ public final class BubbleServer {
 		// handling runs once the player has finished dying (see ServerPlayerMixin -> afterDeath).
 		bus.addListener(EventPriority.HIGHEST, (LivingDeathEvent e) -> {
 			if (e.getEntity() instanceof ServerPlayer player) {
+				// Revive: knocked down instead of dying (the rest of the death handling doesn't happen)
+				if (Revive.tryDown(player, e.getSource())) {
+					e.setCanceled(true);
+					return;
+				}
 				beforeDeath(player);
 			}
 		});
@@ -245,6 +250,11 @@ public final class BubbleServer {
 	}
 
 	/** Players who are part of the bubble: alive survival/adventure players (spectators and creative are free). */
+	/** A run is being played (not the kill cam, the post-game vote or a restart). */
+	static boolean playing() {
+		return phase == Phase.PLAYING;
+	}
+
 	static boolean counts(ServerPlayer p) {
 		return p.isAlive() && !p.isSpectator() && !p.isCreative();
 	}

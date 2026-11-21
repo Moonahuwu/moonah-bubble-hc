@@ -40,6 +40,22 @@ Everyone on the server is tied together inside one bubble, one death can end the
 3. For a new world, the server archives the old one to `world-archives/run-N_<date>`, the MoonahMC panel restarts it,
    and the disconnect screen has a **Rejoin** button.
 
+## Revive (going down instead of dying)
+
+On by default. A hit that would kill you **knocks you down** instead: you crawl slowly, can't attack, use items or break
+blocks, nothing can hurt you and mobs lose interest. A **REVIVE** sign floats over your head for everyone to see
+(through walls, and it stays readable far away). It's yellow and goes red as your time runs out, with the seconds
+under it and a green bar while someone revives you. You see "YOU'RE DOWN" with red edges and a countdown.
+
+- A teammate **standing right next to you** (2.5 blocks) for `reviveHoldSeconds` (3) gets you up with 3 hearts,
+  Regeneration and a few seconds of Resistance. Your clock stops while they do.
+- If your `reviveSeconds` (30) run out you die for real, and that counts like any other death (hardcore reset, kill cam).
+- You don't go down (you just die) when you're the only one up, when soul link is on, from the void or `/kill`,
+  or outside a run. If everyone ends up down, it's over straight away. Leaving while down means bleeding out when you
+  come back.
+- **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
+  `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
+
 ## Strange Matter and the shop
 
 - **Selling:** in your inventory there's a Strange Matter slot above the inventory's top-left corner (or right above the
@@ -119,7 +135,9 @@ Everyone on the server is tied together inside one bubble, one death can end the
 - **The Jockey Jockey:** a spider with a cave spider riding it. One bite from the spider gives you every harmful effect
   in the game (every mod's too, but not instant ones like Instant Damage) for 10 seconds. Spawns in the dark.
 - **Swarm zombie:** looks, sounds and acts exactly like a zombie (it's even called "Zombie"). Kill it and it bursts into
-  **100 tiny zombies**: 1 HP, a third the size, half a heart per hit, no sunburn, no fall or cramming damage, no drops.
+  **100 tiny zombies**: half a heart of health and **any hit kills one** (armour, Resistance and other mods' boosts
+  are stripped, and a hit that somehow leaves one alive kills it anyway), a third the size, half a heart per hit, no
+  sunburn, no fall or cramming damage, no drops.
   Each one you kill pays **1 Strange Matter**. Spawns in the dark.
 - How often each of these appears is set in the *Next run* tab (Off / Rare / Normal / Lots).
 - **Watcher:** an enderman with a red outline (visible through walls). Look it in the eyes and you die instantly. A
@@ -407,6 +425,7 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 ## Commands
 
 - `/bubble` opens the settings screen; `/bubble status` prints them.
+- Ops: `/bubble revive [on|off] [seconds]` shows or changes revive (see Revive).
 - Ops: `/bubble radius <2-500>`, `enable|disable`, `edge teleport|push`, `shape ring|sphere`, `soullink on|off`,
   `hardcore on|off`, `newrun` (end the run now), `next` (skip the kill cam / end the vote now),
   `decide next|retry|life`, `seed <seed>|random`, `matter give <player> <amount>`, `shop reload`, `tier <name>`,
@@ -418,8 +437,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.19.2.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.19.2.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.20.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.20.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

@@ -12,6 +12,8 @@ public final class BubbleConfig {
 	public static final int MIN_RADIUS = 2;
 	public static final int MAX_RADIUS = 500;
 	public static final int DEFAULT_RADIUS = 50;
+	public static final int MIN_REVIVE_SECONDS = 5;
+	public static final int MAX_REVIVE_SECONDS = 300;
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
 	/** Keep everyone inside the bubble. */
@@ -29,6 +31,12 @@ public final class BubbleConfig {
 	public int run = 1;
 	/** Extra lives used in this run ("Another life" votes). */
 	public int livesUsed = 0;
+	/** Going down instead of dying: a teammate standing next to you gets you back up (see Revive). */
+	public boolean reviveEnabled = true;
+	/** Seconds you have while you're down before you bleed out. */
+	public int reviveSeconds = 30;
+	/** Seconds a teammate has to stand next to you to get you up (0 = straight away). */
+	public int reviveHoldSeconds = 3;
 	/** Seed for the next new world (set with /bubble seed). Empty = random. */
 	public String nextSeed = "";
 
@@ -53,6 +61,11 @@ public final class BubbleConfig {
 		radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, radius));
 		run = Math.max(1, run);
 		livesUsed = Math.max(0, livesUsed);
+		if (reviveSeconds <= 0) {
+			reviveSeconds = 30; // a config from before revive existed
+		}
+		reviveSeconds = Math.max(MIN_REVIVE_SECONDS, Math.min(MAX_REVIVE_SECONDS, reviveSeconds));
+		reviveHoldSeconds = Math.max(0, Math.min(30, reviveHoldSeconds));
 		if (nextSeed == null) {
 			nextSeed = "";
 		}

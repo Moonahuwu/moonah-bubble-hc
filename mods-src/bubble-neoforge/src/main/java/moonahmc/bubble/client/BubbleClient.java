@@ -206,6 +206,16 @@ public final class BubbleClient {
 				() -> ClientState.quote = payload));
 		ClientPlayNetworking.registerGlobalReceiver(ShopPayloads.WorthResult.ID, (payload, context) -> context.client().execute(
 				() -> SellTooltip.answered(payload)));
+		// Revive: who's down (signs over heads, HUD) and the settings for the Bubble menu
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Revive.Downed.ID, (payload, context) -> context.client().execute(
+				() -> ReviveClient.downed = payload.list()));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Revive.Settings.ID, (payload, context) -> context.client().execute(() -> {
+			ReviveClient.settings = payload;
+			if (context.client().screen instanceof BubbleScreen bs) {
+				bs.syncFromServer();
+			}
+		}));
+		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> ReviveClient.renderHud(e.getGuiGraphics()));
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Notice.ID, (payload, context) -> context.client().execute(
 				() -> NoticeToast.show(payload.title(), payload.body(), payload.ok())));
 		SellTooltip.register(); // "Sells for ..." on your own items' tooltips
@@ -213,6 +223,7 @@ public final class BubbleClient {
 		bus.addListener((ClientPlayerNetworkEvent.LoggingOut e) -> {
 			ClientState.reset();
 			SellTooltip.forget();
+			ReviveClient.reset();
 			WheelOverlay.stop();
 			ClientFx.stop();
 			Minecraft.getInstance().execute(VideoOverlay::stop);
@@ -255,6 +266,7 @@ public final class BubbleClient {
 		bus.addListener((RenderLevelStageEvent e) -> {
 			if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
 				ForcefieldRenderer.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
+				ReviveClient.renderWorld(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 			}
 		});
 		InventoryOverlay.register(); // Bubble + Shop buttons, balance and the sell slot

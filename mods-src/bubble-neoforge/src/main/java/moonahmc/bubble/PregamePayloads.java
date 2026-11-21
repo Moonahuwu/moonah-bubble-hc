@@ -107,6 +107,7 @@ public final class PregamePayloads {
 		Wheel.register(s2c);
 		WheelAdmin.register(s2c, c2s);
 		Notice.register(s2c);
+		Revive.register(s2c, c2s);
 		Gamble.register(s2c, c2s);
 		VideoShare.register(s2c, c2s);
 		Lobby.register(s2c, c2s);

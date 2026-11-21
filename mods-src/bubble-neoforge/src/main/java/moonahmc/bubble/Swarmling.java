@@ -15,7 +15,8 @@ import net.minecraft.world.level.storage.loot.LootTable;
 /**
  * One of the 100 tiny zombies from a swarm zombie: half a heart of health, a third of the size, exactly half a heart per
  * hit on any difficulty, doesn't burn in the sun, takes no fall or cramming damage, drops nothing, and pays 1 Strange
- * Matter to the player who kills it. Health and damage boosts from other mods (Apotheosis world tiers) are taken off.
+ * Matter to the player who kills it. Health and damage boosts from other mods (Apotheosis world tiers) are taken off,
+ * and so are armour and potion effects: any hit kills it, whatever armour or Resistance it picked up.
  */
 public final class Swarmling extends Zombie {
 	public Swarmling(EntityType<? extends Zombie> type, Level level) {
@@ -24,25 +25,53 @@ public final class Swarmling extends Zombie {
 		setCanPickUpLoot(false);
 	}
 
-	private boolean trimmed;
-
 	@Override
 	public void tick() {
-		if (!trimmed && !level().isClientSide) {
-			trimmed = true;
-			var hp = getAttribute(Attributes.MAX_HEALTH);
-			if (hp != null) {
-				hp.removeModifiers();
-				hp.setBaseValue(1);
-			}
-			var dmg = getAttribute(Attributes.ATTACK_DAMAGE);
-			if (dmg != null) {
-				dmg.removeModifiers();
-				dmg.setBaseValue(1);
-			}
-			setHealth(Math.min(getHealth(), 1));
+		// Other mods can add boosts after it spawns (world tiers, mob effects), so this is checked every second
+		if (!level().isClientSide && tickCount % 20 == 1) {
+			trim();
 		}
 		super.tick();
+	}
+
+	private void trim() {
+		var hp = getAttribute(Attributes.MAX_HEALTH);
+		if (hp != null && (hp.getBaseValue() != 1 || !hp.getModifiers().isEmpty())) {
+			hp.removeModifiers();
+			hp.setBaseValue(1);
+		}
+		var dmg = getAttribute(Attributes.ATTACK_DAMAGE);
+		if (dmg != null && (dmg.getBaseValue() != 1 || !dmg.getModifiers().isEmpty())) {
+			dmg.removeModifiers();
+			dmg.setBaseValue(1);
+		}
+		for (var a : new net.minecraft.core.Holder[] {Attributes.ARMOR, Attributes.ARMOR_TOUGHNESS}) {
+			@SuppressWarnings("unchecked")
+			var inst = getAttribute((net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute>) a);
+			if (inst != null && (inst.getBaseValue() != 0 || !inst.getModifiers().isEmpty())) {
+				inst.removeModifiers();
+				inst.setBaseValue(0);
+			}
+		}
+		if (!getActiveEffects().isEmpty()) {
+			removeAllEffects();
+		}
+		setAbsorptionAmount(0);
+		if (getHealth() > 1) {
+			setHealth(1);
+		}
+	}
+
+	/** One hit kills, whatever armour, Resistance or protection it picked up: if a real hit leaves it alive, it dies anyway
+	 *  (NeoForge counts armour and Resistance as reductions that can't be made negative, so this is done after the hit). */
+	@Override
+	public boolean hurt(DamageSource source, float amount) {
+		boolean hit = super.hurt(source, amount);
+		if (hit && amount > 0 && !level().isClientSide && isAlive() && !isRemoved()) {
+			setHealth(0);
+			die(source);
+		}
+		return hit;
 	}
 
 	/** Exactly half a heart (before armour): players take 1.5x mob damage on Hard, so hit for 2/3 there. */
