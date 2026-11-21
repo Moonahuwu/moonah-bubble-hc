@@ -1,0 +1,13 @@
+name = "Modern Lucky Block"
+filename = "lucky_block-neoforge-0.2.0+1.21.1.jar"
+side = "both"
+
+[download]
+url = "https://cdn.modrinth.com/data/rfMJRd3C/versions/p3D9MdCt/lucky_block-neoforge-0.2.0%2B1.21.1.jar"
+hash-format = "sha512"
+hash = "dcea0aa52d61bb9c1002412af414b8dd0a5bf637dcfd03cc2bc0299d45a3aa228ea960007ccae05871dc6c78ae8a90773928a0d888187aceadc29d6d1e3d8846"
+
+[update]
+[update.modrinth]
+mod-id = "rfMJRd3C"
+version = "p3D9MdCt"

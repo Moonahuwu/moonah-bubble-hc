@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "moonahmc.bubble.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ServerPlayerMixin",
+    "LivingEntityMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "client": [
+    "ConnectScreenMixin",
+    "EntityTurnMixin"
+  ]
+}

@@ -1,0 +1,30 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "MIT"
+
+[[mods]]
+modId = "bubble"
+version = "${version}"
+displayName = "Bubble"
+authors = "MoonahMC"
+logoFile = "assets/bubble/icon.png"
+description = '''
+Keeps everyone together inside a shared bubble around the group, and one death can reset the world for everyone.
+'''
+
+[[mixins]]
+config = "bubble.mixins.json"
+
+[[dependencies.bubble]]
+modId = "neoforge"
+type = "required"
+versionRange = "[21.1,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.bubble]]
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.21.2)"
+ordering = "NONE"
+side = "BOTH"

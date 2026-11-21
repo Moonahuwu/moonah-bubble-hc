@@ -1,0 +1,26 @@
+# Everything is ignored unless it's listed below, so servers, worlds, the panel and its password, player lists and
+# IP addresses can't end up on GitHub by accident.
+/*
+
+!/.gitignore
+!/.gitattributes
+!/README.md
+!/CONTRIBUTING.md
+!/pack/
+!/update-pack.py
+!/make-instance.py
+!/sync-bubble-hc-mods.py
+!/sync-bubble-hc-mods.bat
+!/mods-src/
+
+# The old Fabric Bubble isn't part of this pack
+/mods-src/bubble/
+
+# Build output and other people's jars (the build tells you where to get them)
+/mods-src/bubble-neoforge/build/
+/mods-src/bubble-neoforge/.gradle/
+/mods-src/bubble-neoforge/run/
+/mods-src/bubble-neoforge/libs/*.jar
+/mods-src/lucky-addon/*.zip
+/mods-src/**/__pycache__/
+*.log

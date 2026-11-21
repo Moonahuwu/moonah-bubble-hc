@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "bubble:item/case",
+    "layer1": "bubble:item/case_band"
+  }
+}

@@ -1,0 +1,51 @@
+plugins {
+	id 'java-library'
+	id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = 'bubble-neoforge'
+}
+
+neoForge {
+	version = project.neo_version
+
+	mods {
+		bubble {
+			sourceSet sourceSets.main
+		}
+	}
+
+	runs {
+		// Dev server for testing (./gradlew runServer), runs in run/
+		server {
+			server()
+			programArgument '--nogui'
+		}
+	}
+}
+
+dependencies {
+	// Apotheosis: only used when it's installed, for shared world tiers (ApothTiers)
+	compileOnly files('libs/Apotheosis-1.21.1-8.9.0.jar', 'libs/Placebo-1.21.1-9.9.4.jar', 'libs/ApothicAttributes-1.21.1-2.11.0.jar')
+	// WaterMedia: only used when it's installed, for the shop's Video tab (client/WaterMediaVideo)
+	compileOnly files('libs/watermedia-3.0.2.jar')
+	// Curios: accessories kept through a run-ending death, and right-click to equip (AccessoryCompat)
+	compileOnly files('libs/curios-neoforge-9.6.0+1.21.1.jar')
+}
+
+processResources {
+	def props = [version: project.version, neo_version: project.neo_version]
+	inputs.properties props
+	filesMatching("META-INF/neoforge.mods.toml") {
+		expand props
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = 'UTF-8'
+}
