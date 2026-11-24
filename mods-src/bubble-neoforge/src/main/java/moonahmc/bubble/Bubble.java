@@ -29,6 +29,7 @@ public final class Bubble {
 		WheelAdmin.init(); // Admin tab: wheel slices and events
 		RunLog.init(); // the post-game "What happened" list
 		Revive.init(); // going down instead of dying, teammates revive you
+		CurrencyAdmin.init(); // ops: give/take/set Strange Matter and Eidolons
 		Gamble.init(); // case opening (shop Gamble tab)
 		Lobby.init(); // ready-up lobby at the start of a run
 		RunModifiers.init(); // wheel modifiers + upgrade attributes

@@ -113,6 +113,7 @@ public final class PregamePayloads {
 		Lobby.register(s2c, c2s);
 		Goals.register(s2c, c2s);
 		Eidolons.register(s2c, c2s);
+		CurrencyAdmin.register(s2c, c2s);
 		c2s.register(Update.ID, Update.CODEC);
 	}
 }

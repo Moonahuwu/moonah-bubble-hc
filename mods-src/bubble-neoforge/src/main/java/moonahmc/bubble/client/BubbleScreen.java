@@ -37,7 +37,7 @@ public final class BubbleScreen extends ScaledScreen {
 		return switch (tab) {
 			case 1 -> 62 + 13 * PRE_ROW + 16 + Math.max(1, pGroups.size()) * STRUCT_ROW + 40;
 			case 2 -> 62 + ADMIN.length * 36 + 36;
-			default -> 60 + 2 * (CARD_H + GAP) + 70 + GAP + 44 + GAP + 44 + 44;
+			default -> 60 + 2 * (CARD_H + GAP) + 70 + GAP + 64 + GAP + 44 + 44;
 		};
 	}
 
@@ -100,7 +100,7 @@ public final class BubbleScreen extends ScaledScreen {
 
 	/** Top of the Revive card (under the wall card). */
 	private int reviveY() {
-		return wallY() + 44 + GAP;
+		return wallY() + 64 + GAP;
 	}
 
 	private static final int[] REVIVE_SECONDS = {10, 15, 20, 30, 45, 60, 90, 120, 180};
@@ -250,6 +250,10 @@ public final class BubbleScreen extends ScaledScreen {
 		}));
 		slider = addRenderableWidget(new RadiusSlider(left + 28, row(2) + 30, W - 56, 16));
 		addRenderableWidget(new WallSlider(left + 28, wallY() + 24, W - 56, 14));
+		addRenderableWidget(new Toggle(left + W - 28 - 34, wallY() + 42, () -> ClientSettings.downCam, v -> {
+			ClientSettings.downCam = v;
+			ClientSettings.save();
+		}));
 		reviveToggle = null;
 		moonahmc.bubble.Revive.Settings rs = ReviveClient.settings;
 		if (rs != null) {
@@ -363,7 +367,9 @@ public final class BubbleScreen extends ScaledScreen {
 		ctx.drawString(font, Component.literal(value), left + 28 + font.width("Bubble radius") + 8, row(2) + 11, ACCENT, false);
 
 		// Your own setting: how close to the edge the wall starts to show
-		cardAt(ctx, mouseX, mouseY, left + 14, wallY(), W - 28, 44);
+		cardAt(ctx, mouseX, mouseY, left + 14, wallY(), W - 28, 64);
+		ctx.drawString(font, Component.literal("Replay when you go down"), left + 28, wallY() + 47, TEXT, false);
+		ctx.drawString(font, Component.literal("(a few seconds, click to skip)"), left + 28 + font.width("Replay when you go down") + 6, wallY() + 47, MUTED, false);
 		ctx.drawString(font, Component.literal("Wall shows within"), left + 28, wallY() + 9, TEXT, false);
 		String wall = ClientSettings.wallAlways() ? "always visible" : ClientSettings.wallDistance + " blocks of the edge";
 		ctx.drawString(font, Component.literal(wall), left + 28 + font.width("Wall shows within") + 8, wallY() + 9, ACCENT, false);
@@ -471,10 +477,11 @@ public final class BubbleScreen extends ScaledScreen {
 			{"Shop", "Turns buying in the shop off/on. Gamble and selling still work", "Close shop", ""},
 			{"Objectives", "Add or remove objectives and stages in any game mode", "Edit", ""},
 			{"Wheel slices", "Switch slices on/off on both wheels, set weights, do one now", "Edit", ""},
-			{"Random events", "Hordes, watchers, supply drops: toggle them, or force one now", "Edit", ""}};
+			{"Random events", "Hordes, watchers, supply drops: toggle them, or force one now", "Edit", ""},
+			{"Currencies", "Give, take or set anyone's Strange Matter and Eidolons", "Open", ""}};
 	private static final int[] ADMIN_ACTIONS = {moonahmc.bubble.BubbleServer.ADMIN_START, moonahmc.bubble.BubbleServer.ADMIN_NEXT_WORLD,
 			moonahmc.bubble.BubbleServer.ADMIN_RETRY_SEED, moonahmc.bubble.BubbleServer.ADMIN_END_RUN, moonahmc.bubble.BubbleServer.ADMIN_SKIP,
-			moonahmc.bubble.BubbleServer.ADMIN_REVIVE, moonahmc.bubble.BubbleServer.ADMIN_WHEEL, moonahmc.bubble.BubbleServer.ADMIN_SHOP, -1, -2, -3};
+			moonahmc.bubble.BubbleServer.ADMIN_REVIVE, moonahmc.bubble.BubbleServer.ADMIN_WHEEL, moonahmc.bubble.BubbleServer.ADMIN_SHOP, -1, -2, -3, -4};
 	private final long[] armed = new long[ADMIN.length];
 
 	private int adminY(int i) {
@@ -518,6 +525,10 @@ public final class BubbleScreen extends ScaledScreen {
 				b.setMessage(Component.literal(adminLabel(index)));
 				if (ADMIN_ACTIONS[index] == -1) {
 					minecraft.setScreen(new GoalsEditorScreen(this));
+					return;
+				}
+				if (ADMIN_ACTIONS[index] == -4) {
+					minecraft.setScreen(new CurrencyAdminScreen(this));
 					return;
 				}
 				if (ADMIN_ACTIONS[index] < -1) {

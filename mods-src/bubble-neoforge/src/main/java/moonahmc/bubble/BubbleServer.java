@@ -103,6 +103,34 @@ public final class BubbleServer {
 	private static final Map<UUID, ArrayDeque<Payloads.Frame>> tracks = new HashMap<>();
 	private static final Map<UUID, List<ItemStack>> gear = new HashMap<>();
 	private static final Map<UUID, Integer> lastHurt = new HashMap<>();
+	/**
+	 * Revive: the few seconds before each player who is down went down (and what they wore), kept until they get up.
+	 * If they bleed out and that ends the run, the kill cam shows this instead of them crawling about.
+	 */
+	private record DownClip(List<Payloads.Frame> frames, List<ItemStack> gear, Vec3 pos) {
+	}
+
+	private static final Map<UUID, DownClip> downClips = new HashMap<>();
+
+	/** Revive: `p` just went down. Keeps the clip for the kill cam and plays it back to them (their own down cam). */
+	static void rememberDown(ServerPlayer p) {
+		ArrayDeque<Payloads.Frame> track = tracks.get(p.getUUID());
+		List<Payloads.Frame> frames = track == null ? List.of() : List.copyOf(track);
+		List<ItemStack> worn = new ArrayList<>(GEAR_SLOTS.length);
+		for (EquipmentSlot slot : GEAR_SLOTS) {
+			worn.add(p.getItemBySlot(slot).copy());
+		}
+		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position()));
+		if (frames.size() >= 2 && ServerPlayNetworking.canSend(p, Payloads.DownCam.ID)) {
+			ServerPlayNetworking.send(p, new Payloads.DownCam(new Payloads.Killcam(p.getUUID(), p.getName().getString(),
+					p.serverLevel().dimension().location().toString(), frames, worn)));
+		}
+	}
+
+	/** Revive: `p` got back up (or left), so their knockdown clip isn't needed. */
+	static void forgetDown(ServerPlayer p) {
+		downClips.remove(p.getUUID());
+	}
 
 	// end of run
 	private static Component endCause = Component.empty();
@@ -748,6 +776,16 @@ public final class BubbleServer {
 		deathPos = victim.position();
 		ArrayDeque<Payloads.Frame> track = tracks.get(victim.getUUID());
 		killFrames = track == null ? List.of() : List.copyOf(track);
+		List<ItemStack> victimGear = gear.getOrDefault(victim.getUUID(), List.of());
+		// They went down earlier and bled out: show how they went down, not them crawling about.
+		DownClip clip = downClips.get(victim.getUUID());
+		if (clip != null && clip.frames.size() >= 2) {
+			killFrames = clip.frames;
+			victimGear = clip.gear;
+			deathPos = clip.pos;
+			endCause = endCause.copy().append(Component.literal(" (this is where they went down)"));
+		}
+		downClips.clear();
 		// Start behind the player, looking over their shoulder.
 		float yaw = killFrames.isEmpty() ? victim.getYRot() : killFrames.get(0).yaw();
 		camStartAngle = Math.toRadians(yaw) - Math.PI / 2;
@@ -762,7 +800,7 @@ public final class BubbleServer {
 			bringToKillcam(q);
 		}
 		Payloads.Killcam replay = new Payloads.Killcam(victim.getUUID(), victim.getName().getString(),
-				deathWorld.dimension().location().toString(), killFrames, gear.getOrDefault(victim.getUUID(), List.of()));
+				deathWorld.dimension().location().toString(), killFrames, victimGear);
 		for (ServerPlayer q : players()) {
 			if (ServerPlayNetworking.canSend(q, Payloads.Killcam.ID)) {
 				ServerPlayNetworking.send(q, replay);

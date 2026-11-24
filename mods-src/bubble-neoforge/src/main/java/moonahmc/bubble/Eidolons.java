@@ -171,6 +171,38 @@ public final class Eidolons {
 		return pr == null ? 0 : pr.upgrades.getOrDefault(upgrade, 0);
 	}
 
+	/** Anyone's Eidolons, online or not. */
+	static long balance(UUID id) {
+		Profile pr = data.players.get(id.toString());
+		return pr == null ? 0 : pr.eidolons;
+	}
+
+	/** Sets anyone's Eidolons (ops, CurrencyAdmin). Doesn't count as earned. */
+	static void setBalance(UUID id, String name, long amount) {
+		Profile pr = data.players.computeIfAbsent(id.toString(), k -> new Profile());
+		if (name != null && !name.isEmpty() && (pr.name == null || pr.name.isEmpty())) {
+			pr.name = name;
+		}
+		pr.eidolons = Math.max(0, amount);
+		save();
+		ServerPlayer p = server == null ? null : server.getPlayerList().getPlayer(id);
+		if (p != null) {
+			sendState(p);
+		}
+	}
+
+	/** Everyone with an Eidolon profile, by UUID, with the name they last played as. */
+	static Map<UUID, String> knownNames() {
+		Map<UUID, String> out = new LinkedHashMap<>();
+		data.players.forEach((k, pr) -> {
+			try {
+				out.put(UUID.fromString(k), pr.name == null ? "" : pr.name);
+			} catch (IllegalArgumentException ignored) {
+			}
+		});
+		return out;
+	}
+
 	static long balance(ServerPlayer p) {
 		return profile(p).eidolons;
 	}

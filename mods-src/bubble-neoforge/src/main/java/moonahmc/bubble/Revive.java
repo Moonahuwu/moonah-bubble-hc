@@ -271,6 +271,7 @@ public final class Revive {
 		p.setForcedPose(Pose.SWIMMING);
 		downed.put(p.getUUID(), new Down(source, c.reviveSeconds * 20));
 		hobble(p, true);
+		BubbleServer.rememberDown(p); // the kill cam clip, and their own down cam
 		server.getPlayerList().broadcastSystemMessage(Component.literal("✚ ").withStyle(ChatFormatting.YELLOW)
 				.append(p.getDisplayName()).append(Component.literal(" is down! Stand next to them to revive them (" + c.reviveSeconds + "s)")
 						.withStyle(ChatFormatting.YELLOW)), false);
@@ -404,6 +405,7 @@ public final class Revive {
 
 	private static void revive(ServerPlayer p, ServerPlayer helper) {
 		downed.remove(p.getUUID());
+		BubbleServer.forgetDown(p);
 		getUp(p);
 		p.setHealth(Math.min(p.getMaxHealth(), 6));
 		p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));

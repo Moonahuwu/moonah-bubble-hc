@@ -310,10 +310,23 @@ public final class Payloads {
 		}
 	}
 
+	/** Server to client: you just went down; here's how it happened (your own short replay, your camera only). */
+	public record DownCam(Killcam clip) implements CustomPacketPayload {
+		public static final Type<DownCam> ID = id("down_cam");
+		public static final StreamCodec<RegistryFriendlyByteBuf, DownCam> CODEC = StreamCodec.ofMember(
+				(d, buf) -> Killcam.CODEC.encode(buf, d.clip), buf -> new DownCam(Killcam.CODEC.decode(buf)));
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
 	public static void register() {
 		var s2c = PayloadTypeRegistry.playS2C();
 		var c2s = PayloadTypeRegistry.playC2S();
 		s2c.register(Killcam.ID, Killcam.CODEC);
+		s2c.register(DownCam.ID, DownCam.CODEC);
 		s2c.register(State.ID, State.CODEC);
 		s2c.register(Open.ID, Open.CODEC);
 		s2c.register(Field.ID, Field.CODEC);

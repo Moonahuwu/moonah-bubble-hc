@@ -171,7 +171,22 @@ public final class BubbleClient {
 		}));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.PostStatus.ID, (payload, context) -> context.client().execute(
 				() -> ClientState.postStatus = payload));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.CurrencyAdmin.ListRows.ID, (payload, context) -> context.client().execute(() -> {
+			CurrencyAdminScreen.rows = payload.rows();
+			if (context.client().screen instanceof CurrencyAdminScreen s) {
+				s.refresh();
+			}
+		}));
+		ClientPlayNetworking.registerGlobalReceiver(Payloads.DownCam.ID, (payload, context) -> context.client().execute(() -> DownCam.start(payload.clip())));
+		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> DownCam.renderHud(e.getGuiGraphics()));
+		// While your down cam plays, your own body is hidden (the replay stands in for it)
+		bus.addListener((net.neoforged.neoforge.client.event.RenderPlayerEvent.Pre e) -> {
+			if (DownCam.active() && e.getEntity() == Minecraft.getInstance().player) {
+				e.setCanceled(true);
+			}
+		});
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.Killcam.ID, (payload, context) -> context.client().execute(() -> {
+			DownCam.stop();
 			ClientState.fieldActive = false;
 			KillcamReplay.start(payload);
 		}));
@@ -233,6 +248,7 @@ public final class BubbleClient {
 			SellTooltip.forget();
 			ReviveClient.reset();
 			RibbonTrails.reset();
+			Minecraft.getInstance().execute(DownCam::stop);
 			WheelOverlay.stop();
 			ClientFx.stop();
 			Minecraft.getInstance().execute(VideoOverlay::stop);
@@ -243,6 +259,7 @@ public final class BubbleClient {
 			Minecraft client = Minecraft.getInstance();
 			ClientState.tickField();
 			KillcamReplay.tick(client);
+			DownCam.tick(client);
 			while (openKey.consumeClick()) {
 				if (client.player == null) {
 					continue;

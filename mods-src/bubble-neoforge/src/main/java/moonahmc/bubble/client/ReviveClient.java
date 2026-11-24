@@ -81,9 +81,12 @@ final class ReviveClient {
 			}
 		});
 		bus.addListener((net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered e) -> {
-			if (meDown()) {
+			if (meDown() || DownCam.active()) {
 				e.setCanceled(true);
 				e.setSwingHand(false);
+				if (DownCam.active()) {
+					DownCam.stop(); // click to skip your down cam
+				}
 			}
 		});
 	}
@@ -115,7 +118,7 @@ final class ReviveClient {
 		MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 		for (Revive.Entry e : downed) {
 			Entity who = mc.level.getEntity(e.entityId());
-			if (who == null || (who == mc.getCameraEntity() && mc.options.getCameraType().isFirstPerson())) {
+			if (who == null || (who == mc.getCameraEntity() && mc.options.getCameraType().isFirstPerson()) || (who == mc.player && DownCam.active())) {
 				continue;
 			}
 			Vec3 at = who.getPosition(partial).add(0, who.getBbHeight() + 0.55, 0);

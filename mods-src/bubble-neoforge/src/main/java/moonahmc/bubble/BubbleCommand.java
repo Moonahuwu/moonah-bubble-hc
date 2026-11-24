@@ -35,6 +35,7 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble odds elite <mob> [n]     (ops) the same for that mob's Apotheosis elite
  * /bubble elite <mob>              (ops) spawn that mob as one of its Apotheosis elites
  * /bubble odds case <case> [n]     (ops) n simulated openings: tiers, and how many prizes came out better
+ * /bubble currency matter|eidolons give|take|set <players> <amount>, /bubble currency list   (ops)
  * /bubble nuke [pos]               (ops) set off a nuke (Lucky Blocks use this)
  * /bubble video stop               (ops) stop the video someone is showing everyone (shop Video tab)
  * /bubble newrun                   (ops) end this run now (post-game vote)
@@ -80,6 +81,7 @@ final class BubbleCommand {
 		d.register(literal("bubble").then(Wheel.command())); // /bubble wheel [reload]
 		d.register(literal("bubble").then(WheelAdmin.command())); // /bubble event [id] [silent]
 		d.register(literal("bubble").then(Revive.command())); // /bubble revive [on|off] [seconds]
+		d.register(literal("bubble").then(CurrencyAdmin.command())); // /bubble currency matter|eidolons give|take|set <players> <amount>
 		d.register(literal("bubble").then(Lobby.command())); // /bubble start
 		d.register(literal("bubble").then(literal("eidolons").requires(src -> src.hasPermission(2))
 				.then(literal("give").then(argument("player", EntityArgument.player())

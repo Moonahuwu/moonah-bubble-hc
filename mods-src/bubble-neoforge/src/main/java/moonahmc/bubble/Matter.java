@@ -97,6 +97,28 @@ public final class Matter {
 		return server == null ? 0 : wallets.getOrDefault(p.getUUID(), 0.0);
 	}
 
+	/** Anyone's balance in this world, online or not. */
+	static double balance(UUID id) {
+		return server == null ? 0 : wallets.getOrDefault(id, 0.0);
+	}
+
+	/** Sets anyone's balance (ops, CurrencyAdmin). */
+	static void setBalance(UUID id, double amount) {
+		if (server == null) {
+			return;
+		}
+		wallets.put(id, Math.max(0, amount));
+		saveWallets();
+		ServerPlayer p = server.getPlayerList().getPlayer(id);
+		if (p != null) {
+			sendBalance(p);
+		}
+	}
+
+	static java.util.Set<UUID> walletIds() {
+		return new java.util.HashSet<>(wallets.keySet());
+	}
+
 	/** Adds (or with a negative amount, takes) matter. Returns false if they can't afford it. */
 	public static boolean add(ServerPlayer p, double amount) {
 		double now = wallets.getOrDefault(p.getUUID(), 0.0);
