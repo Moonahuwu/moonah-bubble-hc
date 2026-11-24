@@ -2,7 +2,7 @@ hash-format = "sha256"
 
 [[files]]
 file = "addons/MoonahMC-Lucky-Blocks.zip"
-hash = "b3949d35a9720f882e21a3f60e779d02879c4d399e1e113d0856807ba4ecc207"
+hash = "f22338533885bfcaf542f3a53332ef9082c2ed44634314a36cea208ca53cbd8f"
 
 [[files]]
 file = "mods/3dskinlayers.pw.toml"
@@ -65,8 +65,8 @@ hash = "fc8954e0d3fa66b917d2c84ee04d07b073a9eb6f719d09e1ff85527c1d61a10e"
 metafile = true
 
 [[files]]
-file = "mods/bubble-neoforge-1.24.0.jar"
-hash = "e81cf0f2557fb8b8ab2865e9752a6d5af2d958afe1591999096fd9349550776a"
+file = "mods/bubble-neoforge-1.25.0.jar"
+hash = "dcb07158fb2f320ba1edb424f16386e1d526edad8a8b388ac6ea405dd22802f5"
 
 [[files]]
 file = "mods/cataclysm-dimension.pw.toml"
