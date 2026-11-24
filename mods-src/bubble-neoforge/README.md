@@ -234,6 +234,10 @@ A second currency that never resets (saved in `bubble-eidolons.json` in the serv
   Matter at each run start, 5), Haggler (+5% selling, 4), Head Start (starting kit: stone, iron, then armour).
 - **Cosmetics:** particle trails (hearts, flame, music, soul fire, end rod, cherry, rainbow) and titles shown above
   your head, in chat and the tab list (Gambler, Watcher Bait, Nuke Survivor, Bubble Veteran, Legend).
+- **Trails** (GMod style, their own tab): a ribbon of texture along the ground behind you that narrows and fades out
+  over about 1.5 seconds; everyone sees it. Plasma, Electric, Love, Smoke (25-35), Fire, Stars, Bubbles (35-40),
+  Rainbow, Trans flag (60) and LOL (75). You can wear one with a particle trail. The textures are drawn by
+  `tools/make_trail_textures.py`.
 - **Hall of Fame:** longest run, most wins, most runs ended (the last one to end a run wears **[Run Ender]** until the
   next run ends), biggest gambler, most bosses, luckiest unboxing, most Eidolons earned.
 - **Betting:** on the ready-up screen, bet Eidolons on who ends this run (or "Nobody: we finish"). Winners split the
@@ -512,8 +516,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.23.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.23.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.24.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.24.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

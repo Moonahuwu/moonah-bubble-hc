@@ -7,6 +7,8 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.List;
+
 import static moonahmc.bubble.client.BubbleScreen.CARD;
 import static moonahmc.bubble.client.BubbleScreen.MUTED;
 import static moonahmc.bubble.client.BubbleScreen.TEXT;
@@ -56,7 +58,7 @@ public final class EidolonScreen extends ScaledScreen {
 		fit();
 		left = (width - W) / 2;
 		top = (height - H) / 2;
-		String[] tabs = {"Upgrades", "Cosmetics", "Hall of Fame"};
+		String[] tabs = {"Upgrades", "Cosmetics", "Trails", "Hall of Fame"};
 		int tx = left + 18;
 		for (int i = 0; i < tabs.length; i++) {
 			int index = i;
@@ -89,6 +91,9 @@ public final class EidolonScreen extends ScaledScreen {
 		} else if (tab == 1) {
 			int[] counts = new int[2];
 			for (Eidolons.Cosmetic c : Eidolons.COSMETICS) {
+				if (c.kind().equals("ribbon")) {
+					continue;
+				}
 				int col = c.kind().equals("trail") ? 0 : 1;
 				int x = left + 18 + col * ((W - 36) / 2);
 				int y = top + 82 + counts[col]++ * 22;
@@ -111,7 +116,62 @@ public final class EidolonScreen extends ScaledScreen {
 					b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Click to take it off")));
 				}
 			}
+		} else if (tab == 2) {
+			String mine = minecraft != null && minecraft.player != null ? RibbonTrails.worn.get(minecraft.player.getUUID()) : null;
+			List<Eidolons.Cosmetic> ribbons = ribbons();
+			for (int i = 0; i < ribbons.size(); i++) {
+				Eidolons.Cosmetic c = ribbons.get(i);
+				int x = ribbonX(i);
+				int y = ribbonY(i);
+				boolean owned = st.owned().contains(c.id());
+				boolean equipped = c.id().equals(mine);
+				BubbleScreen.FlatButton b = addRenderableWidget(new BubbleScreen.FlatButton(x + ribbonW() - 8 - 70, y + 3, 70, 14,
+						Component.literal(equipped ? "Equipped" : owned ? "Equip" : "Buy  " + c.cost()), () -> {
+					if (!owned) {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.BUY_COSMETIC, c.id()));
+					} else if (!equipped) {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.EQUIP, c.id()));
+					} else {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.UNEQUIP_RIBBON, c.id()));
+					}
+				}));
+				b.ghost = equipped;
+				b.color = PURPLE;
+				b.active = owned || st.eidolons() >= c.cost();
+				if (equipped) {
+					b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Click to take it off")));
+				}
+			}
 		}
+	}
+
+	private static List<Eidolons.Cosmetic> ribbons() {
+		return Eidolons.COSMETICS.stream().filter(c -> c.kind().equals("ribbon")).toList();
+	}
+
+	private int ribbonW() {
+		return (W - 36) / 2 - 4;
+	}
+
+	private int ribbonX(int i) {
+		return left + 18 + (i % 2) * ((W - 36) / 2);
+	}
+
+	private int ribbonY(int i) {
+		return top + 80 + (i / 2) * 37;
+	}
+
+	/** The ribbon's texture, repeated along a strip like it looks behind you. */
+	private static void preview(GuiGraphics ctx, String id, int x, int y, int w, int h) {
+		ResourceLocation tex = ResourceLocation.fromNamespaceAndPath(moonahmc.bubble.Bubble.MOD_ID, "textures/trail/" + id + ".png");
+		com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+		com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
+		ctx.enableScissor(x, y, x + w, y + h);
+		for (int px = x; px < x + w; px += h * 4) {
+			ctx.blit(tex, px, y, h * 4, h, 0, 0, 128, 32, 128, 32);
+		}
+		ctx.disableScissor();
+		com.mojang.blaze3d.systems.RenderSystem.disableBlend();
 	}
 
 	private int rowY(int i) {
@@ -165,16 +225,30 @@ public final class EidolonScreen extends ScaledScreen {
 				}
 			}
 		} else if (tab == 1) {
-			ctx.drawString(font, "TRAILS", left + 22, top + 68, PURPLE, false);
+			ctx.drawString(font, "PARTICLE TRAILS", left + 22, top + 68, PURPLE, false);
 			ctx.drawString(font, "TITLES (above your head and in chat)", left + 18 + (W - 36) / 2 + 4, top + 68, PURPLE, false);
 			int[] counts = new int[2];
 			for (Eidolons.Cosmetic c : Eidolons.COSMETICS) {
+				if (c.kind().equals("ribbon")) {
+					continue;
+				}
 				int col = c.kind().equals("trail") ? 0 : 1;
 				int x = left + 18 + col * ((W - 36) / 2);
 				int y = top + 82 + counts[col]++ * 22;
 				roundRect(ctx, x, y, (W - 36) / 2 - 4, 20, 5, CARD);
 				String name = c.kind().equals("title") ? "[" + c.name() + "]" : c.name();
 				ctx.drawString(font, name, x + 8, y + 6, 0xFF000000 | c.color(), false);
+			}
+		} else if (tab == 2) {
+			ctx.drawString(font, "TRAILS: a ribbon behind you that fades out (wear one with a particle trail too)", left + 22, top + 66, PURPLE, false);
+			List<Eidolons.Cosmetic> ribbons = ribbons();
+			for (int i = 0; i < ribbons.size(); i++) {
+				Eidolons.Cosmetic c = ribbons.get(i);
+				int x = ribbonX(i);
+				int y = ribbonY(i);
+				roundRect(ctx, x, y, ribbonW(), 33, 5, CARD);
+				ctx.drawString(font, c.name(), x + 8, y + 6, 0xFF000000 | c.color(), false);
+				preview(ctx, c.id(), x + 8, y + 19, ribbonW() - 16, 10);
 			}
 		} else {
 			int y = top + 66;

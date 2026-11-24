@@ -217,6 +217,13 @@ public final class BubbleClient {
 			}
 		}));
 		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> ReviveClient.renderHud(e.getGuiGraphics()));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Eidolons.Ribbons.ID, (payload, context) -> context.client().execute(() -> {
+			RibbonTrails.setWorn(payload.worn());
+			if (context.client().screen instanceof EidolonScreen es) {
+				es.refresh();
+			}
+		}));
+		bus.addListener((ClientTickEvent.Post e) -> RibbonTrails.tick());
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Notice.ID, (payload, context) -> context.client().execute(
 				() -> NoticeToast.show(payload.title(), payload.body(), payload.ok())));
 		SellTooltip.register(); // "Sells for ..." on your own items' tooltips
@@ -225,6 +232,7 @@ public final class BubbleClient {
 			ClientState.reset();
 			SellTooltip.forget();
 			ReviveClient.reset();
+			RibbonTrails.reset();
 			WheelOverlay.stop();
 			ClientFx.stop();
 			Minecraft.getInstance().execute(VideoOverlay::stop);
@@ -268,6 +276,7 @@ public final class BubbleClient {
 			if (e.getStage() == RenderLevelStageEvent.Stage.AFTER_TRANSLUCENT_BLOCKS) {
 				ForcefieldRenderer.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 				ReviveClient.renderWorld(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
+				RibbonTrails.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 			}
 		});
 		InventoryOverlay.register(); // Bubble + Shop buttons, balance and the sell slot

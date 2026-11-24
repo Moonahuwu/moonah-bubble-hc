@@ -75,6 +75,17 @@ public final class Eidolons {
 			new Cosmetic("trail_end", "trail", "End rod trail", 20, 0xF2EBD2),
 			new Cosmetic("trail_cherry", "trail", "Cherry petal trail", 25, 0xF7A8D0),
 			new Cosmetic("trail_rainbow", "trail", "Rainbow trail", 60, 0xD36BFF),
+			// Ribbon trails (GMod style): a textured ribbon behind you that fades out (client/RibbonTrails)
+			new Cosmetic("ribbon_plasma", "ribbon", "Plasma", 30, 0x52D8FF),
+			new Cosmetic("ribbon_electric", "ribbon", "Electric", 30, 0xFFF27A),
+			new Cosmetic("ribbon_love", "ribbon", "Love", 30, 0xFF6B8A),
+			new Cosmetic("ribbon_smoke", "ribbon", "Smoke", 25, 0xB8C0CC),
+			new Cosmetic("ribbon_fire", "ribbon", "Fire", 35, 0xFF8A2A),
+			new Cosmetic("ribbon_stars", "ribbon", "Stars", 40, 0xFFD34E),
+			new Cosmetic("ribbon_bubbles", "ribbon", "Bubbles", 40, 0x8FE3FF),
+			new Cosmetic("ribbon_rainbow", "ribbon", "Rainbow", 60, 0xD36BFF),
+			new Cosmetic("ribbon_trans", "ribbon", "Trans flag", 60, 0xF5A9B8),
+			new Cosmetic("ribbon_lol", "ribbon", "LOL", 75, 0xFFFFFF),
 			new Cosmetic("title_gambler", "title", "Gambler", 10, 0xF2C14E),
 			new Cosmetic("title_bait", "title", "Watcher Bait", 15, 0xFF4040),
 			new Cosmetic("title_survivor", "title", "Nuke Survivor", 20, 0x7CE07C),
@@ -109,6 +120,7 @@ public final class Eidolons {
 		Set<String> owned = new HashSet<>();
 		String trail = "";
 		String title = "";
+		String ribbon = "";
 		Stats stats = new Stats();
 	}
 
@@ -223,6 +235,7 @@ public final class Eidolons {
 	public static final int UNEQUIP_TRAIL = 3;
 	public static final int UNEQUIP_TITLE = 4;
 	public static final int REQUEST = 5;
+	public static final int UNEQUIP_RIBBON = 6;
 
 	/** Client to server: buy / equip something, or ask for the state. */
 	public record Action(int action, String id) implements CustomPacketPayload {
@@ -258,6 +271,30 @@ public final class Eidolons {
 				color.put(id, buf.readInt());
 			}
 			return new Titles(text, color);
+		});
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
+	/** Server to client: who is wearing which ribbon trail (everyone draws everyone's). */
+	public record Ribbons(Map<UUID, String> worn) implements CustomPacketPayload {
+		public static final Type<Ribbons> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "eidolon_ribbons"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, Ribbons> CODEC = StreamCodec.ofMember((r, buf) -> {
+			buf.writeVarInt(r.worn.size());
+			r.worn.forEach((k, v) -> {
+				buf.writeUUID(k);
+				buf.writeUtf(v, 64);
+			});
+		}, buf -> {
+			Map<UUID, String> worn = new HashMap<>();
+			int n = buf.readVarInt();
+			for (int i = 0; i < n; i++) {
+				worn.put(buf.readUUID(), buf.readUtf(64));
+			}
+			return new Ribbons(worn);
 		});
 
 		@Override
@@ -318,6 +355,7 @@ public final class Eidolons {
 	static void register(PayloadTypeRegistry<RegistryFriendlyByteBuf> s2c, PayloadTypeRegistry<RegistryFriendlyByteBuf> c2s) {
 		s2c.register(State.ID, State.CODEC);
 		s2c.register(Titles.ID, Titles.CODEC);
+		s2c.register(Ribbons.ID, Ribbons.CODEC);
 		s2c.register(Bets.ID, Bets.CODEC);
 		c2s.register(Action.ID, Action.CODEC);
 		c2s.register(PlaceBet.ID, PlaceBet.CODEC);
@@ -427,6 +465,7 @@ public final class Eidolons {
 			}
 			case UNEQUIP_TRAIL -> pr.trail = "";
 			case UNEQUIP_TITLE -> pr.title = "";
+			case UNEQUIP_RIBBON -> pr.ribbon = "";
 			default -> {
 			}
 		}
@@ -438,6 +477,8 @@ public final class Eidolons {
 	private static void equip(Profile pr, Cosmetic c) {
 		if (c.kind.equals("trail")) {
 			pr.trail = c.id;
+		} else if (c.kind.equals("ribbon")) {
+			pr.ribbon = c.id;
 		} else {
 			pr.title = c.id;
 		}
@@ -711,8 +752,12 @@ public final class Eidolons {
 		}
 		Map<UUID, String> text = new HashMap<>();
 		Map<UUID, Integer> color = new HashMap<>();
+		Map<UUID, String> ribbons = new HashMap<>();
 		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 			Profile pr = profile(p);
+			if (!pr.ribbon.isEmpty() && cosmetic(pr.ribbon) != null) {
+				ribbons.put(p.getUUID(), pr.ribbon);
+			}
 			String t = null;
 			int c = 0xFFFFFF;
 			if (p.getStringUUID().equals(data.runEnder)) {
@@ -733,6 +778,9 @@ public final class Eidolons {
 			p.refreshTabListName();
 			if (ServerPlayNetworking.canSend(p, Titles.ID)) {
 				ServerPlayNetworking.send(p, new Titles(text, color));
+			}
+			if (ServerPlayNetworking.canSend(p, Ribbons.ID)) {
+				ServerPlayNetworking.send(p, new Ribbons(ribbons));
 			}
 		}
 	}
@@ -829,6 +877,9 @@ public final class Eidolons {
 			}
 			if (pr.title == null) {
 				pr.title = "";
+			}
+			if (pr.ribbon == null) {
+				pr.ribbon = "";
 			}
 		});
 	}
