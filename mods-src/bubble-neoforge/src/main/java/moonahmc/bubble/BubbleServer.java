@@ -107,7 +107,7 @@ public final class BubbleServer {
 	 * Revive: the few seconds before each player who is down went down (and what they wore), kept until they get up.
 	 * If they bleed out and that ends the run, the kill cam shows this instead of them crawling about.
 	 */
-	private record DownClip(List<Payloads.Frame> frames, List<ItemStack> gear, Vec3 pos) {
+	private record DownClip(List<Payloads.Frame> frames, List<ItemStack> gear, Vec3 pos, Payloads.Scene scene) {
 	}
 
 	private static final Map<UUID, DownClip> downClips = new HashMap<>();
@@ -120,11 +120,12 @@ public final class BubbleServer {
 		for (EquipmentSlot slot : GEAR_SLOTS) {
 			worn.add(p.getItemBySlot(slot).copy());
 		}
-		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position()));
+		Payloads.Scene scene = ReplayScene.clip(p, frames);
+		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position(), scene));
 		if (frames.size() >= 2) {
 			// everyone gets it; their own setting says whether it plays (yours, everyone's, or none)
 			Payloads.DownCam cam = new Payloads.DownCam(new Payloads.Killcam(p.getUUID(), p.getName().getString(),
-					p.serverLevel().dimension().location().toString(), frames, worn));
+					p.serverLevel().dimension().location().toString(), frames, worn, scene));
 			for (ServerPlayer q : p.server.getPlayerList().getPlayers()) {
 				if (q.serverLevel() == p.serverLevel() && ServerPlayNetworking.canSend(q, Payloads.DownCam.ID)) {
 					ServerPlayNetworking.send(q, cam);
@@ -181,6 +182,7 @@ public final class BubbleServer {
 		config = BubbleConfig.load(configPath);
 
 		var bus = NeoForge.EVENT_BUS;
+		ReplayScene.init();
 		bus.addListener((ServerStartedEvent e) -> {
 			MinecraftServer s = e.getServer();
 			server = s;
@@ -339,11 +341,13 @@ public final class BubbleServer {
 			EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
 	private static void record(MinecraftServer s) {
+		List<ServerPlayer> watched = new ArrayList<>();
 		for (ServerPlayer p : s.getPlayerList().getPlayers()) {
 			if (!counts(p)) {
 				tracks.remove(p.getUUID());
 				continue;
 			}
+			watched.add(p);
 			byte flags = 0;
 			if (p.isCrouching()) {
 				flags |= Payloads.Frame.CROUCH;
@@ -384,6 +388,7 @@ public final class BubbleServer {
 				}
 			}
 		}
+		ReplayScene.record(s, tick, watched);
 	}
 
 	// ------------------------------------------------------------------ bubble
@@ -783,11 +788,13 @@ public final class BubbleServer {
 		ArrayDeque<Payloads.Frame> track = tracks.get(victim.getUUID());
 		killFrames = track == null ? List.of() : List.copyOf(track);
 		List<ItemStack> victimGear = gear.getOrDefault(victim.getUUID(), List.of());
+		Payloads.Scene scene = ReplayScene.clip(victim, killFrames);
 		// They went down earlier and bled out: show how they went down, not them crawling about.
 		DownClip clip = downClips.get(victim.getUUID());
 		if (clip != null && clip.frames.size() >= 2) {
 			killFrames = clip.frames;
 			victimGear = clip.gear;
+			scene = clip.scene;
 			deathPos = clip.pos;
 			endCause = endCause.copy().append(Component.literal(" (this is where they went down)"));
 		}
@@ -806,13 +813,14 @@ public final class BubbleServer {
 			bringToKillcam(q);
 		}
 		Payloads.Killcam replay = new Payloads.Killcam(victim.getUUID(), victim.getName().getString(),
-				deathWorld.dimension().location().toString(), killFrames, victimGear);
+				deathWorld.dimension().location().toString(), killFrames, victimGear, scene);
 		for (ServerPlayer q : players()) {
 			if (ServerPlayNetworking.canSend(q, Payloads.Killcam.ID)) {
 				ServerPlayNetworking.send(q, replay);
 			}
 		}
 		tracks.clear();
+		ReplayScene.clear();
 	}
 
 	/** Where the replayed player is `t` ticks into the kill cam (the death spot once the replay is over). */
@@ -1187,6 +1195,7 @@ public final class BubbleServer {
 		sharedHealth = -1;
 		lastHealth.clear();
 		tracks.clear();
+		ReplayScene.clear();
 		stuck.clear();
 		Component title = Component.literal("❤ Another life").withStyle(ChatFormatting.LIGHT_PURPLE);
 		Component sub = Component.literal("Life #" + (config.livesUsed + 1) + " of run #" + config.run).withStyle(ChatFormatting.GRAY);

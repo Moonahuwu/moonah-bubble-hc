@@ -24,7 +24,8 @@ Everyone on the server is tied together inside one bubble, one death can end the
 
 ## When someone dies (hardcore reset)
 
-1. **Kill cam** (8 s): a replay of the last 3 seconds of the player who died, with their skin and gear.
+1. **Kill cam** (8 s): a replay of the last 3 seconds of the player who died, with their skin and gear, and the
+   whole scene around them (see **Replays show everything** below).
 2. **Post-game** (60 s): highlights and everyone's stats, then a **vote**:
    - **Next world:** a new world with a new random seed (or the one an op picked with `/bubble seed`).
    - **Retry seed:** a fresh copy of the same world (same seed).
@@ -61,6 +62,14 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   someone goes down"): **Just mine** (default), **Everyone's** (you also see a teammate's knockdown when they go down,
   while you're in the same dimension; it's skipped if you're in a menu, and stops if you get hit) or **Off**. Click to
   skip.
+- **Replays show everything:** the kill cam and the down cam don't just show the player. The server keeps the last
+  3 seconds of everything within 32 blocks of each player: mobs (with their gear, name, size, baby or not), other
+  players (skin and gear), arrows, tridents, fireballs and other projectiles in flight, lit TNT, gun bullets (drawn as
+  tracers), and explosions. In the replay, all of it is back where it was, moving, swinging, getting hit and dying as
+  it did. Nothing in the world is moved: your client plays it with stand-ins and hides the real mobs, players and
+  projectiles on your screen only while it plays, so everything is back where it really is the moment it ends. Up
+  to 64 things within 28 blocks of the player, nearest first; a busy clip is about 10 KB. Ops can check the recording
+  with `/bubble replaytest` (records 3 seconds where you stand and reports what it caught).
 - **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
   `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
 
@@ -527,8 +536,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.25.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.25.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.26.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.26.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

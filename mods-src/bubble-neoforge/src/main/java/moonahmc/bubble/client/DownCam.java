@@ -42,6 +42,8 @@ final class DownCam {
 	/** Whose replay this is, and whether it's yours. */
 	private static UUID subject;
 	private static boolean mine;
+	/** Everyone and everything else that was there. */
+	private static ReplayActors actors;
 
 	private DownCam() {
 	}
@@ -97,6 +99,10 @@ final class DownCam {
 		lastFrame = 0;
 		placeCamera(true);
 		level.addEntity(cam);
+		ReplayActors.exempt(ghost);
+		ReplayActors.exempt(cam);
+		actors = new ReplayActors(level, replay.scene());
+		actors.show(0);
 		mc.setCameraEntity(cam);
 	}
 
@@ -115,14 +121,14 @@ final class DownCam {
 		double dy = (f.y() + 0.9) - (y + cam.getEyeHeight());
 		float yaw = (float) (Math.toDegrees(Math.atan2(dz, dx)) - 90);
 		float pitch = (float) -Math.toDegrees(Math.atan2(dy, Math.hypot(dx, dz)));
-		if (!jump) {
-			cam.setOldPosAndRot();
-		}
-		cam.moveTo(x, y, z, yaw, pitch);
-		cam.setYHeadRot(yaw);
 		if (jump) {
-			cam.setOldPosAndRot();
+			cam.moveTo(x, y, z, yaw, pitch);
+		} else {
+			cam.setPos(x, y, z);
+			cam.setYRot(yaw);
+			cam.setXRot(pitch);
 		}
+		cam.setYHeadRot(yaw);
 	}
 
 	static void tick(Minecraft mc) {
@@ -140,6 +146,7 @@ final class DownCam {
 		t++;
 		List<Payloads.Frame> frames = clip.frames();
 		int end = Payloads.Killcam.replayTicks(frames.size());
+		actors.show(Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
 		if (t <= end) {
 			double idx = Payloads.Killcam.frameAt(t, frames.size());
 			Payloads.Frame f = Payloads.Killcam.lerp(frames, idx);
@@ -185,6 +192,12 @@ final class DownCam {
 				}
 			}
 		}
+		if (actors != null) {
+			actors.stop();
+		}
+		ReplayActors.unexempt(ghost);
+		ReplayActors.unexempt(cam);
+		actors = null;
 		ghost = null;
 		cam = null;
 		clip = null;

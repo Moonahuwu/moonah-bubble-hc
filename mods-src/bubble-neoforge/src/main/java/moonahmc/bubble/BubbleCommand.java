@@ -127,6 +127,11 @@ final class BubbleCommand {
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.List.of("bubble:gatling_skeleton", "bubble:jockey_jockey",
 								"bubble:swarm_zombie", "bubble:watcher", "bubble:evil_watcher", "bubble:nuke_creeper", "bubble:rainbow_creeper"), b))
 						.executes(c -> spawnElite(c.getSource(), net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob"))))));
+		d.register(literal("bubble").then(literal("replaytest").requires(src -> src.hasPermission(2)).executes(ctx -> {
+			ReplayScene.startTest(ctx.getSource(), ctx.getSource().getLevel(), ctx.getSource().getPosition());
+			ctx.getSource().sendSuccess(() -> Component.literal("Recording the scene here for 3 seconds..."), false);
+			return 1;
+		})));
 		d.register(literal("bubble").then(literal("odds").requires(src -> src.hasPermission(2))
 				.then(literal("mob").then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggestResource(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet(), b))

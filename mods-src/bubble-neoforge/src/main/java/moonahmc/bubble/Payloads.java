@@ -228,12 +228,178 @@ public final class Payloads {
 		}
 	}
 
+
+	/**
+	 * Everything else in a replay, frame by frame (same frames as the player's own): mobs, other players, projectiles,
+	 * gun tracers and explosions. Positions are sent relative to the start of the clip.
+	 */
+	public record Scene(double ox, double oy, double oz, List<Actor> actors, List<Blast> blasts) {
+		public static final Scene EMPTY = new Scene(0, 0, 0, List.of(), List.of());
+		public static final byte MOB = 0;
+		public static final byte PLAYER = 1;
+		public static final byte PROJECTILE = 2;
+		/** Gun bullets: no stand-in, just a streak. */
+		public static final byte TRACER = 3;
+		public static final int MAX_ACTORS = 64;
+		public static final int SWING = 1;
+		public static final int HURT = 2;
+		public static final int DEAD = 4;
+		public static final int CROUCH = 8;
+		public static final int SWIM = 16;
+		public static final int IGNITED = 32;
+		public static final int GLIDE = 64;
+		public static final int INVISIBLE = 128;
+		public static final int FIRE = 256;
+		private static final double POS = 64.0;
+		private static final double VEL = 256.0;
+
+		private static int pack(float deg) {
+			return net.minecraft.util.Mth.floor(deg * 256.0f / 360.0f);
+		}
+
+		private static float unpack(byte b) {
+			return b * 360.0f / 256.0f;
+		}
+
+		private static short q(double v, double scale) {
+			return (short) Math.max(Short.MIN_VALUE, Math.min(Short.MAX_VALUE, Math.round(v * scale)));
+		}
+
+		static void write(RegistryFriendlyByteBuf buf, Scene s) {
+			buf.writeDouble(s.ox);
+			buf.writeDouble(s.oy);
+			buf.writeDouble(s.oz);
+			buf.writeVarInt(s.actors.size());
+			for (Actor a : s.actors) {
+				buf.writeByte(a.kind());
+				buf.writeUtf(a.type());
+				buf.writeVarInt(a.start());
+				if (a.kind() == PLAYER) {
+					buf.writeUUID(a.player());
+					buf.writeUtf(a.name());
+					buf.writeVarInt(a.gear().size());
+					for (net.minecraft.world.item.ItemStack st : a.gear()) {
+						net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, st);
+					}
+				} else if (a.kind() != TRACER) {
+					buf.writeNbt(a.data());
+				}
+				boolean moving = a.kind() == PROJECTILE || a.kind() == TRACER;
+				buf.writeVarInt(a.frames().size());
+				for (ActorFrame f : a.frames()) {
+					buf.writeShort(q(f.x() - s.ox, POS));
+					buf.writeShort(q(f.y() - s.oy, POS));
+					buf.writeShort(q(f.z() - s.oz, POS));
+					buf.writeByte(pack(f.yaw()));
+					buf.writeByte(pack(f.pitch()));
+					buf.writeByte(pack(f.headYaw()));
+					if (moving) {
+						buf.writeShort(q(f.vx(), VEL));
+						buf.writeShort(q(f.vy(), VEL));
+						buf.writeShort(q(f.vz(), VEL));
+					}
+					buf.writeVarInt(f.flags());
+				}
+			}
+			buf.writeVarInt(s.blasts.size());
+			for (Blast b : s.blasts) {
+				buf.writeVarInt(b.frame());
+				buf.writeDouble(b.x());
+				buf.writeDouble(b.y());
+				buf.writeDouble(b.z());
+			}
+		}
+
+		static Scene read(RegistryFriendlyByteBuf buf) {
+			double ox = buf.readDouble();
+			double oy = buf.readDouble();
+			double oz = buf.readDouble();
+			int n = Math.min(buf.readVarInt(), MAX_ACTORS * 2);
+			List<Actor> actors = new ArrayList<>(n);
+			for (int i = 0; i < n; i++) {
+				byte kind = buf.readByte();
+				String type = buf.readUtf();
+				int start = buf.readVarInt();
+				java.util.UUID player = null;
+				String name = "";
+				List<net.minecraft.world.item.ItemStack> gear = List.of();
+				net.minecraft.nbt.CompoundTag data = null;
+				if (kind == PLAYER) {
+					player = buf.readUUID();
+					name = buf.readUtf();
+					int g = Math.min(buf.readVarInt(), 16);
+					gear = new ArrayList<>(g);
+					for (int j = 0; j < g; j++) {
+						gear.add(net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf));
+					}
+				} else if (kind != TRACER) {
+					data = buf.readNbt();
+				}
+				boolean moving = kind == PROJECTILE || kind == TRACER;
+				int fc = Math.min(buf.readVarInt(), 400);
+				List<ActorFrame> frames = new ArrayList<>(fc);
+				for (int j = 0; j < fc; j++) {
+					double x = ox + buf.readShort() / POS;
+					double y = oy + buf.readShort() / POS;
+					double z = oz + buf.readShort() / POS;
+					float yaw = unpack(buf.readByte());
+					float pitch = unpack(buf.readByte());
+					float head = unpack(buf.readByte());
+					float vx = 0;
+					float vy = 0;
+					float vz = 0;
+					if (moving) {
+						vx = (float) (buf.readShort() / VEL);
+						vy = (float) (buf.readShort() / VEL);
+						vz = (float) (buf.readShort() / VEL);
+					}
+					frames.add(new ActorFrame(x, y, z, yaw, pitch, head, vx, vy, vz, buf.readVarInt()));
+				}
+				actors.add(new Actor(kind, type, data, player, name, gear, start, frames));
+			}
+			int b = Math.min(buf.readVarInt(), 64);
+			List<Blast> blasts = new ArrayList<>(b);
+			for (int i = 0; i < b; i++) {
+				blasts.add(new Blast(buf.readVarInt(), buf.readDouble(), buf.readDouble(), buf.readDouble()));
+			}
+			return new Scene(ox, oy, oz, actors, blasts);
+		}
+	}
+
+	/** One mob, player or projectile in a replay: what it is, and where it was from frame `start` on. */
+	public record Actor(byte kind, String type, net.minecraft.nbt.CompoundTag data, java.util.UUID player, String name,
+						List<net.minecraft.world.item.ItemStack> gear, int start, List<ActorFrame> frames) {
+	}
+
+	public record ActorFrame(double x, double y, double z, float yaw, float pitch, float headYaw, float vx, float vy,
+							 float vz, int flags) {
+		public boolean has(int flag) {
+			return (flags & flag) != 0;
+		}
+
+		/** Position/rotation between two frames. */
+		public static ActorFrame lerp(List<ActorFrame> frames, double idx) {
+			int i = (int) Math.floor(idx);
+			ActorFrame a = frames.get(Math.max(0, Math.min(frames.size() - 1, i)));
+			ActorFrame b = frames.get(Math.max(0, Math.min(frames.size() - 1, i + 1)));
+			float t = (float) (idx - i);
+			return new ActorFrame(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t,
+					a.yaw + net.minecraft.util.Mth.wrapDegrees(b.yaw - a.yaw) * t, a.pitch + (b.pitch - a.pitch) * t,
+					a.headYaw + net.minecraft.util.Mth.wrapDegrees(b.headYaw - a.headYaw) * t, a.vx + (b.vx - a.vx) * t,
+					a.vy + (b.vy - a.vy) * t, a.vz + (b.vz - a.vz) * t, a.flags);
+		}
+	}
+
+	/** An explosion at frame `frame` of a replay. */
+	public record Blast(int frame, double x, double y, double z) {
+	}
+
 	/**
 	 * Server to client: replay the last few seconds of a player's life, ending in their death.
 	 * The server's orbit camera and the client's replay both follow {@link #frameAt}, so they stay in step.
 	 */
 	public record Killcam(java.util.UUID player, String name, String dimension, List<Frame> frames,
-						  List<net.minecraft.world.item.ItemStack> gear) implements CustomPacketPayload {
+						  List<net.minecraft.world.item.ItemStack> gear, Scene scene) implements CustomPacketPayload {
 		public static final Type<Killcam> ID = id("killcam");
 		/** The last second plays at half speed. */
 		static final int SLOW_FRAMES = 20;
@@ -255,6 +421,7 @@ public final class Payloads {
 			for (net.minecraft.world.item.ItemStack s : k.gear) {
 				net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, s);
 			}
+			Scene.write(buf, k.scene == null ? Scene.EMPTY : k.scene);
 		}, buf -> {
 			java.util.UUID uuid = buf.readUUID();
 			String name = buf.readUtf();
@@ -270,7 +437,7 @@ public final class Payloads {
 			for (int i = 0; i < g; i++) {
 				gear.add(net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf));
 			}
-			return new Killcam(uuid, name, dim, frames, gear);
+			return new Killcam(uuid, name, dim, frames, gear, Scene.read(buf));
 		});
 
 		/** Which (fractional) frame to show `tick` ticks into the replay. */

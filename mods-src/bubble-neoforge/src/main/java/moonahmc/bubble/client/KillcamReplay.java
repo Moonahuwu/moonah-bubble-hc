@@ -34,6 +34,7 @@ final class KillcamReplay {
 	private static Ghost ghost;
 	private static int t;
 	private static int lastFrame;
+	private static ReplayActors actors;
 
 	private KillcamReplay() {
 	}
@@ -61,13 +62,15 @@ final class KillcamReplay {
 			return;
 		}
 		if (mc.level == null || ghost.level() != mc.level) {
-			ghost = null;
-			active = null;
+			stop();
 			return;
 		}
 		t++;
 		List<Payloads.Frame> frames = active.frames();
 		int end = Payloads.Killcam.replayTicks(frames.size());
+		if (actors != null) {
+			actors.show(Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
+		}
 		if (t <= end) {
 			double idx = Payloads.Killcam.frameAt(t, frames.size());
 			Payloads.Frame f = Payloads.Killcam.lerp(frames, idx);
@@ -117,6 +120,9 @@ final class KillcamReplay {
 			ghost.setItemSlot(GEAR_SLOTS[i], stack);
 		}
 		world.addEntity(ghost);
+		ReplayActors.exempt(ghost);
+		actors = new ReplayActors(world, replay.scene());
+		actors.show(0);
 		active = replay;
 		t = 0;
 		lastFrame = 0;
@@ -128,6 +134,11 @@ final class KillcamReplay {
 		if (ghost != null && mc.level != null && ghost.level() == mc.level) {
 			mc.level.removeEntity(ghost.getId(), Entity.RemovalReason.DISCARDED);
 		}
+		if (actors != null) {
+			actors.stop();
+			actors = null;
+		}
+		ReplayActors.unexempt(ghost);
 		ghost = null;
 		active = null;
 	}

@@ -253,6 +253,7 @@ public final class BubbleClient {
 			ClientFx.stop();
 			Minecraft.getInstance().execute(VideoOverlay::stop);
 			Minecraft.getInstance().execute(KillcamReplay::stop);
+			Minecraft.getInstance().execute(ReplayActors::stopAll);
 		});
 
 		bus.addListener((ClientTickEvent.Post e) -> {
@@ -294,6 +295,7 @@ public final class BubbleClient {
 				ForcefieldRenderer.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 				ReviveClient.renderWorld(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 				RibbonTrails.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
+				ReplayActors.render(e.getPoseStack(), e.getCamera(), e.getPartialTick().getGameTimeDeltaPartialTick(false));
 			}
 		});
 		InventoryOverlay.register(); // Bubble + Shop buttons, balance and the sell slot
