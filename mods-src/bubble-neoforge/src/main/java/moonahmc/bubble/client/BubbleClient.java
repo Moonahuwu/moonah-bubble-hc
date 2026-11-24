@@ -208,7 +208,8 @@ public final class BubbleClient {
 				() -> SellTooltip.answered(payload)));
 		// Revive: who's down (signs over heads, HUD) and the settings for the Bubble menu
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Revive.Downed.ID, (payload, context) -> context.client().execute(
-				() -> ReviveClient.downed = payload.list()));
+				() -> ReviveClient.setDowned(payload.list())));
+		ReviveClient.registerControls(bus);
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Revive.Settings.ID, (payload, context) -> context.client().execute(() -> {
 			ReviveClient.settings = payload;
 			if (context.client().screen instanceof BubbleScreen bs) {

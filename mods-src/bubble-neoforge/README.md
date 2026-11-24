@@ -42,8 +42,9 @@ Everyone on the server is tied together inside one bubble, one death can end the
 
 ## Revive (going down instead of dying)
 
-On by default. A hit that would kill you **knocks you down** instead: you crawl slowly, can't attack, use items or break
-blocks, nothing can hurt you and mobs lose interest. A **REVIVE** sign floats over your head for everyone to see
+On by default. A hit that would kill you **knocks you down** instead: you crawl very slowly (no sprinting, jumping or
+swimming up, and swimming is slowed too), and you can't attack, shoot, use items, or break or place blocks. Nothing
+can hurt you and mobs lose interest. A **REVIVE** sign floats over your head for everyone to see
 (through walls, and it stays readable far away). It's yellow and goes red as your time runs out, with the seconds
 under it and a green bar while someone revives you. You see "YOU'RE DOWN" with red edges and a countdown.
 
@@ -55,6 +56,27 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   come back.
 - **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
   `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
+
+## Drops from mobs (cases, spins, Strange Matter)
+
+Mobs you kill (during a run) can drop cases and Wheel Spins, and Bubble's own mobs pay Strange Matter by how hard they
+are. The drops glow; you get a chat line (everyone does for the big ones).
+
+| Mob | Strange Matter | Case | Wheel Spin |
+|---|---|---|---|
+| Any other hostile mob | - | 0.2% | - |
+| Swarmling (the small swarm zombies, there are lots) | 1 (as before) | 0.15% | 0.1% |
+| Rainbow creeper (they come 100 at a time) | 1 | 0.4% | 0.3% |
+| Gatling skeleton | 12 | 5% | 2% |
+| Jockey jockey | 15 | 6% | 2.5% |
+| Nuke creeper (kill it before it goes off) | 30 | 12% | 5% |
+| Swarm zombie, Watcher | 40 | 20% | 5% |
+| Evil Watcher | 120 | always a case or a spin | |
+| Warden | 150 | always a case or a spin | |
+
+A case drop is one of the server's cases at random. All of it is in `config/bubble-cases.json` under `mobDrops`
+(`anyMobCase`, and per mob `matter`, `case`, `spin` or `guaranteed`); any mob id works there. Ops:
+`/bubble odds mob <mob> [kills]` shows what that many kills would give (simulated, nothing drops).
 
 ## Strange Matter and the shop
 
@@ -353,6 +375,18 @@ has a name, colour, optional weight and a list of actions: `give` (add `"charged
 like, then `/bubble wheel reload`. Ops can spin with `/bubble wheel` (start-of-run) or `/bubble wheel midrun`. The
 start-of-run wheel can be switched off for the next world in the *Next run* tab.
 
+## Better prizes (Enchanted, Apothic, Factory New)
+
+When a case prize is gear (swords, bows, armour, tools), it can come out better, like a skin's wear in CS:
+
+- **Enchanted** (15%): enchanted as if at an enchanting table (level 15-30).
+- **Apothic** (8%): a random Apotheosis rarity with affixes.
+- **★ Factory New** (3%): both, with strong enchantments (level 35-45) and at least a rare rarity. Everyone hears about it.
+
+The prize shows its glint on the reel and the label in its tooltip and the chat line. The chances are
+`conditions` in `config/bubble-cases.json` (`enchanted`, `apothic`, `factoryNew`). Ops: `/bubble odds case <case> [opens]`
+opens it that many times for nobody and counts the tiers and the better prizes.
+
 ## Guns (TACZ)
 
 With TACZ installed, guns are super rare: in the Weapon and Mod cases' legendary tier, in about 0.6% of chests, in Lucky
@@ -454,14 +488,14 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
 - Ops: `/bubble start` (end the lobby), `/bubble wheel [reload|midrun]`, `/bubble wheel clear [status]` (take wheel statuses off: a run modifier, a timed status, `upside_down`, `ice`, `effects`, or everything), `/bubble wheel apply <slice>` (do one slice right now, no spin), `/bubble wheel move <slice>` (move it to the other wheel), `/bubble event [id] [silent]` (force a random event), `/bubble givecase <players> <case> [count]`,
   `/bubble givespin <players> [count]`, `/bubble gun <players> [gun]`, `/bubble ammo <players> [magazines]`,
-  `/bubble attachments <gun>`, `/bubble nuke [pos]` (a Lucky Block can do this).
+  `/bubble attachments <gun>`, `/bubble odds mob <mob> [n]`, `/bubble odds case <case> [n]`, `/bubble nuke [pos]` (a Lucky Block can do this).
 - Everyone: `/bubble vote next|retry|life`, `/bubble saveseed`, `/bubble seeds`, `/bubble matter`, `/bubble matter worth <item>`.
 - Settings are saved in `config/bubble.json`, favourite seeds in `bubble-seeds.json`.
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.21.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.21.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.22.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.22.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

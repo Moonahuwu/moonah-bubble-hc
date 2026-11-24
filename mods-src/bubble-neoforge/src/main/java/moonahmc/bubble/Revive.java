@@ -55,6 +55,14 @@ public final class Revive {
 	private static final double REACH = 2.5;
 	private static final ResourceLocation SLOW = ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "downed_slow");
 	private static final ResourceLocation NO_JUMP = ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "downed_no_jump");
+	private static final ResourceLocation SLOW_SWIM = ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "downed_slow_swim");
+	/** Entity ids of downed players, as the client knows them (set by the client; used to stop guns firing there too). */
+	public static volatile Set<Integer> clientDownIds = Set.of();
+
+	/** Is this player down? Works on both sides (the client only knows from the server's list). */
+	public static boolean isDown(net.minecraft.world.entity.player.Player p) {
+		return p.level().isClientSide ? clientDownIds.contains(p.getId()) : downed.containsKey(p.getUUID());
+	}
 
 	private static final class Down {
 		final DamageSource source;
@@ -198,6 +206,11 @@ public final class Revive {
 				e.setCanceled(true);
 			}
 		});
+		bus.addListener((BlockEvent.EntityPlaceEvent e) -> {
+			if (e.getEntity() instanceof ServerPlayer p && isDown(p.getUUID())) {
+				e.setCanceled(true);
+			}
+		});
 		bus.addListener((PlayerEvent.PlayerLoggedInEvent e) -> {
 			if (e.getEntity() instanceof ServerPlayer p) {
 				p.server.execute(() -> {
@@ -273,6 +286,14 @@ public final class Revive {
 	private static void hobble(ServerPlayer p, boolean on) {
 		var speed = p.getAttribute(Attributes.MOVEMENT_SPEED);
 		var jump = p.getAttribute(Attributes.JUMP_STRENGTH);
+		var swim = p.getAttribute(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED);
+		if (swim != null) {
+			if (on) {
+				swim.addOrUpdateTransientModifier(new AttributeModifier(SLOW_SWIM, -0.75, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+			} else {
+				swim.removeModifier(SLOW_SWIM);
+			}
+		}
 		if (on) {
 			if (speed != null) {
 				speed.addOrUpdateTransientModifier(new AttributeModifier(SLOW, -0.65, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
@@ -327,8 +348,9 @@ public final class Revive {
 				bleedOut(p, d);
 				continue;
 			}
-			// keep them down: crawling, at 1 health, not burning
+			// keep them down: crawling, at 1 health, not burning, not sprinting
 			p.setForcedPose(Pose.SWIMMING);
+			p.setSprinting(false);
 			p.clearFire();
 			if (p.getHealth() < 1) {
 				p.setHealth(1);

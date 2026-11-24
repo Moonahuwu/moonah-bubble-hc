@@ -31,6 +31,8 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble gun <p> [gun]            (ops) give a TACZ gun (random if no gun given) with a full magazine and ammo
  * /bubble ammo <p> [mags]          (ops) ammo for every gun they carry (3 magazines by default)
  * /bubble attachments <gun>       (ops) what the Attachment Case can give for that gun
+ * /bubble odds mob <mob> [n]       (ops) what n kills of that mob would drop (simulated)
+ * /bubble odds case <case> [n]     (ops) n simulated openings: tiers, and how many prizes came out better
  * /bubble nuke [pos]               (ops) set off a nuke (Lucky Blocks use this)
  * /bubble video stop               (ops) stop the video someone is showing everyone (shop Video tab)
  * /bubble newrun                   (ops) end this run now (post-game vote)
@@ -116,6 +118,18 @@ final class BubbleCommand {
 						.executes(c -> giveAmmo(c, 3))
 						.then(argument("magazines", IntegerArgumentType.integer(1, 20))
 								.executes(c -> giveAmmo(c, IntegerArgumentType.getInteger(c, "magazines")))))));
+		d.register(literal("bubble").then(literal("odds").requires(src -> src.hasPermission(2))
+				.then(literal("mob").then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
+						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggestResource(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet(), b))
+						.executes(c -> odds(c.getSource(), true, net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob").toString(), 1000))
+						.then(argument("times", IntegerArgumentType.integer(1, 100000))
+								.executes(c -> odds(c.getSource(), true, net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob").toString(),
+										IntegerArgumentType.getInteger(c, "times"))))))
+				.then(literal("case").then(argument("case", StringArgumentType.word())
+						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(Gamble.ids(), b))
+						.executes(c -> odds(c.getSource(), false, StringArgumentType.getString(c, "case"), 1000))
+						.then(argument("times", IntegerArgumentType.integer(1, 20000))
+								.executes(c -> odds(c.getSource(), false, StringArgumentType.getString(c, "case"), IntegerArgumentType.getInteger(c, "times"))))))));
 		d.register(literal("bubble").then(literal("attachments").requires(src -> src.hasPermission(2))
 				.then(argument("gun", StringArgumentType.word())
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(Guns.GUNS.stream().map(Guns.Gun::id), b))
@@ -308,6 +322,13 @@ final class BubbleCommand {
 		int given = n;
 		c.getSource().sendSuccess(() -> Component.literal("Gave ammo to " + given + " player(s) with guns"), true);
 		return n;
+	}
+
+	/** /bubble odds mob|case: simulated kills or case openings, nothing given. */
+	private static int odds(CommandSourceStack src, boolean mob, String id, int times) {
+		String line = mob ? MobDrops.simulate(id, times, src.getLevel().random) : Gamble.simulate(src.getServer(), id, times);
+		src.sendSuccess(() -> Component.literal(line), false);
+		return 1;
 	}
 
 	/** What the Attachment Case can give for a gun, by rarity. */

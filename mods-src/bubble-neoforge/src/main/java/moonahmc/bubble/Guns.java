@@ -134,6 +134,7 @@ public final class Guns {
 			return;
 		}
 		var bus = NeoForge.EVENT_BUS;
+		GunSupply.init();
 		// Armour pen: bullets go through most of your armour (config/bubble.json gunArmorPen; gun damage itself is
 		// TACZ's DamageBaseMultiplier in config/tacz-server.toml). TACZ already sends the gun's own armour-piercing share
 		// as a separate hit that ignores armour; this is for the rest.

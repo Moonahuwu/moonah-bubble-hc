@@ -35,6 +35,7 @@ public final class Bubble {
 		Eidolons.init(); // permanent currency, upgrades, cosmetics, hall of fame, bets
 		Goals.init(); // game modes, stages and the goals HUD
 		Guns.init(); // TACZ guns on rare mobs
+		MobDrops.init(); // cases, spins and Strange Matter from mobs
 		VideoShare.init(); // shop Video tab
 		AccessoryCompat.init(); // Curios: right-click to equip accessories
 		RelicMax.init(); // artifacts / relics come fully levelled

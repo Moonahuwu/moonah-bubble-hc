@@ -290,6 +290,9 @@ public final class Gamble {
 				int tier = rollTier(c, rand, i == WINNER ? luck : 0); // luck only counts for the prize, not the filler
 				List<Drop> pool = c.tiers.get(tier);
 				Drop d = pool.get(rand.nextInt(pool.size()));
+				if (i == WINNER) {
+					d = Condition.roll(p, d, rand); // maybe enchanted / Apothic / Factory New
+				}
 				items.add(d.show.copy());
 				tiers.add(tier);
 				if (i == WINNER) {
@@ -380,7 +383,11 @@ public final class Gamble {
 		}
 		Component item = nameOf(pend.drop.show).copy().withStyle(s -> s.withColor(TIER_COLORS[pend.tier] & 0xFFFFFF));
 		String count = pend.drop.show.getCount() > 1 ? " ×" + pend.drop.show.getCount() : "";
-		if (pend.tier >= 3) {
+		Component cond = Condition.label(pend.drop.show);
+		if (cond != null) {
+			item = item.copy().append(Component.literal(" ").append(cond));
+		}
+		if (pend.tier >= 3 || Condition.isFactoryNew(pend.drop.show)) {
 			p.server.getPlayerList().broadcastSystemMessage(Component.literal("★ ").withStyle(ChatFormatting.GOLD).append(p.getDisplayName())
 					.append(Component.literal(" unboxed ").withStyle(ChatFormatting.GRAY)).append(item).append(count)
 					.append(Component.literal(" (" + TIERS[pend.tier] + ") from a " + pend.caseName + "!").withStyle(ChatFormatting.GRAY)), false);
@@ -732,6 +739,54 @@ public final class Gamble {
 		}
 	}
 
+	/**
+	 * /bubble odds case <case> [opens]: opens it that many times for nobody (a stand-in player, no charge, nothing
+	 * given) and counts the tiers and how many prizes came out Enchanted, Apothic or Factory New.
+	 */
+	static String simulate(MinecraftServer s, String id, int opens) {
+		Case c = cases.get(id);
+		if (c == null) {
+			return "No case called '" + id + "'. Cases: " + String.join(", ", cases.keySet());
+		}
+		ServerPlayer fake = net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(s.overworld());
+		RandomSource rand = s.overworld().random;
+		int[] tiers = new int[TIERS.length];
+		Map<String, Integer> conds = new LinkedHashMap<>();
+		int gear = 0;
+		for (int i = 0; i < opens; i++) {
+			int tier = rollTier(c, rand, 0);
+			List<Drop> pool = c.tiers.get(tier);
+			Drop d = pool.get(rand.nextInt(pool.size()));
+			tiers[tier]++;
+			if ((d.command == null || d.command.isBlank()) && d.show.getCount() == 1 && (d.show.isEnchantable() || d.show.isDamageableItem())) {
+				gear++;
+			}
+			Drop out = Condition.roll(fake, d, rand);
+			Component l = Condition.label(out.show);
+			if (l != null) {
+				conds.merge(l.getString(), 1, Integer::sum);
+			}
+		}
+		StringBuilder sb = new StringBuilder(opens + " " + c.name + "s:");
+		for (int t = 0; t < TIERS.length; t++) {
+			sb.append(' ').append(TIERS[t]).append(' ').append(tiers[t]);
+		}
+		sb.append(" | gear prizes ").append(gear).append(", better: ").append(conds.isEmpty() ? "none" : conds.toString());
+		return sb.toString();
+	}
+
+	/** The cases file's "conditions" (Condition), or null. */
+	static JsonObject conditions() {
+		JsonObject root = casesRoot;
+		return root != null && root.has("conditions") && root.get("conditions").isJsonObject() ? root.getAsJsonObject("conditions") : null;
+	}
+
+	/** The cases file's "mobDrops" (MobDrops), or null. */
+	static JsonObject mobDrops() {
+		JsonObject root = casesRoot;
+		return root != null && root.has("mobDrops") && root.get("mobDrops").isJsonObject() ? root.getAsJsonObject("mobDrops") : null;
+	}
+
 	/** A chance from the file's "extras" (chests, mobs), or `def` if it isn't there. */
 	static double extra(String key, double def) {
 		JsonObject root = casesRoot;
@@ -803,6 +858,23 @@ public final class Gamble {
 			done.add("stellar_remote_v1");
 			addTo(cs, "mod", "legendary", item("shooting_star_demo:stellar_remote", 1));
 			Bubble.LOG.info("Cases: added the Stellar Remote to the Mod Case (Legendary)");
+			changed = true;
+		}
+		// 1.22.0: cases, spins and Strange Matter from mobs
+		if (!done.contains(new com.google.gson.JsonPrimitive("mob_drops_v1"))) {
+			done.add("mob_drops_v1");
+			if (!root.has("mobDrops")) {
+				root.add("mobDrops", MobDrops.defaults());
+			}
+			Bubble.LOG.info("Cases: added mob drops (cases, spins and Strange Matter from mobs)");
+			changed = true;
+		}
+		// 1.22.0: gear prizes can come enchanted, Apothic or Factory New (both)
+		if (!done.contains(new com.google.gson.JsonPrimitive("conditions_v1"))) {
+			done.add("conditions_v1");
+			if (!root.has("conditions")) {
+				root.add("conditions", Condition.defaults());
+			}
 			changed = true;
 		}
 		return changed;

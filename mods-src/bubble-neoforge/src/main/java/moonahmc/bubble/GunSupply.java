@@ -29,6 +29,21 @@ final class GunSupply {
 	private GunSupply() {
 	}
 
+	/** No shooting or gun-bashing while you're down (both sides, so the gun doesn't even go off on your screen). */
+	static void init() {
+		var bus = net.neoforged.neoforge.common.NeoForge.EVENT_BUS;
+		bus.addListener((com.tacz.guns.api.event.common.GunShootEvent e) -> {
+			if (e.getShooter() instanceof net.minecraft.world.entity.player.Player p && Revive.isDown(p)) {
+				e.setCanceled(true);
+			}
+		});
+		bus.addListener((com.tacz.guns.api.event.common.GunMeleeEvent e) -> {
+			if (e.getShooter() instanceof net.minecraft.world.entity.player.Player p && Revive.isDown(p)) {
+				e.setCanceled(true);
+			}
+		});
+	}
+
 	/** Every gun in the player's inventory (main inventory, hotbar and offhand), held one first. */
 	static List<ItemStack> guns(ServerPlayer p) {
 		List<ItemStack> out = new ArrayList<>();

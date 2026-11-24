@@ -38,8 +38,54 @@ final class ReviveClient {
 	}
 
 	static void reset() {
-		downed = List.of();
+		setDowned(List.of());
 		settings = null;
+	}
+
+	static void setDowned(List<Revive.Entry> list) {
+		downed = list;
+		Revive.clientDownIds = list.stream().map(Revive.Entry::entityId).collect(java.util.stream.Collectors.toUnmodifiableSet());
+	}
+
+	/** Am I down right now? */
+	static boolean meDown() {
+		Minecraft mc = Minecraft.getInstance();
+		return mc.player != null && Revive.clientDownIds.contains(mc.player.getId());
+	}
+
+	private static boolean forcedPose;
+
+	/**
+	 * While you're down your own game keeps you crawling (slow, like crawling under a trapdoor), with no sprinting,
+	 * jumping or swimming up, and the attack and use keys do nothing. The server blocks all of this too.
+	 */
+	static void registerControls(net.neoforged.bus.api.IEventBus bus) {
+		bus.addListener((net.neoforged.neoforge.client.event.ClientTickEvent.Post e) -> {
+			var p = Minecraft.getInstance().player;
+			if (p == null) {
+				forcedPose = false;
+				return;
+			}
+			if (meDown()) {
+				p.setSprinting(false);
+				p.setForcedPose(net.minecraft.world.entity.Pose.SWIMMING);
+				forcedPose = true;
+			} else if (forcedPose) {
+				p.setForcedPose(null);
+				forcedPose = false;
+			}
+		});
+		bus.addListener((net.neoforged.neoforge.client.event.MovementInputUpdateEvent e) -> {
+			if (meDown()) {
+				e.getInput().jumping = false;
+			}
+		});
+		bus.addListener((net.neoforged.neoforge.client.event.InputEvent.InteractionKeyMappingTriggered e) -> {
+			if (meDown()) {
+				e.setCanceled(true);
+				e.setSwingHand(false);
+			}
+		});
 	}
 
 	private static String myName() {

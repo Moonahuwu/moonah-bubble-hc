@@ -88,6 +88,27 @@ final class ApothRoll {
 		return node.then(target);
 	}
 
+	/**
+	 * This item with a random Apotheosis rarity and affixes (armour too), or null if Apotheosis can't affix it. For
+	 * case prizes (Condition). Uses the same rarity odds as the Apothic Roll, from `minTier` up.
+	 */
+	static ItemStack affix(ServerPlayer p, ItemStack stack, int minTier) {
+		try {
+			LootCategory cat = LootCategory.forItem(stack);
+			if (cat == null || "none".equals(cat.getKey() == null ? "none" : cat.getKey().getPath())) {
+				return null;
+			}
+			List<LootRarity> rarities = RarityRegistry.getSortedRarities();
+			if (rarities.isEmpty()) {
+				return null;
+			}
+			LootRarity rarity = pick(p, rarities, Math.min(minTier, rarities.size() - 1));
+			return LootController.createLootItem(stack.copy(), cat, rarity, GenContext.forPlayer(p));
+		} catch (RuntimeException e) {
+			return null;
+		}
+	}
+
 	/** Tools and weapons (anything Apotheosis can give affixes to, except armor). */
 	private static boolean eligible(ItemStack stack) {
 		try {
