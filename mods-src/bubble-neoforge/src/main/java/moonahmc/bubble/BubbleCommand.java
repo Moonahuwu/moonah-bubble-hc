@@ -32,6 +32,8 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble ammo <p> [mags]          (ops) ammo for every gun they carry (3 magazines by default)
  * /bubble attachments <gun>       (ops) what the Attachment Case can give for that gun
  * /bubble odds mob <mob> [n]       (ops) what n kills of that mob would drop (simulated)
+ * /bubble odds elite <mob> [n]     (ops) the same for that mob's Apotheosis elite
+ * /bubble elite <mob>              (ops) spawn that mob as one of its Apotheosis elites
  * /bubble odds case <case> [n]     (ops) n simulated openings: tiers, and how many prizes came out better
  * /bubble nuke [pos]               (ops) set off a nuke (Lucky Blocks use this)
  * /bubble video stop               (ops) stop the video someone is showing everyone (shop Video tab)
@@ -118,12 +120,22 @@ final class BubbleCommand {
 						.executes(c -> giveAmmo(c, 3))
 						.then(argument("magazines", IntegerArgumentType.integer(1, 20))
 								.executes(c -> giveAmmo(c, IntegerArgumentType.getInteger(c, "magazines")))))));
+		d.register(literal("bubble").then(literal("elite").requires(src -> src.hasPermission(2))
+				.then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
+						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.List.of("bubble:gatling_skeleton", "bubble:jockey_jockey",
+								"bubble:swarm_zombie", "bubble:watcher", "bubble:evil_watcher", "bubble:nuke_creeper", "bubble:rainbow_creeper"), b))
+						.executes(c -> spawnElite(c.getSource(), net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob"))))));
 		d.register(literal("bubble").then(literal("odds").requires(src -> src.hasPermission(2))
 				.then(literal("mob").then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggestResource(net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet(), b))
 						.executes(c -> odds(c.getSource(), true, net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob").toString(), 1000))
 						.then(argument("times", IntegerArgumentType.integer(1, 100000))
 								.executes(c -> odds(c.getSource(), true, net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob").toString(),
+										IntegerArgumentType.getInteger(c, "times"))))))
+				.then(literal("elite").then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
+						.executes(c -> odds(c.getSource(), true, "elite:" + net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob"), 1000))
+						.then(argument("times", IntegerArgumentType.integer(1, 100000))
+								.executes(c -> odds(c.getSource(), true, "elite:" + net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob"),
 										IntegerArgumentType.getInteger(c, "times"))))))
 				.then(literal("case").then(argument("case", StringArgumentType.word())
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(Gamble.ids(), b))
@@ -324,9 +336,32 @@ final class BubbleCommand {
 		return n;
 	}
 
+	/** /bubble elite <mob>: that mob, here, as one of its Apotheosis elites. */
+	private static int spawnElite(CommandSourceStack src, net.minecraft.resources.ResourceLocation id) {
+		if (!net.neoforged.fml.ModList.get().isLoaded("apotheosis")) {
+			src.sendFailure(Component.literal("Apotheosis isn't installed."));
+			return 0;
+		}
+		var type = net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getOptional(id);
+		if (type.isEmpty()) {
+			src.sendFailure(Component.literal("No mob called '" + id + "'."));
+			return 0;
+		}
+		var mob = ApothElites.spawnElite(src.getLevel(), type.get(), net.minecraft.core.BlockPos.containing(src.getPosition()), src.getPlayer());
+		if (mob == null) {
+			src.sendFailure(Component.literal(id + " has no elite (or couldn't spawn here)."));
+			return 0;
+		}
+		String name = mob.getDisplayName().getString();
+		int hp = Math.round(mob.getMaxHealth());
+		src.sendSuccess(() -> Component.literal("Spawned " + name + " (" + hp + " health)"), true);
+		return 1;
+	}
+
 	/** /bubble odds mob|case: simulated kills or case openings, nothing given. */
 	private static int odds(CommandSourceStack src, boolean mob, String id, int times) {
-		String line = mob ? MobDrops.simulate(id, times, src.getLevel().random) : Gamble.simulate(src.getServer(), id, times);
+		boolean elite = mob && id.startsWith("elite:");
+		String line = mob ? MobDrops.simulate(elite ? id.substring(6) : id, times, src.getLevel().random, elite) : Gamble.simulate(src.getServer(), id, times);
 		src.sendSuccess(() -> Component.literal(line), false);
 		return 1;
 	}

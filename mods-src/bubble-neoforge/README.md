@@ -74,6 +74,24 @@ are. The drops glow; you get a chat line (everyone does for the big ones).
 | Evil Watcher | 120 | always a case or a spin | |
 | Warden | 150 | always a case or a spin | |
 
+**Elites (Apotheosis):** Bubble's mobs can spawn as Apotheosis elites, with a coloured name, more health and harder
+hits. Some carry Apotheosis gear for your world tier, and drop it.
+
+| Elite | Of | Chance | What's different |
+|---|---|---|---|
+| Gatling Ace | Gatling skeleton | 10% | +20-40 health, +20-40% arrow damage, a ranged gear set |
+| Jockey Champion | Jockey jockey | 10% | +30-50 health, faster, hits harder |
+| Swarm Queen | Swarm zombie | 12% | +40-80 health, armour, hits harder, a melee gear set |
+| Ancient Watcher | Watcher | 12% | +40-60 health, hits harder |
+| Dread Watcher | Evil Watcher | 15% | +60-100 health, hits much harder |
+| Doomsday Creeper | Nuke creeper | 12% | +20-40 health, faster |
+| Prismatic Creeper | Rainbow creeper | 2% | +10-20 health, faster |
+
+Elites pay 3 times the Strange Matter with 3 times the case and spin chances (`eliteBonus`); an elite Evil Watcher or
+Warden drops a case on top of its sure drop, and an elite of any other mob (Apotheosis's own) has a 25% case chance
+(`eliteCase`). Swarmlings never become elites. The elites are data in the jar (`data/bubble/apothic_elites/`), and a
+datapack can change or replace them. Ops: `/bubble elite <mob>` spawns one, `/bubble odds elite <mob> [kills]`.
+
 A case drop is one of the server's cases at random. All of it is in `config/bubble-cases.json` under `mobDrops`
 (`anyMobCase`, and per mob `matter`, `case`, `spin` or `guaranteed`); any mob id works there. Ops:
 `/bubble odds mob <mob> [kills]` shows what that many kills would give (simulated, nothing drops).
@@ -488,14 +506,14 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
 - Ops: `/bubble start` (end the lobby), `/bubble wheel [reload|midrun]`, `/bubble wheel clear [status]` (take wheel statuses off: a run modifier, a timed status, `upside_down`, `ice`, `effects`, or everything), `/bubble wheel apply <slice>` (do one slice right now, no spin), `/bubble wheel move <slice>` (move it to the other wheel), `/bubble event [id] [silent]` (force a random event), `/bubble givecase <players> <case> [count]`,
   `/bubble givespin <players> [count]`, `/bubble gun <players> [gun]`, `/bubble ammo <players> [magazines]`,
-  `/bubble attachments <gun>`, `/bubble odds mob <mob> [n]`, `/bubble odds case <case> [n]`, `/bubble nuke [pos]` (a Lucky Block can do this).
+  `/bubble attachments <gun>`, `/bubble odds mob|elite <mob> [n]`, `/bubble odds case <case> [n]`, `/bubble elite <mob>`, `/bubble nuke [pos]` (a Lucky Block can do this).
 - Everyone: `/bubble vote next|retry|life`, `/bubble saveseed`, `/bubble seeds`, `/bubble matter`, `/bubble matter worth <item>`.
 - Settings are saved in `config/bubble.json`, favourite seeds in `bubble-seeds.json`.
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.22.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.22.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.23.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.23.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

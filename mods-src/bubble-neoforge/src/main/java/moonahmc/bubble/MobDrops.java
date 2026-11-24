@@ -65,7 +65,8 @@ final class MobDrops {
 			String id = BuiltInRegistries.ENTITY_TYPE.getKey(dead.getType()).toString();
 			JsonObject mobs = cfg.has("mobs") ? cfg.getAsJsonObject("mobs") : new JsonObject();
 			Component name = dead.getType().getDescription();
-			Result res = roll(cfg, id, dead instanceof Enemy, dead.getRandom());
+			boolean elite = net.neoforged.fml.ModList.get().isLoaded("apotheosis") && ApothElites.isElite(dead);
+			Result res = roll(cfg, id, dead instanceof Enemy, dead.getRandom(), elite);
 			if (res.matter > 0) {
 				Matter.earn(killer, res.matter);
 				killer.displayClientMessage(Component.literal("+" + Matter.format(res.matter) + " Strange Matter (").withStyle(ChatFormatting.LIGHT_PURPLE)
@@ -77,7 +78,7 @@ final class MobDrops {
 				ItemEntity item = new ItemEntity(dead.level(), dead.getX(), dead.getY() + 0.5, dead.getZ(), s);
 				item.setGlowingTag(true);
 				e.getDrops().add(item);
-				boolean big = mobs.has(id) && (mobs.getAsJsonObject(id).has("guaranteed") || num(mobs.getAsJsonObject(id), "matter", 0) >= 30);
+				boolean big = elite || mobs.has(id) && (mobs.getAsJsonObject(id).has("guaranteed") || num(mobs.getAsJsonObject(id), "matter", 0) >= 30);
 				Component line = Component.literal("🎁 ").withStyle(ChatFormatting.GOLD).append(killer.getDisplayName())
 						.append(Component.literal(" got ").withStyle(ChatFormatting.GRAY)).append(s.getHoverName())
 						.append(Component.literal(" from ").withStyle(ChatFormatting.GRAY)).append(name.copy().withStyle(ChatFormatting.WHITE));
@@ -94,25 +95,34 @@ final class MobDrops {
 	record Result(double matter, List<ItemStack> drops) {
 	}
 
-	/** What one kill of this mob gives. */
-	static Result roll(JsonObject cfg, String id, boolean enemy, RandomSource r) {
+	/**
+	 * What one kill of this mob gives. An elite (Apotheosis) pays "eliteBonus" times as much (3 by default) with that
+	 * many times the case and spin chances; an elite of any other mob gets a case at the "eliteCase" chance (25%).
+	 */
+	static Result roll(JsonObject cfg, String id, boolean enemy, RandomSource r, boolean elite) {
 		JsonObject mobs = cfg.has("mobs") ? cfg.getAsJsonObject("mobs") : new JsonObject();
 		List<ItemStack> drops = new ArrayList<>();
 		double matter = 0;
+		double bonus = elite ? Math.max(1, num(cfg, "eliteBonus", 3)) : 1;
 		if (mobs.has(id)) {
 			JsonObject m = mobs.getAsJsonObject(id);
-			matter = num(m, "matter", 0);
+			matter = num(m, "matter", 0) * bonus;
 			if (m.has("guaranteed") && m.get("guaranteed").getAsBoolean()) {
 				// a case or a spin, every time (a spin 1 time in 4)
 				drops.add(r.nextInt(4) == 0 ? spin() : randomCase(r));
 			} else {
-				if (r.nextDouble() < num(m, "case", 0)) {
+				if (r.nextDouble() < num(m, "case", 0) * bonus) {
 					drops.add(randomCase(r));
 				}
-				if (r.nextDouble() < num(m, "spin", 0)) {
+				if (r.nextDouble() < num(m, "spin", 0) * bonus) {
 					drops.add(spin());
 				}
 			}
+			if (elite && m.has("guaranteed") && m.get("guaranteed").getAsBoolean()) {
+				drops.add(randomCase(r)); // an elite Evil Watcher or Warden: a case on top
+			}
+		} else if (elite && r.nextDouble() < num(cfg, "eliteCase", 0.25)) {
+			drops.add(randomCase(r));
 		} else if (enemy && r.nextDouble() < num(cfg, "anyMobCase", 0)) {
 			drops.add(randomCase(r));
 		}
@@ -121,7 +131,7 @@ final class MobDrops {
 	}
 
 	/** /bubble odds mob <entity> [kills]: what that many kills would give, without killing anything. */
-	static String simulate(String id, int kills, RandomSource r) {
+	static String simulate(String id, int kills, RandomSource r, boolean elite) {
 		JsonObject cfg = Gamble.mobDrops();
 		if (cfg == null) {
 			return "No mobDrops in config/bubble-cases.json.";
@@ -131,7 +141,7 @@ final class MobDrops {
 		int cases = 0, spins = 0;
 		double matter = 0;
 		for (int i = 0; i < kills; i++) {
-			Result res = roll(cfg, id, enemy, r);
+			Result res = roll(cfg, id, enemy, r, elite);
 			matter += res.matter;
 			for (ItemStack s : res.drops) {
 				if (s.is(ModContent.WHEEL_SPIN.get())) {
@@ -141,7 +151,7 @@ final class MobDrops {
 				}
 			}
 		}
-		return kills + " kills of " + id + ": " + cases + " cases, " + spins + " spins, " + Matter.format(matter) + " Strange Matter";
+		return kills + " kills of " + (elite ? "elite " : "") + id + ": " + cases + " cases, " + spins + " spins, " + Matter.format(matter) + " Strange Matter";
 	}
 
 	private static double num(JsonObject o, String key, double def) {

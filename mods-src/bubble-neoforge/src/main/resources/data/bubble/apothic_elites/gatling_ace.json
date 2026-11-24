@@ -1,0 +1,97 @@
+{
+    "type": "apotheosis:elite",
+    "basic_data": {
+        "name": {
+            "text": "Gatling Ace",
+            "color": "red"
+        },
+        "spawn_conditions": [
+            {
+                "type": "apotheosis:not",
+                "spawn_condition": {
+                    "type": "apotheosis:spawn_type",
+                    "spawn_types": [
+                        "spawn_egg",
+                        "spawner"
+                    ]
+                }
+            }
+        ],
+        "weights": {
+            "haven": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "frontier": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "ascent": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "summit": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "pinnacle": {
+                "weight": 100,
+                "quality": 0.1
+            }
+        },
+        "valid_gear_sets": {
+            "haven": [
+                "#haven_ranged"
+            ],
+            "frontier": [
+                "#frontier_ranged"
+            ],
+            "ascent": [
+                "#ascent_ranged"
+            ],
+            "summit": [
+                "#summit_ranged"
+            ],
+            "pinnacle": [
+                "#pinnacle_ranged"
+            ]
+        }
+    },
+    "entities": [
+        "bubble:gatling_skeleton"
+    ],
+    "stats": {
+        "attribute_modifiers": [
+            {
+                "attribute": "minecraft:generic.max_health",
+                "operation": "add_value",
+                "value": {
+                    "min": 20,
+                    "max": 40
+                }
+            },
+            {
+                "attribute": "apothic_attributes:arrow_damage",
+                "operation": "add_multiplied_total",
+                "value": {
+                    "min": 0.2,
+                    "max": 0.4
+                }
+            },
+            {
+                "attribute": "minecraft:generic.knockback_resistance",
+                "operation": "add_value",
+                "value": 0.4
+            }
+        ],
+        "enchant_chance": 0.3,
+        "enchantment_levels": {
+            "primary": 20,
+            "secondary": 12
+        }
+    },
+    "success_chance": 0.1,
+    "affix_data": {
+        "affix_chance": 0.35
+    }
+}

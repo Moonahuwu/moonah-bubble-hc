@@ -1,0 +1,77 @@
+{
+    "type": "apotheosis:elite",
+    "basic_data": {
+        "name": {
+            "text": "Doomsday Creeper",
+            "color": "yellow"
+        },
+        "spawn_conditions": [
+            {
+                "type": "apotheosis:not",
+                "spawn_condition": {
+                    "type": "apotheosis:spawn_type",
+                    "spawn_types": [
+                        "spawn_egg",
+                        "spawner"
+                    ]
+                }
+            }
+        ],
+        "weights": {
+            "haven": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "frontier": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "ascent": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "summit": {
+                "weight": 100,
+                "quality": 0.1
+            },
+            "pinnacle": {
+                "weight": 100,
+                "quality": 0.1
+            }
+        }
+    },
+    "entities": [
+        "bubble:nuke_creeper"
+    ],
+    "stats": {
+        "attribute_modifiers": [
+            {
+                "attribute": "minecraft:generic.max_health",
+                "operation": "add_value",
+                "value": {
+                    "min": 20,
+                    "max": 40
+                }
+            },
+            {
+                "attribute": "minecraft:generic.movement_speed",
+                "operation": "add_multiplied_total",
+                "value": {
+                    "min": 0.1,
+                    "max": 0.25
+                }
+            },
+            {
+                "attribute": "minecraft:generic.knockback_resistance",
+                "operation": "add_value",
+                "value": 0.5
+            }
+        ],
+        "enchant_chance": 0.0,
+        "enchantment_levels": {
+            "primary": 15,
+            "secondary": 8
+        }
+    },
+    "success_chance": 0.12
+}
