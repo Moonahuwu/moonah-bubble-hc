@@ -118,7 +118,7 @@ final class ReviveClient {
 		MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
 		for (Revive.Entry e : downed) {
 			Entity who = mc.level.getEntity(e.entityId());
-			if (who == null || (who == mc.getCameraEntity() && mc.options.getCameraType().isFirstPerson()) || (who == mc.player && DownCam.active())) {
+			if (who == null || (who == mc.getCameraEntity() && mc.options.getCameraType().isFirstPerson()) || who.getUUID().equals(DownCam.subject())) {
 				continue;
 			}
 			Vec3 at = who.getPosition(partial).add(0, who.getBbHeight() + 0.55, 0);

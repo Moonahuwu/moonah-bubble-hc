@@ -250,7 +250,7 @@ public final class BubbleScreen extends ScaledScreen {
 		}));
 		slider = addRenderableWidget(new RadiusSlider(left + 28, row(2) + 30, W - 56, 16));
 		addRenderableWidget(new WallSlider(left + 28, wallY() + 24, W - 56, 14));
-		addRenderableWidget(new Toggle(left + W - 28 - 34, wallY() + 42, () -> ClientSettings.downCam, v -> {
+		addRenderableWidget(new Choice(left + W - 28 - 84, wallY() + 43, 84, 16, ClientSettings.DOWN_CAM, () -> ClientSettings.downCam, v -> {
 			ClientSettings.downCam = v;
 			ClientSettings.save();
 		}));
@@ -368,8 +368,9 @@ public final class BubbleScreen extends ScaledScreen {
 
 		// Your own setting: how close to the edge the wall starts to show
 		cardAt(ctx, mouseX, mouseY, left + 14, wallY(), W - 28, 64);
-		ctx.drawString(font, Component.literal("Replay when you go down"), left + 28, wallY() + 47, TEXT, false);
-		ctx.drawString(font, Component.literal("(a few seconds, click to skip)"), left + 28 + font.width("Replay when you go down") + 6, wallY() + 47, MUTED, false);
+		ctx.drawString(font, Component.literal("Replay when someone goes down"), left + 28, wallY() + 47, TEXT, false);
+		ctx.drawString(font, Component.literal("(click to skip)"),
+				left + 28 + font.width("Replay when someone goes down") + 6, wallY() + 47, MUTED, false);
 		ctx.drawString(font, Component.literal("Wall shows within"), left + 28, wallY() + 9, TEXT, false);
 		String wall = ClientSettings.wallAlways() ? "always visible" : ClientSettings.wallDistance + " blocks of the edge";
 		ctx.drawString(font, Component.literal(wall), left + 28 + font.width("Wall shows within") + 8, wallY() + 9, ACCENT, false);

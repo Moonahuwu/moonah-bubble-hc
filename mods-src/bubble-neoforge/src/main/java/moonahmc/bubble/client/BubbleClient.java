@@ -181,7 +181,7 @@ public final class BubbleClient {
 		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> DownCam.renderHud(e.getGuiGraphics()));
 		// While your down cam plays, your own body is hidden (the replay stands in for it)
 		bus.addListener((net.neoforged.neoforge.client.event.RenderPlayerEvent.Pre e) -> {
-			if (DownCam.active() && e.getEntity() == Minecraft.getInstance().player) {
+			if (DownCam.active() && e.getEntity().getUUID().equals(DownCam.subject())) {
 				e.setCanceled(true);
 			}
 		});

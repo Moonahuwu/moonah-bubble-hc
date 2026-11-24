@@ -39,6 +39,9 @@ final class DownCam {
 	private static int t;
 	private static int lastFrame;
 	private static double startAngle;
+	/** Whose replay this is, and whether it's yours. */
+	private static UUID subject;
+	private static boolean mine;
 
 	private DownCam() {
 	}
@@ -47,13 +50,30 @@ final class DownCam {
 		return cam != null;
 	}
 
+	/** The player whose knockdown is playing (their real body is hidden meanwhile), or null. */
+	static UUID subject() {
+		return cam == null ? null : subject;
+	}
+
 	static void start(Payloads.Killcam replay) {
-		stop();
 		Minecraft mc = Minecraft.getInstance();
-		if (!ClientSettings.downCam || mc.level == null || mc.player == null || replay.frames().size() < 2
+		if (mc.level == null || mc.player == null || replay.frames().size() < 2
 				|| !mc.level.dimension().location().toString().equals(replay.dimension())) {
 			return;
 		}
+		boolean isMine = replay.player().equals(mc.player.getUUID());
+		if (ClientSettings.downCam == 0 || (ClientSettings.downCam == 1 && !isMine)) {
+			return;
+		}
+		if (active() && mine && !isMine) {
+			return; // your own replay is playing: don't cut it off for someone else's
+		}
+		if (!isMine && (mc.screen != null || mc.player.hurtTime > 0)) {
+			return; // busy (in a menu, or being hit): skip theirs
+		}
+		stop();
+		subject = replay.player();
+		mine = isMine;
 		ClientLevel level = mc.level;
 		Payloads.Frame first = replay.frames().get(0);
 		ghost = new KillcamReplay.Ghost(level, new GameProfile(UUID.randomUUID(), replay.name()), replay.player());
@@ -113,6 +133,10 @@ final class DownCam {
 			stop();
 			return;
 		}
+		if (!mine && mc.player.hurtTime > 0 && !moonahmc.bubble.Revive.isDown(mc.player)) {
+			stop(); // you're being hit while watching someone else's: back to you
+			return;
+		}
 		t++;
 		List<Payloads.Frame> frames = clip.frames();
 		int end = Payloads.Killcam.replayTicks(frames.size());
@@ -164,6 +188,8 @@ final class DownCam {
 		ghost = null;
 		cam = null;
 		clip = null;
+		subject = null;
+		mine = false;
 	}
 
 	static void renderHud(GuiGraphics ctx) {
@@ -173,7 +199,7 @@ final class DownCam {
 		Font font = Minecraft.getInstance().font;
 		int w = ctx.guiWidth();
 		ctx.fill(0, 0, w, 22, 0x88000000);
-		String title = "How you went down";
+		String title = mine || clip == null ? "How you went down" : "How " + clip.name() + " went down";
 		ctx.drawString(font, title, (w - font.width(title)) / 2, 4, 0xFFFF5555, true);
 		String skip = "Click to skip";
 		ctx.drawString(font, skip, (w - font.width(skip)) / 2, 13, 0xFF9AA3AF, false);

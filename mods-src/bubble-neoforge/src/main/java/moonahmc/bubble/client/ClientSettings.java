@@ -24,8 +24,9 @@ final class ClientSettings {
 	static int shopAmount;
 	static String shopTab = "";
 	static boolean shopGamble;
-	/** Revive: play back how you went down when you go down (DownCam). */
-	static boolean downCam = true;
+	/** Revive down cam (DownCam): 0 = off, 1 = when you go down, 2 = when anyone goes down. */
+	static int downCam = 1;
+	static final String[] DOWN_CAM = {"Off", "Just mine", "Everyone's"};
 
 	private ClientSettings() {
 	}
@@ -52,7 +53,11 @@ final class ClientSettings {
 				shopAmount = o.has("shopAmount") ? Math.max(0, Math.min(3, o.get("shopAmount").getAsInt())) : 0;
 				shopTab = o.has("shopTab") ? o.get("shopTab").getAsString() : "";
 				shopGamble = o.has("shopGamble") && o.get("shopGamble").getAsBoolean();
-				downCam = !o.has("downCam") || o.get("downCam").getAsBoolean();
+				if (o.has("downCamMode")) {
+					downCam = Math.max(0, Math.min(2, o.get("downCamMode").getAsInt()));
+				} else {
+					downCam = !o.has("downCam") || o.get("downCam").getAsBoolean() ? 1 : 0;
+				}
 			}
 		} catch (Exception e) {
 			Bubble.LOG.warn("Could not read config/bubble-client.json, using defaults", e);
@@ -70,7 +75,7 @@ final class ClientSettings {
 			o.addProperty("shopAmount", shopAmount);
 			o.addProperty("shopTab", shopTab);
 			o.addProperty("shopGamble", shopGamble);
-			o.addProperty("downCam", downCam);
+			o.addProperty("downCamMode", downCam);
 			Files.createDirectories(file().getParent());
 			Files.writeString(file(), o.toString());
 		} catch (Exception e) {

@@ -121,9 +121,15 @@ public final class BubbleServer {
 			worn.add(p.getItemBySlot(slot).copy());
 		}
 		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position()));
-		if (frames.size() >= 2 && ServerPlayNetworking.canSend(p, Payloads.DownCam.ID)) {
-			ServerPlayNetworking.send(p, new Payloads.DownCam(new Payloads.Killcam(p.getUUID(), p.getName().getString(),
-					p.serverLevel().dimension().location().toString(), frames, worn)));
+		if (frames.size() >= 2) {
+			// everyone gets it; their own setting says whether it plays (yours, everyone's, or none)
+			Payloads.DownCam cam = new Payloads.DownCam(new Payloads.Killcam(p.getUUID(), p.getName().getString(),
+					p.serverLevel().dimension().location().toString(), frames, worn));
+			for (ServerPlayer q : p.server.getPlayerList().getPlayers()) {
+				if (q.serverLevel() == p.serverLevel() && ServerPlayNetworking.canSend(q, Payloads.DownCam.ID)) {
+					ServerPlayNetworking.send(q, cam);
+				}
+			}
 		}
 	}
 

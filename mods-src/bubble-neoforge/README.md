@@ -56,9 +56,11 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   come back.
 - **Kill cam and revive:** when you go down, the server keeps the few seconds before it. If you then bleed out and that
   ends the run, the kill cam replays how you went down (not you crawling about), and the title says so.
-- **Down cam (just for you):** when you go down, your screen plays those few seconds back from over your shoulder,
-  slowing at the hit, then goes back to your eyes. Nobody else's screen changes, and you're still where you fell.
-  Click to skip; switch it off in the Bubble menu ("Replay when you go down").
+- **Down cam:** when you go down, your screen plays those few seconds back from over your shoulder, slowing at the
+  hit, then goes back to your eyes (you're still where you fell). Each player picks in the Bubble menu ("Replay when
+  someone goes down"): **Just mine** (default), **Everyone's** (you also see a teammate's knockdown when they go down,
+  while you're in the same dimension; it's skipped if you're in a menu, and stops if you get hit) or **Off**. Click to
+  skip.
 - **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
   `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
 
@@ -525,8 +527,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.25.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.25.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.25.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.25.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
