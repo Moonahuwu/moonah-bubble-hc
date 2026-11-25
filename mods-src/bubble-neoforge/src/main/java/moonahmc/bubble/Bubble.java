@@ -40,6 +40,7 @@ public final class Bubble {
 		VideoShare.init(); // shop Video tab
 		AccessoryCompat.init(); // Curios: right-click to equip accessories
 		RelicMax.init(); // artifacts / relics come fully levelled
+		TransmutationOff.init(); // ProjectE: no Transmutation Table / Condensers, no money-making Philosopher's Stone swaps
 		// Shared Apotheosis world tiers (only when Apotheosis is installed)
 		if (net.neoforged.fml.ModList.get().isLoaded("apotheosis")) {
 			ApothTiers.init();

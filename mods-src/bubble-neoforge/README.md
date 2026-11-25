@@ -468,8 +468,12 @@ elytra, Meka-Tool, Dark Matter chestplate (epic), MekaSuit bodyarmor, Red Matter
 New shop tabs: **Mekanism**, **Applied Energistics**, **Cyclic** and **Gadgets** (Chisels & Bits, Dark Utilities),
 priced well above what each sells for. Without a mod, its rows and case entries just don't show.
 
-ProjectE's Transmutation Table and EMC items aren't in the cases or the shop: turning EMC into items can be sold for
-more Strange Matter than it cost.
+**ProjectE without transmutation.** Turning EMC back into items let you buy something, turn it into EMC, make
+cheaper-per-EMC items and sell those for more than you paid, forever. So the Transmutation Table and Tablet, Energy
+Condensers and the Mercurial Eye can't be crafted (taken out again after `/reload`), placed or used. The Philosopher's
+Stone's fixed swaps stay, except any whose result sells for clearly more than what goes in (1 gold to 8 iron, 1
+emerald to 2 diamonds); the way back (8 iron to 1 gold...) stays since it only loses Strange Matter. Alchemy, Dark and
+Red Matter gear, rings and amulets all work. The server log lists what was removed (`TransmutationOff`).
 
 Selling: an ingredient that stays in the crafting grid (the Philosopher's Stone, AE2's cutting knives) no longer adds
 to what the result is worth (it made ProjectE's alchemy prices snowball tenfold).
@@ -588,8 +592,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.28.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.28.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.28.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.28.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

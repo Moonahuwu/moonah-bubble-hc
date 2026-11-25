@@ -149,6 +149,9 @@ public final class Matter {
 		loadWallets();
 		long t = System.currentTimeMillis();
 		computeValues(s);
+		if (TransmutationOff.strip(s) > 0) {
+			computeValues(s); // without the removed ProjectE swaps
+		}
 		Bubble.LOG.info("Strange Matter: priced {} items in {} ms", values.size(), System.currentTimeMillis() - t);
 	}
 
