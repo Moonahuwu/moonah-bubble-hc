@@ -85,8 +85,8 @@ hash = "68d6016fa3707c434b3aca5db041c7518c70feb53d0183faa2502cc6efd4c827"
 metafile = true
 
 [[files]]
-file = "mods/bubble-neoforge-1.27.0.jar"
-hash = "38e17a2e47d24ede06952d39a465c2c499b11596a352af446588c3603bde73fd"
+file = "mods/bubble-neoforge-1.28.0.jar"
+hash = "5b9a6ebb8046c98c297042eacd94388cc3a601b64a96d14bde92775e1495cafc"
 
 [[files]]
 file = "mods/cataclysm-dimension.pw.toml"
