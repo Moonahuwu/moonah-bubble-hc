@@ -54,6 +54,8 @@ public final class Shop {
 	private static final List<Section> sections = new ArrayList<>();
 	/** Energy you get per Strange Matter in the Charging tab. */
 	private static int chargeRate = 2000;
+	/** ProjectE: EMC per Strange Matter in the Charging tab. */
+	private static int emcRate = 500;
 	/** Admin switch: buying from the shop tabs (and charging) is off; Gamble and selling still work. */
 	static boolean closed;
 	private static MinecraftServer server;
@@ -89,6 +91,9 @@ public final class Shop {
 			}
 			if (root.has("chargeRate")) {
 				chargeRate = Math.max(1, root.get("chargeRate").getAsInt());
+			}
+			if (root.has("emcRate")) {
+				emcRate = Math.max(1, root.get("emcRate").getAsInt());
 			}
 			closed = root.has("shopClosed") && root.get("shopClosed").getAsBoolean();
 			JsonArray secs = withNewDefaults(root);
@@ -220,6 +225,13 @@ public final class Shop {
 				Bubble.LOG.info("Shop: removed {} Traveler's Backpack / My Lucky Block rows (those mods aren't in the pack)", gone);
 			}
 		}
+		// 1.29.0: the Boss Case (Cataclysm boss gear)
+		if (defaultsSeen.add("+Gamble:case:boss")) {
+			addCaseOffer(secs, "case:boss", bossCase());
+		}
+		if (defaultsSeen.add("+Gamble:case:armor")) {
+			addCaseOffer(secs, "case:armor", armorCase());
+		}
 		// 1.21.0: the Attachment Case (an attachment that fits the gun you're holding)
 		if (defaultsSeen.add("+Gamble:attachment_case")) {
 			for (JsonElement e : secs) {
@@ -234,9 +246,22 @@ public final class Shop {
 		return secs;
 	}
 
+	/** Adds a case offer to the Gamble tab unless it's already there. */
+	private static void addCaseOffer(JsonArray secs, String action, JsonObject offer) {
+		for (JsonElement e : secs) {
+			JsonObject so = e.getAsJsonObject();
+			if ("Gamble".equals(so.get("name").getAsString()) && so.has("items") && so.getAsJsonArray("items").asList().stream()
+					.noneMatch(ie -> ie.getAsJsonObject().has("action") && action.equals(ie.getAsJsonObject().get("action").getAsString()))) {
+				so.getAsJsonArray("items").add(offer);
+				Bubble.LOG.info("Shop: added {} to the Gamble tab", action);
+			}
+		}
+	}
+
 	private static void save() {
 		JsonObject root = new JsonObject();
 		root.addProperty("chargeRate", chargeRate);
+		root.addProperty("emcRate", emcRate);
 		root.addProperty("shopClosed", closed);
 		JsonArray seen = new JsonArray();
 		defaultsSeen.forEach(seen::add);
@@ -392,6 +417,8 @@ public final class Shop {
 		caseItems.add(caseOffer("weapons", "minecraft:trapped_chest", "Weapon Case", "red", "Swords, bows and Apotheosis gear", 150));
 		caseItems.add(twilightCase());
 		caseItems.add(attachmentCase());
+		caseItems.add(bossCase());
+		caseItems.add(armorCase());
 		gamble.add("items", caseItems);
 		arr.add(gamble);
 		// Guns (TACZ): ammo for whatever guns you're carrying. Hidden without TACZ.
@@ -435,6 +462,27 @@ public final class Shop {
 		arr.add(charging);
 		root.add("sections", arr);
 		return root;
+	}
+
+	/** Cataclysm boss weapons and armour (hidden without Cataclysm: its icon is Cataclysm's). Bosses drop it too. */
+	private static JsonObject bossCase() {
+		return withOdds(caseOffer("boss", "cataclysm:ignitium_ingot", "Boss Case", "dark_red",
+				"Cataclysm boss weapons, armour and eyes", 300), new String[] {"55%", "28%", "12%", "4%", "1%"});
+	}
+
+	private static JsonObject armorCase() {
+		return caseOffer("armor", "minecraft:diamond_chestplate", "Armor Case", "aqua", "Armour from every mod: Mekanism, Aether, Twilight, ProjectE...", 150);
+	}
+
+	/** A case offer whose case has its own odds (the lore lines under the description). */
+	private static JsonObject withOdds(JsonObject offer, String[] pct) {
+		var lore = offer.getAsJsonObject("item").getAsJsonObject("components").getAsJsonArray("minecraft:lore");
+		String[] names = {"Common", "Uncommon", "Rare", "Epic", "Legendary"};
+		String[] colors = {"#4B69FF", "#8847FF", "#D32CE6", "#EB4B4B", "#E4AE39"};
+		for (int i = 0; i < names.length; i++) {
+			lore.set(i + 1, new com.google.gson.JsonPrimitive("{\"text\":\"  " + names[i] + " " + pct[i] + "\",\"color\":\"" + colors[i] + "\",\"italic\":false}"));
+		}
+		return offer;
 	}
 
 	private static JsonObject twilightCase() {
@@ -561,7 +609,7 @@ public final class Shop {
 			}
 			out.add(new ShopPayloads.Section(sec.name, icon(sec), sec.charging, offers, isGamble(sec), sec.video));
 		}
-		ServerPlayNetworking.send(p, new ShopPayloads.Catalog(p.hasPermissions(2), chargeRate, out, closed));
+		ServerPlayNetworking.send(p, new ShopPayloads.Catalog(p.hasPermissions(2), chargeRate, emcRate, out, closed));
 		Matter.sendBalance(p);
 	}
 
@@ -752,7 +800,7 @@ public final class Shop {
 		if (!ServerPlayNetworking.canSend(p, ShopPayloads.ChargeList.ID)) {
 			return;
 		}
-		ServerPlayNetworking.send(p, energyApi() ? new ShopPayloads.ChargeList(true, EnergyCompat.list(p, chargeRate))
+		ServerPlayNetworking.send(p, energyApi() ? new ShopPayloads.ChargeList(true, EnergyCompat.list(p, chargeRate, emcRate))
 				: new ShopPayloads.ChargeList(false, List.of()));
 	}
 
@@ -765,26 +813,35 @@ public final class Shop {
 			return;
 		}
 		long energy = 0;
+		long emc = 0;
 		int cost = 0;
-		for (ShopPayloads.Chargeable c : EnergyCompat.list(p, chargeRate)) {
+		for (ShopPayloads.Chargeable c : EnergyCompat.list(p, chargeRate, emcRate)) {
 			if (slot >= 0 && c.slot() != slot) {
 				continue;
 			}
+			boolean isEmc = EnergyCompat.EMC.equals(c.unit());
+			int rate = isEmc ? emcRate : chargeRate;
 			long missing = c.capacity() - c.amount();
-			long affordable = (long) Math.floor(Matter.balance(p) + 1e-9) * chargeRate;
+			long affordable = (long) Math.floor(Matter.balance(p) + 1e-9) * rate;
 			long want = Math.min(missing, affordable);
 			if (want <= 0) {
 				continue;
 			}
 			long in = EnergyCompat.charge(p, c.slot(), want);
-			int price = (int) ((in + chargeRate - 1) / chargeRate);
+			int price = (int) ((in + rate - 1) / rate);
 			Matter.add(p, -price);
-			energy += in;
+			if (isEmc) {
+				emc += in;
+			} else {
+				energy += in;
+			}
 			cost += price;
 		}
 		p.containerMenu.broadcastChanges();
-		if (energy > 0) {
-			p.displayClientMessage(Component.literal("Charged " + String.format("%,d", energy) + " energy for " + cost + " Strange Matter")
+		if (energy > 0 || emc > 0) {
+			String what = (energy > 0 ? String.format("%,d", energy) + " energy" : "") + (energy > 0 && emc > 0 ? " and " : "")
+					+ (emc > 0 ? String.format("%,d", emc) + " EMC" : "");
+			p.displayClientMessage(Component.literal("Charged " + what + " for " + cost + " Strange Matter")
 					.withStyle(ChatFormatting.AQUA), true);
 			p.playNotifySound(SoundEvents.BEACON_POWER_SELECT, SoundSource.PLAYERS, 0.5f, 1.6f);
 		} else {

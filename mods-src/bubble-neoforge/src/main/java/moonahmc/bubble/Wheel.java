@@ -73,6 +73,7 @@ import java.util.Set;
  *   {"type":"ambush", "mobs":["minecraft:zombie"], "count":6, "radius":7}  a ring of mobs round each player
  *   {"type":"loot", "tables":["minecraft:chests/simple_dungeon"], "rolls":2}  a burst of loot round each player
  *   {"type":"ammo", "magazines":5}                                     ammo for every gun each player carries (TACZ)
+ *   {"type":"boss", "bosses":["cataclysm:ignis"], "warning":10}        a boss turns up near one of you after a warning
  *   summon also takes "count", "radius", "leave_after" (seconds, then it vanishes) and "spawn_type" ("triggered")
  */
 public final class Wheel {
@@ -391,6 +392,10 @@ public final class Wheel {
 			if (type.equals("ammo")) {
 				w.add("Only gives ammo to players carrying a gun.");
 			}
+			if (type.equals("boss")) {
+				w.add("A Cataclysm boss turns up near one random player after a " + (a.has("warning") ? a.get("warning").getAsInt() : 10)
+						+ " second warning. Early in a run this can end it.");
+			}
 			if (!onMid && type.equals("status")) {
 				int secs = a.has("seconds") ? a.get("seconds").getAsInt() : 60;
 				w.add("Only lasts " + (secs % 60 == 0 ? secs / 60 + " min" : secs + " s") + " at the start of the run, not the whole run.");
@@ -681,6 +686,7 @@ public final class Wheel {
 					case "loot" -> who.stream().filter(BubbleServer::counts).forEach(p -> loot(p, a));
 					case "ammo" -> who.forEach(p -> ammo(p, a));
 					case "gun", "apoth_loot" -> who.forEach(p -> givePlayer(p, a));
+					case "boss" -> Bosses.wheelBoss(players, a);
 					default -> Bubble.LOG.warn("Wheel: unknown action type '{}' in slice '{}'", type, slice.name());
 				}
 			} catch (Exception ex) {
@@ -1161,6 +1167,8 @@ public final class Wheel {
 				    {"name": "Hotbar swap", "color": "#9575CD", "actions": [{"type": "swap_hotbars"}]},
 				    {"name": "Tiny or giant", "color": "#66BB6A", "actions": [{"type": "status", "kind": "size", "seconds": 180}]},
 				    {"name": "Random teleport", "color": "#4DD0E1", "actions": [{"type": "teleport", "radius": 50}]},
+				    {"name": "Summon a boss", "color": "#6A1B9A", "actions": [{"type": "boss", "warning": 10, "distance": 20,
+				      "bosses": ["cataclysm:ender_guardian", "cataclysm:netherite_monstrosity", "cataclysm:ignis", "cataclysm:maledictus", "cataclysm:ancient_remnant", "cataclysm:the_harbinger{Is_Act:1b}"]}]},
 				    {"name": "Chickens everywhere", "color": "#FFF3C4", "actions": [
 				      {"type": "summon", "entity": "minecraft:chicken", "count": 30, "radius": 14, "leave_after": 120}]}
 				  ]

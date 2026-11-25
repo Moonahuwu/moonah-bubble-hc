@@ -25,6 +25,19 @@ final class ApothElites {
 		return e.getPersistentData().contains("apoth.miniboss") || e.getPersistentData().contains("apoth.boss");
 	}
 
+	/** Turns `mob` (already in the world) into one of its elites, for the nearest player's world tier. */
+	static boolean makeElite(ServerLevel level, Mob mob) {
+		Entity near = level.getNearestPlayer(mob, 128);
+		ServerPlayer p = near instanceof ServerPlayer sp ? sp : net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(level);
+		GenContext ctx = GenContext.forPlayerAtPos(level.random, p, mob.blockPosition());
+		Elite elite = EliteRegistry.INSTANCE.getRandomItem(ctx, mob);
+		if (elite == null) {
+			return false;
+		}
+		elite.transformMiniboss(level, mob, ctx);
+		return true;
+	}
+
 	/**
 	 * Spawns `type` at pos as one of its elites (for the player's world tier). Returns the mob, or null if that mob
 	 * has no elite or couldn't spawn.

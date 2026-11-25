@@ -25,7 +25,7 @@ import static moonahmc.bubble.client.BubbleScreen.roundRect;
  * The Strange Matter shop. Tabs on the left, items on the right; click to buy (×1/×5/×16/×64 picked at the top).
  * Search looks through every tab; middle-click stars an item into the Favourites tab; the sort, amount, favourites and
  * last tab are remembered (config/bubble-client.json).
- * The Charging tab fills Oritech (Team Reborn Energy) gear. Operators get an Edit mode to change prices and amounts,
+ * The Charging tab fills energy gear (Mekanism, Oritech, AE2, Cyclic...) and ProjectE EMC items. Operators get an Edit mode to change prices and amounts,
  * add the item they're holding, and add or remove tabs. Every change shows up for everyone right away.
  */
 public final class ShopScreen extends ScaledScreen {
@@ -955,18 +955,22 @@ public final class ShopScreen extends ScaledScreen {
 	private void drawCharging(GuiGraphics ctx, int mouseX, int mouseY) {
 		ShopPayloads.ChargeList list = ClientState.charges;
 		int rate = ClientState.catalog.chargeRate();
-		ctx.drawString(font, Component.literal("1 Strange Matter = " + String.format("%,d", rate) + " energy"), gridX(), gridY() + 5, MUTED, false);
+		boolean anyEmc = list != null && list.items().stream().anyMatch(ch -> "EMC".equals(ch.unit()));
+		String rates = "1 Strange Matter = " + String.format("%,d", rate) + " energy"
+				+ (anyEmc ? " or " + String.format("%,d", ClientState.catalog.emcRate()) + " EMC" : "");
+		ctx.drawString(font, Component.literal(rates), gridX(), gridY() + 5, MUTED, false);
 		if (list == null) {
 			ctx.drawString(font, Component.literal("Checking your inventory..."), gridX(), gridY() + 30, MUTED, false);
 			return;
 		}
 		if (!list.available()) {
-			ctx.drawString(font, Component.literal("No energy mod (Oritech) on this server."), gridX(), gridY() + 30, MUTED, false);
+			ctx.drawString(font, Component.literal("No energy mod on this server."), gridX(), gridY() + 30, MUTED, false);
 			return;
 		}
 		if (list.items().isEmpty()) {
-			ctx.drawString(font, Component.literal("Nothing in your inventory holds energy."), gridX(), gridY() + 30, MUTED, false);
-			ctx.drawString(font, Component.literal("Oritech tools, armor and batteries show up here."), gridX(), gridY() + 42, 0xFF5A616C, false);
+			ctx.drawString(font, Component.literal("Nothing you're carrying or wearing holds energy."), gridX(), gridY() + 30, MUTED, false);
+			ctx.drawString(font, Component.literal("Mekanism, Oritech, AE2 and Cyclic gear, batteries and"), gridX(), gridY() + 42, 0xFF5A616C, false);
+			ctx.drawString(font, Component.literal("ProjectE Klein Stars show up here (accessories too)."), gridX(), gridY() + 54, 0xFF5A616C, false);
 			return;
 		}
 		int total = 0;
@@ -990,8 +994,8 @@ public final class ShopScreen extends ScaledScreen {
 			int bw = rw - 30 - 86;
 			float f = ch.capacity() <= 0 ? 0 : (float) Math.min(1, ch.amount() / (double) ch.capacity());
 			roundRect(ctx, bx, ry + 19, bw, 4, 2, 0xFF2E333B);
-			roundRect(ctx, bx, ry + 19, Math.round(bw * f), 4, 2, 0xFFF2C14E);
-			String amt = compact(ch.amount()) + " / " + compact(ch.capacity());
+			roundRect(ctx, bx, ry + 19, Math.round(bw * f), 4, 2, "EMC".equals(ch.unit()) ? 0xFF7FD3FF : 0xFFF2C14E);
+			String amt = compact(ch.amount()) + " / " + compact(ch.capacity()) + ("EMC".equals(ch.unit()) ? " EMC" : " FE");
 			ctx.drawString(font, Component.literal(amt), bx + bw - font.width(amt), ry + 6, MUTED, false);
 			// button
 			int btx = left + W - 14 - 70;

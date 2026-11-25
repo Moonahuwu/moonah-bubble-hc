@@ -21,7 +21,7 @@ import java.util.Set;
 
 /**
  * ProjectE without transmutation. Turning EMC back into items (Transmutation Table / Tablet, Energy Condensers,
- * Mercurial Eye) lets you buy something in the shop, turn it into EMC, make cheaper-per-EMC items from it and sell
+ * Mercurial Eye, Gem of Eternal Density, Void Ring) lets you buy something in the shop, turn it into EMC, make cheaper-per-EMC items from it and sell
  * those for more than you paid, over and over. So those can't be crafted, placed or used. Alchemy, Dark and Red Matter
  * gear, rings and amulets all still work.
  * <p>
@@ -30,7 +30,9 @@ import java.util.Set;
  */
 final class TransmutationOff {
 	static final Set<String> BANNED = Set.of("projecte:transmutation_table", "projecte:transmutation_tablet",
-			"projecte:condenser_mk1", "projecte:condenser_mk2", "projecte:mercurial_eye");
+			"projecte:condenser_mk1", "projecte:condenser_mk2", "projecte:mercurial_eye",
+			// these turn items into other items by EMC too (cobblestone into diamonds)
+			"projecte:gem_density", "projecte:void_ring");
 	/** A swap may make up to this much more than its ingredients (crafting bonus) before it counts as free money. */
 	private static final double MARGIN = 1.1;
 

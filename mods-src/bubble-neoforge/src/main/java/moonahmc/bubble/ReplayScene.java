@@ -39,9 +39,11 @@ final class ReplayScene {
 	/** Same length as the players' own tracks (BubbleServer.TRACK_FRAMES). */
 	private static final int FRAMES = 60;
 	/** Recorded around every player. */
-	private static final double RANGE = 32;
-	/** Shown in a clip: this close to the player it's about, at that moment. */
-	private static final double CLIP_RANGE = 28;
+	private static final double RANGE = 48;
+	/** Shown in a clip: this close to the player it's about, at that moment (whatever hurt them is always in). */
+	private static final double CLIP_RANGE = 44;
+	/** Whatever last hurt a player is recorded out to here (a Watcher kills from 64 blocks). */
+	private static final double ATTACKER_RANGE = 96;
 	private static final int MAX_PER_TICK = 160;
 	private static final int MAX_DATA_BYTES = 6000;
 	private static final EquipmentSlot[] GEAR_SLOTS = {EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND, EquipmentSlot.HEAD,
@@ -172,6 +174,12 @@ final class ReplayScene {
 					double d = x.distanceToSqr(p);
 					found.putIfAbsent(x.getId(), x);
 					near.merge(x.getId(), d, Math::min);
+				}
+				// whoever is hurting them, even from further off (a sniper, a Watcher): first in line
+				LivingEntity by = p.getLastHurtByMob();
+				if (by != null && by.level() == level && wanted(by) && by.distanceToSqr(p) < ATTACKER_RANGE * ATTACKER_RANGE) {
+					found.putIfAbsent(by.getId(), by);
+					near.put(by.getId(), 0.0);
 				}
 			}
 			List<Entity> list = new ArrayList<>(found.values());
@@ -318,6 +326,11 @@ final class ReplayScene {
 	 * player and projectile, frame by frame, plus explosions.
 	 */
 	static Payloads.Scene clip(ServerPlayer subject, List<Payloads.Frame> frames) {
+		return clip(subject, frames, Set.of());
+	}
+
+	/** The same, with `focus` (entity ids, e.g. the boss) always in however far away. */
+	static Payloads.Scene clip(ServerPlayer subject, List<Payloads.Frame> frames, Set<Integer> focus) {
 		ArrayDeque<Snap> q = snaps.get(subject.serverLevel().dimension());
 		int n = frames.size();
 		if (q == null || n < 2) {
@@ -326,6 +339,14 @@ final class ReplayScene {
 		Payloads.Frame origin = frames.get(0);
 		long firstTick = lastTick - (n - 1);
 		ServerLevel level = subject.serverLevel();
+		// what hurt them: in the clip however far away it was, and never cut for space
+		Set<Integer> attackers = new java.util.HashSet<>(focus);
+		if (subject.getLastHurtByMob() != null) {
+			attackers.add(subject.getLastHurtByMob().getId());
+		}
+		if (subject.getKillCredit() != null) {
+			attackers.add(subject.getKillCredit().getId());
+		}
 		Map<Integer, Sample[]> tracks = new LinkedHashMap<>();
 		Map<Integer, Double> closest = new HashMap<>();
 		for (Snap s : q) {
@@ -342,7 +363,9 @@ final class ReplayScene {
 				double dy = a.y - f.y();
 				double dz = a.z - f.z();
 				double d = dx * dx + dy * dy + dz * dz;
-				if (d > CLIP_RANGE * CLIP_RANGE) {
+				if (attackers.contains(a.id)) {
+					d = 0;
+				} else if (d > CLIP_RANGE * CLIP_RANGE) {
 					continue;
 				}
 				tracks.computeIfAbsent(a.id, k -> new Sample[n])[fi] = a;
@@ -384,7 +407,7 @@ final class ReplayScene {
 					data = fresh;
 				}
 			}
-			actors.add(new Payloads.Actor(info.kind, info.type, data, info.player, info.name, info.gear, start, out));
+			actors.add(new Payloads.Actor(info.kind, info.type, data, info.player, info.name, info.gear, start, out, id));
 		}
 		List<Payloads.Blast> booms = new ArrayList<>();
 		for (BlastAt b : blasts) {

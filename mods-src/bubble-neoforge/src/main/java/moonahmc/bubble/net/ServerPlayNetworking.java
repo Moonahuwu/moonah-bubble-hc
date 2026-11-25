@@ -23,7 +23,9 @@ public final class ServerPlayNetworking {
 
 	/** True when the player's client has Bubble (vanilla players and other clients don't). */
 	public static boolean canSend(ServerPlayer player, CustomPacketPayload.Type<?> type) {
-		return player.connection != null && player.connection.hasChannel(type);
+		// fake players (machines, tests) have no real connection to send to
+		return !(player instanceof net.neoforged.neoforge.common.util.FakePlayer) && player.connection != null
+				&& player.connection.getConnection().channel() != null && player.connection.hasChannel(type);
 	}
 
 	public static void send(ServerPlayer player, CustomPacketPayload payload) {

@@ -59,11 +59,12 @@ public final class ShopPayloads {
 	}
 
 	/** Server to client: the whole catalogue (sent when the shop opens, and again whenever an op edits it). */
-	public record Catalog(boolean canEdit, int chargeRate, List<Section> sections, boolean shopClosed) implements CustomPacketPayload {
+	public record Catalog(boolean canEdit, int chargeRate, int emcRate, List<Section> sections, boolean shopClosed) implements CustomPacketPayload {
 		public static final Type<Catalog> ID = id("shop_catalog");
 		public static final StreamCodec<RegistryFriendlyByteBuf, Catalog> CODEC = StreamCodec.ofMember((c, buf) -> {
 			buf.writeBoolean(c.canEdit);
 			buf.writeVarInt(c.chargeRate);
+			buf.writeVarInt(c.emcRate);
 			buf.writeVarInt(c.sections.size());
 			for (Section s : c.sections) {
 				buf.writeUtf(s.name);
@@ -82,6 +83,7 @@ public final class ShopPayloads {
 		}, buf -> {
 			boolean canEdit = buf.readBoolean();
 			int rate = buf.readVarInt();
+			int emcRate = buf.readVarInt();
 			int n = Math.min(buf.readVarInt(), 64);
 			List<Section> sections = new ArrayList<>(n);
 			for (int i = 0; i < n; i++) {
@@ -96,7 +98,7 @@ public final class ShopPayloads {
 				boolean gamble = buf.readBoolean();
 				sections.add(new Section(name, icon, charging, offers, gamble, buf.readBoolean()));
 			}
-			return new Catalog(canEdit, rate, sections, buf.readBoolean());
+			return new Catalog(canEdit, rate, emcRate, sections, buf.readBoolean());
 		});
 
 		@Override
@@ -231,7 +233,7 @@ public final class ShopPayloads {
 	}
 
 	/** An item in your inventory that holds energy. */
-	public record Chargeable(int slot, ItemStack stack, long amount, long capacity, int cost) {
+	public record Chargeable(int slot, ItemStack stack, long amount, long capacity, int cost, String unit) {
 	}
 
 	/** Client to server: which of my items can be charged? */
@@ -257,13 +259,14 @@ public final class ShopPayloads {
 				buf.writeVarLong(ch.amount);
 				buf.writeVarLong(ch.capacity);
 				buf.writeVarInt(ch.cost);
+				buf.writeUtf(ch.unit);
 			}
 		}, buf -> {
 			boolean available = buf.readBoolean();
 			int n = Math.min(buf.readVarInt(), 64);
 			List<Chargeable> items = new ArrayList<>(n);
 			for (int i = 0; i < n; i++) {
-				items.add(new Chargeable(buf.readVarInt(), readStack(buf), buf.readVarLong(), buf.readVarLong(), buf.readVarInt()));
+				items.add(new Chargeable(buf.readVarInt(), readStack(buf), buf.readVarLong(), buf.readVarLong(), buf.readVarInt(), buf.readUtf()));
 			}
 			return new ChargeList(available, items);
 		});

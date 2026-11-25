@@ -274,6 +274,7 @@ public final class Payloads {
 				buf.writeByte(a.kind());
 				buf.writeUtf(a.type());
 				buf.writeVarInt(a.start());
+				buf.writeVarInt(a.entity());
 				if (a.kind() == PLAYER) {
 					buf.writeUUID(a.player());
 					buf.writeUtf(a.name());
@@ -320,6 +321,7 @@ public final class Payloads {
 				byte kind = buf.readByte();
 				String type = buf.readUtf();
 				int start = buf.readVarInt();
+				int entity = buf.readVarInt();
 				java.util.UUID player = null;
 				String name = "";
 				List<net.minecraft.world.item.ItemStack> gear = List.of();
@@ -355,7 +357,7 @@ public final class Payloads {
 					}
 					frames.add(new ActorFrame(x, y, z, yaw, pitch, head, vx, vy, vz, buf.readVarInt()));
 				}
-				actors.add(new Actor(kind, type, data, player, name, gear, start, frames));
+				actors.add(new Actor(kind, type, data, player, name, gear, start, frames, entity));
 			}
 			int b = Math.min(buf.readVarInt(), 64);
 			List<Blast> blasts = new ArrayList<>(b);
@@ -368,7 +370,7 @@ public final class Payloads {
 
 	/** One mob, player or projectile in a replay: what it is, and where it was from frame `start` on. */
 	public record Actor(byte kind, String type, net.minecraft.nbt.CompoundTag data, java.util.UUID player, String name,
-						List<net.minecraft.world.item.ItemStack> gear, int start, List<ActorFrame> frames) {
+						List<net.minecraft.world.item.ItemStack> gear, int start, List<ActorFrame> frames, int entity) {
 	}
 
 	public record ActorFrame(double x, double y, double z, float yaw, float pitch, float headYaw, float vx, float vy,
@@ -477,6 +479,21 @@ public final class Payloads {
 		}
 	}
 
+	/** Server to client: a boss just died; how the last hit went (from the killer's side, your camera only). */
+	public record BossCam(Killcam clip, String boss) implements CustomPacketPayload {
+		public static final Type<BossCam> ID = id("boss_cam");
+		public static final StreamCodec<RegistryFriendlyByteBuf, BossCam> CODEC = StreamCodec.ofMember(
+				(d, buf) -> {
+					Killcam.CODEC.encode(buf, d.clip);
+					buf.writeUtf(d.boss);
+				}, buf -> new BossCam(Killcam.CODEC.decode(buf), buf.readUtf()));
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
 	/** Server to client: you just went down; here's how it happened (your own short replay, your camera only). */
 	public record DownCam(Killcam clip) implements CustomPacketPayload {
 		public static final Type<DownCam> ID = id("down_cam");
@@ -494,6 +511,7 @@ public final class Payloads {
 		var c2s = PayloadTypeRegistry.playC2S();
 		s2c.register(Killcam.ID, Killcam.CODEC);
 		s2c.register(DownCam.ID, DownCam.CODEC);
+		s2c.register(BossCam.ID, BossCam.CODEC);
 		s2c.register(State.ID, State.CODEC);
 		s2c.register(Open.ID, Open.CODEC);
 		s2c.register(Field.ID, Field.CODEC);

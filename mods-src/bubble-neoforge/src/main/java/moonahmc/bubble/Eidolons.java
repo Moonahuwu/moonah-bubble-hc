@@ -482,7 +482,8 @@ public final class Eidolons {
 		bus.addListener((LivingDeathEvent e) -> {
 			if (!e.getEntity().level().isClientSide && e.getSource().getEntity() instanceof ServerPlayer killer) {
 				EntityType<?> t = e.getEntity().getType();
-				if (t.is(net.neoforged.neoforge.common.Tags.EntityTypes.BOSSES) || t == EntityType.WITHER || t == EntityType.ENDER_DRAGON || t == EntityType.WARDEN) {
+				if ((t.is(net.neoforged.neoforge.common.Tags.EntityTypes.BOSSES) || t == EntityType.WITHER || t == EntityType.ENDER_DRAGON || t == EntityType.WARDEN)
+						&& !Bosses.handles(e.getEntity())) { // shared-reward bosses count for every helper (bossKill)
 					profile(killer).stats.bosses++;
 					save();
 				}
@@ -668,6 +669,15 @@ public final class Eidolons {
 	}
 
 	// ------------------------------------------------------------------ hall of fame hooks
+
+	/** Bosses: `p` helped take one down (a boss kill in the hall of fame, plus its Eidolons). */
+	static void bossKill(ServerPlayer p, long amount, String boss) {
+		profile(p).stats.bosses++;
+		if (amount > 0) {
+			give(p, amount, "for taking down " + boss);
+		}
+		save();
+	}
 
 	static void recordGamble(ServerPlayer p, long cost) {
 		profile(p).stats.gambled += cost;

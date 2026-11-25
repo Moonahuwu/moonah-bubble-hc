@@ -134,6 +134,27 @@ public final class BubbleServer {
 		}
 	}
 
+	/** Bosses: `killer` just took down a boss (entity id `boss`): everyone in that world gets the replay (boss cam). */
+	static void sendBossCam(ServerPlayer killer, int boss, String bossName) {
+		ArrayDeque<Payloads.Frame> track = tracks.get(killer.getUUID());
+		List<Payloads.Frame> frames = track == null ? List.of() : List.copyOf(track);
+		if (frames.size() < 2) {
+			return;
+		}
+		List<ItemStack> worn = new ArrayList<>(GEAR_SLOTS.length);
+		for (EquipmentSlot slot : GEAR_SLOTS) {
+			worn.add(killer.getItemBySlot(slot).copy());
+		}
+		Payloads.Scene scene = ReplayScene.clip(killer, frames, Set.of(boss));
+		Payloads.BossCam cam = new Payloads.BossCam(new Payloads.Killcam(killer.getUUID(), killer.getName().getString(),
+				killer.serverLevel().dimension().location().toString(), frames, worn, scene), bossName);
+		for (ServerPlayer q : killer.server.getPlayerList().getPlayers()) {
+			if (q.serverLevel() == killer.serverLevel() && ServerPlayNetworking.canSend(q, Payloads.BossCam.ID)) {
+				ServerPlayNetworking.send(q, cam);
+			}
+		}
+	}
+
 	/** Revive: `p` got back up (or left), so their knockdown clip isn't needed. */
 	static void forgetDown(ServerPlayer p) {
 		downClips.remove(p.getUUID());

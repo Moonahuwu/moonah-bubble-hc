@@ -34,6 +34,7 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble odds mob <mob> [n]       (ops) what n kills of that mob would drop (simulated)
  * /bubble odds elite <mob> [n]     (ops) the same for that mob's Apotheosis elite
  * /bubble elite <mob>              (ops) spawn that mob as one of its Apotheosis elites
+ * /bubble mobpower <mod>           (ops) every mob from a mod with its health, armour and damage
  * /bubble odds case <case> [n]     (ops) n simulated openings: tiers, and how many prizes came out better
  * /bubble currency matter|eidolons give|take|set <players> <amount>, /bubble currency list   (ops)
  * /bubble nuke [pos]               (ops) set off a nuke (Lucky Blocks use this)
@@ -125,13 +126,23 @@ final class BubbleCommand {
 		d.register(literal("bubble").then(literal("elite").requires(src -> src.hasPermission(2))
 				.then(argument("mob", net.minecraft.commands.arguments.ResourceLocationArgument.id())
 						.suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(java.util.List.of("bubble:gatling_skeleton", "bubble:jockey_jockey",
-								"bubble:swarm_zombie", "bubble:watcher", "bubble:evil_watcher", "bubble:nuke_creeper", "bubble:rainbow_creeper"), b))
+								"bubble:swarm_zombie", "bubble:watcher", "bubble:evil_watcher", "bubble:nuke_creeper", "bubble:rainbow_creeper",
+								"cataclysm:ender_golem", "cataclysm:kobolediator", "cataclysm:wadjet", "cataclysm:coralssus", "cataclysm:the_prowler",
+								"cataclysm:aptrgangr", "cataclysm:amethyst_crab", "cataclysm:clawdian", "cataclysm:ignited_berserker"), b))
 						.executes(c -> spawnElite(c.getSource(), net.minecraft.commands.arguments.ResourceLocationArgument.getId(c, "mob"))))));
 		d.register(literal("bubble").then(literal("gearpower").requires(src -> src.hasPermission(2))
 				.then(argument("mod", StringArgumentType.greedyString()).executes(ctx -> {
 					int n = GearPower.report(ctx.getSource(), StringArgumentType.getString(ctx, "mod"));
 					return Math.max(1, n);
 				}))));
+		d.register(literal("bubble").then(literal("bosstest").requires(src -> src.hasPermission(2))
+				.then(literal("kill").then(argument("mob", StringArgumentType.greedyString())
+						.executes(ctx -> Bosses.test(ctx.getSource(), "kill", StringArgumentType.getString(ctx, "mob")))))
+				.then(literal("summon").then(argument("mob", StringArgumentType.greedyString())
+						.executes(ctx -> Bosses.test(ctx.getSource(), "summon", StringArgumentType.getString(ctx, "mob")))))));
+		d.register(literal("bubble").then(literal("mobpower").requires(src -> src.hasPermission(2))
+				.then(argument("mod", StringArgumentType.greedyString()).executes(ctx ->
+						Math.max(1, GearPower.mobs(ctx.getSource(), StringArgumentType.getString(ctx, "mod")))))));
 		d.register(literal("bubble").then(literal("replaytest").requires(src -> src.hasPermission(2)).executes(ctx -> {
 			ReplayScene.startTest(ctx.getSource(), ctx.getSource().getLevel(), ctx.getSource().getPosition());
 			ctx.getSource().sendSuccess(() -> Component.literal("Recording the scene here for 3 seconds..."), false);

@@ -63,12 +63,14 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   while you're in the same dimension; it's skipped if you're in a menu, and stops if you get hit) or **Off**. Click to
   skip.
 - **Replays show everything:** the kill cam and the down cam don't just show the player. The server keeps the last
-  3 seconds of everything within 32 blocks of each player: mobs (with their gear, name, size, baby or not), other
+  3 seconds of everything within 48 blocks of each player (and whatever is hurting them out to 96, so a Watcher or a
+  sniper that got you from far off is in it too): mobs (with their gear, name, size, baby or not), other
   players (skin and gear), arrows, tridents, fireballs and other projectiles in flight, lit TNT, gun bullets (drawn as
   tracers), and explosions. In the replay, all of it is back where it was, moving, swinging, getting hit and dying as
-  it did. Nothing in the world is moved: your client plays it with stand-ins and hides the real mobs, players and
-  projectiles on your screen only while it plays, so everything is back where it really is the moment it ends. Up
-  to 64 things within 28 blocks of the player, nearest first; a busy clip is about 10 KB. Ops can check the recording
+  it did. Nothing in the world is moved: your client plays it with stand-ins and hides the real ones they stand in for,
+  on your screen only while it plays, so everything is back where it really is the moment it ends. Anything the
+  replay doesn't cover (further off, or not there then) stays where it is instead of vanishing. Up to 64 things within
+  44 blocks of the player, whatever hurt them first, then nearest; a busy clip is about 10-20 KB. Ops can check the recording
   with `/bubble replaytest` (records 3 seconds where you stand and reports what it caught).
 - **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
   `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
@@ -123,9 +125,11 @@ A case drop is one of the server's cases at random. All of it is in `config/bubb
   Everything else is worked out from its recipes, plus 8% for each crafting step that combines different things, so
   long crafting trees pay more. Enchantments add value, and damage takes it away. `/bubble matter worth <item>` shows a value.
 - **Shop:** the bag button above your inventory (or a key you can bind in Controls). Tabs: Essentials, Materials, Gear,
-  Backpacks and Backpack upgrades (Sophisticated Backpacks), Fun, and **Charging** (fill anything that holds NeoForge
-  energy: Oritech, Mekanism, Powah, backpack battery upgrades...; 1 matter = 2,000 energy). The Charging tab only shows
-  when an installed mod has energy items. You never pay less than an item sells for.
+  Backpacks and Backpack upgrades (Sophisticated Backpacks), Fun, and **Charging**: fill anything that holds NeoForge
+  energy (Mekanism, Oritech, Applied Energistics 2, Cyclic, backpack battery upgrades...; 1 matter = 2,000 energy) or
+  ProjectE EMC (Klein Stars, gem armour, EMC rings; 1 matter = 500 EMC, `emcRate` in `config/bubble-shop.json`), in
+  your inventory, armour, offhand and Curios accessory slots. The Charging tab only shows when an installed mod has
+  such items (the server log says which: "Strange Matter charging: ..."). You never pay less than an item sells for.
 - **Buying:** pick how many at the top (**×1 / ×5 / ×16 / ×64**) and click an item; with ×1, shift-click still buys 5.
   The tooltip shows the total, and **Need X more** when you can't afford it; tiles you can't afford at the chosen amount
   are dimmed. Your amount is remembered.
@@ -449,6 +453,62 @@ still stack. The "sells back for about" numbers in the log count the cap.
 
 Without Prism the same things show in still colours.
 
+## Bosses (Cataclysm, 1.29.0)
+
+- **Everyone who helped is paid.** When one of Cataclysm's bosses dies, every player who hurt it, or was fighting
+  within 48 blocks, gets its Strange Matter and Eidolons, a **Boss Case** (1 in 4 also a Wheel Spin) and a boss kill
+  in the hall of fame. Machines' fake players don't count. The server is told who did it and how long it took
+  ("⚔ Ignis has fallen! Taken down by ... in 4m 12s"), and it goes in the run log.
+
+  | Boss | Strange Matter | Eidolons |
+  |---|---|---|
+  | Ender Guardian | 200 | 3 |
+  | Netherite Monstrosity, Ancient Remnant, Maledictus | 300 | 4 |
+  | The Leviathan, Scylla | 350 | 5 |
+  | Ignis, The Harbinger | 400 | 5 |
+
+- **Boss cam.** A moment after the kill, everyone in that world sees the last 3 seconds from over the killer's
+  shoulder, slowing down for the final hit, with the boss and everything else in it ("You took down Ignis"). Same
+  setting and skip as the down cam.
+- **Mini-bosses** pay well and now and then drop a Boss Case (by `/bubble mobpower cataclysm`: health and damage):
+  Clawdian 70, Amethyst Crab / Kobolediator / Aptrgangr / Prowler 60, Coralssus / Ender Golem / Wadjet 50, Coral Golem
+  25, plus a little for Hippocamtus, Ignited Revenant / Berserker and Deepling Brute.
+- **Mini-boss elites** (Apotheosis): Voidforged Golem, Kobolediator Champion, Wadjet Matriarch, Coralssus Titan, Prowler
+  Prime, Aptrgangr Jarl, Amethyst Colossus, Clawdian Tyrant, Berserker Warlord. More health and damage, pulsing names,
+  triple drops. Ones built into structures get a 12% roll the first time they load. `/bubble elite <mob>` spawns one.
+- **Boss Case** (300 in the Gamble tab, or from bosses; odds 55 / 28 / 12 / 4 / 1%): boss metals and the structure
+  eyes (common/uncommon), Meat Shredder, Tidal Claws, Ancient Spear, Immolator, Cursed Bow, Ignitium/Cursium helmets
+  and boots, boss accessories (rare), Astrape, Ceraunus, Annihilator, the forges, Gauntlet of Guard, Ignitium and
+  Cursium chest/legs, shoulder cannons, Ignitium katana and twinblade (epic), The Incinerator, Gauntlets of Maelstrom
+  and Bulwark, Soul Render, Ignitium Elytra Chestplate, Laser Gatling (legendary).
+- **Mid-run wheel: "Summon a boss".** A random Cataclysm boss (Ender Guardian, Netherite Monstrosity, Ignis,
+  Maledictus, Ancient Remnant or an awake Harbinger) comes for one random player, 20 blocks off, after a 10 second
+  warning. Change the list in the wheel file: `{"type":"boss", "bosses":["cataclysm:ignis", ...], "warning":10,
+  "distance":20}` (NBT in braces after an id is allowed).
+- All of it is in `config/bubble-cases.json` → `mobDrops` → `mobs` (`"boss": true`, `"matter"`, `"eidolons"`,
+  `"bossCase"`). Ops: `/bubble bosstest kill <mob>` (a stand-in player kills one where you are and is paid) and
+  `/bubble bosstest summon <mob>` (the wheel's arrival, without the warning).
+
+## More in the cases (1.29.0)
+
+- **Weapon Case:** the rest of Simply Swords (iron/diamond/netherite cutlasses, twinblades, halberds..., the runic
+  set, and the uniques: Soulkeeper, Harbinger, Sunfire... in Epic; Bramblethorn, Livyatan, Molten Edge, Stars Edge,
+  Storm's Edge, Whisperwind, Thunderbrand... in Legendary), Aether swords (Holy, Lightning, Vampire, Valkyrie Lance,
+  Hammer of Kingbdogz, Phoenix Bow), more bows, the Chainsaw, and 33 more guns by how good they are: pistols, SMGs
+  and shotguns in Rare (Glock, M1911, Uzi, MP5, UMP45, M870...), the Vector, MP7, Taurus, SKS, M700, M4A1, AK-12, SVD,
+  MK14... in Epic, and the HK416, SCAR-L/H, AUG, FAL, MCX Spear, AA-12, RPK, PKM and M107 in Legendary.
+- **Armor Case** (new, 150): armour from every mod by armour and toughness. Iron, bronze, copper, ironwood (common);
+  diamond, steel, steeleaf, gravitite, Exo (uncommon); knightmetal, yeti, fiery, osmium, Neptune, emerald (rare);
+  netherite helm/boots, refined obsidian, Valkyrie, Phoenix, crystal, MekaSuit helmet/boots, Dark Matter (epic);
+  netherite chest/legs, MekaSuit body/pants, Phoenix chest/legs, Dark Matter chest/legs, Red Matter, Gem helmet,
+  Exo jetpack elytra (legendary).
+- **Mod Case:** Artifacts accessories (rare/epic), backpacks and upgrades, aircraft (quadrocopter up to the warship),
+  Mekanism scuba gear, teleporter and flamethrower, Oritech jetpacks, AE2 portable cells, Aether rings and staffs,
+  a couple of guns, and more basics.
+- **Progression Case:** a full early game (tools, food, anvil, brewing stand, books) up to beacons, netherite
+  templates, conduits, shulker boxes, end crystals and netherite blocks.
+- ProjectE's **Gem of Eternal Density** and **Void Ring** are off too (they turn items into other items by EMC).
+
 ## Mods in the cases and shop (1.28.0)
 
 Gear goes in the Weapon Case by how hard it hits (melee damage x attack speed, from `/bubble gearpower <mod>`), next
@@ -586,14 +646,14 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
 - Ops: `/bubble start` (end the lobby), `/bubble wheel [reload|midrun]`, `/bubble wheel clear [status]` (take wheel statuses off: a run modifier, a timed status, `upside_down`, `ice`, `effects`, or everything), `/bubble wheel apply <slice>` (do one slice right now, no spin), `/bubble wheel move <slice>` (move it to the other wheel), `/bubble event [id] [silent]` (force a random event), `/bubble givecase <players> <case> [count]`,
   `/bubble givespin <players> [count]`, `/bubble gun <players> [gun]`, `/bubble ammo <players> [magazines]`,
-  `/bubble attachments <gun>`, `/bubble odds mob|elite <mob> [n]`, `/bubble odds case <case> [n]`, `/bubble elite <mob>`, `/bubble nuke [pos]` (a Lucky Block can do this).
+  `/bubble attachments <gun>`, `/bubble odds mob|elite <mob> [n]`, `/bubble odds case <case> [n]`, `/bubble elite <mob>`, `/bubble mobpower <mod>` (a mod's mobs by health, armour and damage), `/bubble bosstest kill|summon <mob>`, `/bubble nuke [pos]` (a Lucky Block can do this).
 - Everyone: `/bubble vote next|retry|life`, `/bubble saveseed`, `/bubble seeds`, `/bubble matter`, `/bubble matter worth <item>`.
 - Settings are saved in `config/bubble.json`, favourite seeds in `bubble-seeds.json`.
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.28.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.28.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.29.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.29.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

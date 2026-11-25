@@ -1005,6 +1005,253 @@ public final class Gamble {
 			Bubble.LOG.info("Cases: added Mekanism, AE2, Cyclic, ProjectE, Dark Utilities and Chisels & Bits items");
 			changed = true;
 		}
+		// 1.29.0: Cataclysm bosses (shared rewards) and mini-bosses in the mob drops
+		if (!done.contains(new com.google.gson.JsonPrimitive("cataclysm_bosses_v1"))) {
+			done.add("cataclysm_bosses_v1");
+			if (root.has("mobDrops") && root.get("mobDrops").isJsonObject()) {
+				JsonObject md = root.getAsJsonObject("mobDrops");
+				if (!md.has("mobs")) {
+					md.add("mobs", new JsonObject());
+				}
+				JsonObject mobs = md.getAsJsonObject("mobs");
+				for (Map.Entry<String, JsonElement> me : MobDrops.cataclysm().entrySet()) {
+					if (!mobs.has(me.getKey())) {
+						mobs.add(me.getKey(), me.getValue());
+					}
+				}
+			}
+			Bubble.LOG.info("Cases: added Cataclysm bosses and mini-bosses to the mob drops");
+			changed = true;
+		}
+		// 1.29.0: more in the Weapon Case (Simply Swords' uniques and runics, Aether, bows, a lot more guns by how good
+		// they are), the Mod Case (Artifacts, backpacks, aircraft, Mekanism and Oritech gear) and the Progression Case
+		if (!done.contains(new com.google.gson.JsonPrimitive("more_cases_v1"))) {
+			done.add("more_cases_v1");
+			addTo(cs, "weapons", "common", item("simplyswords:iron_cutlass", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:iron_twinblade", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:iron_halberd", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:iron_warglaive", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:iron_claymore", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:iron_scythe", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:gold_katana", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:gold_halberd", 1));
+			addTo(cs, "weapons", "common", item("simplyswords:sword_on_a_stick", 1));
+			addTo(cs, "weapons", "common", item("twilightforest:steeleaf_sword", 1));
+			addTo(cs, "weapons", "common", item("cyclic:sandstone_sword", 1));
+			addTo(cs, "weapons", "common", item("aether:holystone_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_cutlass", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_twinblade", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_rapier", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_warglaive", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_halberd", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_claymore", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_spear", 1));
+			addTo(cs, "weapons", "uncommon", item("simplyswords:diamond_glaive", 1));
+			addTo(cs, "weapons", "uncommon", item("twilightforest:ice_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("twilightforest:triple_bow", 1));
+			addTo(cs, "weapons", "uncommon", item("simplybows:bubble_bow/bubble_bow", 1));
+			addTo(cs, "weapons", "uncommon", item("simplybows:blossom_bow/blossom_bow", 1));
+			addTo(cs, "weapons", "uncommon", item("simplybows:earth_bow/earth_bow", 1));
+			addTo(cs, "weapons", "uncommon", item("aether:pig_slayer", 1));
+			addTo(cs, "weapons", "uncommon", item("minecraft:trident", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_longsword", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_katana", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_cutlass", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_twinblade", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_rapier", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_halberd", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_claymore", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:netherite_scythe", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:runic_longsword", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:runic_claymore", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:runic_greataxe", 1));
+			addTo(cs, "weapons", "rare", item("simplyswords:runic_spear", 1));
+			addTo(cs, "weapons", "rare", item("aether:holy_sword", 1));
+			addTo(cs, "weapons", "rare", item("aether:lightning_sword", 1));
+			addTo(cs, "weapons", "rare", item("aether:vampire_blade", 1));
+			addTo(cs, "weapons", "rare", item("aether:valkyrie_lance", 1));
+			addTo(cs, "weapons", "rare", item("aether:hammer_of_kingbdogz", 1));
+			addTo(cs, "weapons", "rare", item("aether:phoenix_bow", 1));
+			addTo(cs, "weapons", "rare", item("twilightforest:seeker_bow", 1));
+			addTo(cs, "weapons", "rare", item("oritech:chainsaw", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:soulkeeper", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:soulstealer", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:soulpyre", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:brimstone_claymore", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:watcher_claymore", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:harbinger", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:sunfire", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:bloodwake", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:wraithfang", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:caelestis", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:hiveheart", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:flamewind", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:stormscale", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:waxweaver", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:riftmane", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:dawnquiver", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:toxic_longsword", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:shadowsting", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:magispear", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:magiscythe", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:runic_katana", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:runic_twinblade", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:runic_cutlass", 1));
+			addTo(cs, "weapons", "epic", item("simplyswords:runic_rapier", 1));
+			addTo(cs, "weapons", "epic", item("twilightforest:ender_bow", 1));
+			addTo(cs, "weapons", "epic", item("projecte:rm_hammer", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:bramblethorn", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:gloampiercer", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:livyatan", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:molten_edge", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:wickpiercer", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:dreadwhisper", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:magiblade", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:stars_edge", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:storms_edge", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:whisperwind", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:arcanethyst", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:icewhisper", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:thunderbrand", 1));
+			addTo(cs, "weapons", "legendary", item("simplyswords:watching_warglaive", 1));
+			addTo(cs, "mod", "common", item("minecraft:copper_ingot", 16));
+			addTo(cs, "mod", "common", item("minecraft:amethyst_shard", 8));
+			addTo(cs, "mod", "common", item("minecraft:slime_ball", 6));
+			addTo(cs, "mod", "common", item("minecraft:gunpowder", 8));
+			addTo(cs, "mod", "common", item("aether:golden_amber", 8));
+			addTo(cs, "mod", "common", item("aether:swet_ball", 6));
+			addTo(cs, "mod", "common", item("twilightforest:raven_feather", 4));
+			addTo(cs, "mod", "common", item("waystones:return_scroll", 2));
+			addTo(cs, "mod", "common", item("cyclic:gem_obsidian", 2));
+			addTo(cs, "mod", "common", item("mekanism:ingot_bronze", 6));
+			addTo(cs, "mod", "uncommon", item("sophisticatedbackpacks:backpack", 1));
+			addTo(cs, "mod", "uncommon", item("sophisticatedbackpacks:pickup_upgrade", 1));
+			addTo(cs, "mod", "uncommon", item("sophisticatedbackpacks:magnet_upgrade", 1));
+			addTo(cs, "mod", "uncommon", item("aether:enchanted_berry", 8));
+			addTo(cs, "mod", "uncommon", item("mekanism:energy_tablet", 2));
+			addTo(cs, "mod", "uncommon", item("ae2:cell_component_4k", 1));
+			addTo(cs, "mod", "uncommon", item("ae2:portable_item_cell_1k", 1));
+			addTo(cs, "mod", "uncommon", item("waystones:warp_scroll", 2));
+			addTo(cs, "mod", "uncommon", item("immersive_aircraft:quadrocopter", 1));
+			addTo(cs, "mod", "uncommon", item("immersive_melodies:lute", 1));
+			addTo(cs, "mod", "uncommon", item("immersive_melodies:flute", 1));
+			addTo(cs, "mod", "uncommon", item("artifacts:everlasting_beef", 1));
+			addTo(cs, "mod", "uncommon", item("artifacts:whoopee_cushion", 1));
+			addTo(cs, "mod", "uncommon", item("artifacts:snorkel", 1));
+			addTo(cs, "mod", "uncommon", item("artifacts:villager_hat", 1));
+			addTo(cs, "mod", "uncommon", item("lucky:lucky_block", 3));
+			addTo(cs, "mod", "rare", item("artifacts:obsidian_skull", 1));
+			addTo(cs, "mod", "rare", item("artifacts:cross_necklace", 1));
+			addTo(cs, "mod", "rare", item("artifacts:panic_necklace", 1));
+			addTo(cs, "mod", "rare", item("artifacts:flame_pendant", 1));
+			addTo(cs, "mod", "rare", item("artifacts:thorn_pendant", 1));
+			addTo(cs, "mod", "rare", item("artifacts:shock_pendant", 1));
+			addTo(cs, "mod", "rare", item("artifacts:digging_claws", 1));
+			addTo(cs, "mod", "rare", item("artifacts:feral_claws", 1));
+			addTo(cs, "mod", "rare", item("artifacts:aqua_dashers", 1));
+			addTo(cs, "mod", "rare", item("artifacts:bunny_hoppers", 1));
+			addTo(cs, "mod", "rare", item("artifacts:snowshoes", 1));
+			addTo(cs, "mod", "rare", item("artifacts:night_vision_goggles", 1));
+			addTo(cs, "mod", "rare", item("artifacts:universal_attractor", 1));
+			addTo(cs, "mod", "rare", item("artifacts:golden_hook", 1));
+			addTo(cs, "mod", "rare", item("artifacts:onion_ring", 1));
+			addTo(cs, "mod", "rare", item("artifacts:rooted_boots", 1));
+			addTo(cs, "mod", "rare", item("artifacts:steadfast_spikes", 1));
+			addTo(cs, "mod", "rare", item("artifacts:fire_gauntlet", 1));
+			addTo(cs, "mod", "rare", item("artifacts:flippers", 1));
+			addTo(cs, "mod", "rare", item("artifacts:anglers_hat", 1));
+			addTo(cs, "mod", "rare", item("waystones:warp_stone", 1));
+			addTo(cs, "mod", "rare", item("mekanism:scuba_mask", 1));
+			addTo(cs, "mod", "rare", item("mekanism:scuba_tank", 1));
+			addTo(cs, "mod", "rare", item("oritech:jetpack", 1));
+			addTo(cs, "mod", "rare", item("aether:cloud_staff", 1));
+			addTo(cs, "mod", "rare", item("aether:regeneration_stone", 1));
+			addTo(cs, "mod", "rare", item("aether:ice_ring", 1));
+			addTo(cs, "mod", "rare", item("ae2:portable_item_cell_16k", 1));
+			addTo(cs, "mod", "rare", item("immersive_aircraft:gyrodyne", 1));
+			addTo(cs, "mod", "epic", item("artifacts:helium_flamingo", 1));
+			addTo(cs, "mod", "epic", item("artifacts:chorus_totem", 1));
+			addTo(cs, "mod", "epic", item("artifacts:vampiric_glove", 1));
+			addTo(cs, "mod", "epic", item("artifacts:scarf_of_invisibility", 1));
+			addTo(cs, "mod", "epic", item("artifacts:pocket_piston", 1));
+			addTo(cs, "mod", "epic", item("artifacts:pickaxe_heater", 1));
+			addTo(cs, "mod", "epic", item("artifacts:charm_of_sinking", 1));
+			addTo(cs, "mod", "epic", item("sophisticatedbackpacks:diamond_backpack", 1));
+			addTo(cs, "mod", "epic", item("immersive_aircraft:airship", 1));
+			addTo(cs, "mod", "epic", item("mekanism:portable_teleporter", 1));
+			addTo(cs, "mod", "epic", item("mekanism:flamethrower", 1));
+			addTo(cs, "mod", "epic", item("oritech:exo_jetpack", 1));
+			addTo(cs, "mod", "epic", item("artifacts:eternal_steak", 1));
+			addTo(cs, "mod", "legendary", item("sophisticatedbackpacks:netherite_backpack", 1));
+			addTo(cs, "mod", "legendary", item("immersive_aircraft:warship", 1));
+			addTo(cs, "mod", "legendary", item("oritech:jetpack_exo_elytra", 1));
+			addTo(cs, "mod", "rare", item("artifacts:cowboy_hat", 1));
+			addTo(cs, "progression", "common", item("minecraft:redstone", 24));
+			addTo(cs, "progression", "common", item("minecraft:lapis_lazuli", 16));
+			addTo(cs, "progression", "common", item("minecraft:bone", 12));
+			addTo(cs, "progression", "common", item("minecraft:gunpowder", 8));
+			addTo(cs, "progression", "common", item("minecraft:paper", 16));
+			addTo(cs, "progression", "common", item("minecraft:sugar_cane", 16));
+			addTo(cs, "progression", "common", item("minecraft:bread", 16));
+			addTo(cs, "progression", "common", item("minecraft:cooked_porkchop", 16));
+			addTo(cs, "progression", "common", item("minecraft:iron_pickaxe", 1));
+			addTo(cs, "progression", "common", item("minecraft:bucket", 1));
+			addTo(cs, "progression", "common", item("minecraft:coal", 24));
+			addTo(cs, "progression", "common", item("minecraft:arrow", 32));
+			addTo(cs, "progression", "uncommon", item("minecraft:anvil", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:brewing_stand", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:magma_cream", 4));
+			addTo(cs, "progression", "uncommon", item("minecraft:diamond_sword", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:iron_chestplate", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:blaze_rod", 2));
+			addTo(cs, "progression", "uncommon", item("minecraft:experience_bottle", 16));
+			addTo(cs, "progression", "uncommon", item("minecraft:name_tag", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:saddle", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:cauldron", 1));
+			addTo(cs, "progression", "uncommon", item("minecraft:bookshelf", 6));
+			addTo(cs, "progression", "uncommon", item("minecraft:golden_carrot", 12));
+			addTo(cs, "progression", "rare", item("minecraft:diamond_chestplate", 1));
+			addTo(cs, "progression", "rare", item("minecraft:diamond_leggings", 1));
+			addTo(cs, "progression", "rare", item("minecraft:netherite_scrap", 2));
+			addTo(cs, "progression", "rare", item("minecraft:golden_apple", 4));
+			addTo(cs, "progression", "rare", item("minecraft:trident", 1));
+			addTo(cs, "progression", "rare", item("minecraft:netherite_upgrade_smithing_template", 1));
+			addTo(cs, "progression", "rare", item("minecraft:ender_chest", 1));
+			addTo(cs, "progression", "rare", item("minecraft:firework_rocket", 32));
+			addTo(cs, "progression", "rare", item("minecraft:diamond", 16));
+			addTo(cs, "progression", "rare", item("minecraft:obsidian", 16));
+			addTo(cs, "progression", "rare", item("minecraft:end_crystal", 2));
+			addTo(cs, "progression", "epic", item("minecraft:beacon", 1));
+			addTo(cs, "progression", "epic", item("minecraft:netherite_upgrade_smithing_template", 2));
+			addTo(cs, "progression", "epic", item("minecraft:diamond_block", 4));
+			addTo(cs, "progression", "epic", item("minecraft:shulker_box", 1));
+			addTo(cs, "progression", "epic", item("minecraft:conduit", 1));
+			addTo(cs, "progression", "epic", item("minecraft:enchanted_golden_apple", 1));
+			addTo(cs, "progression", "epic", item("minecraft:dragon_breath", 4));
+			addTo(cs, "progression", "epic", item("minecraft:firework_rocket", 64));
+			addTo(cs, "progression", "legendary", item("minecraft:netherite_chestplate", 1));
+			addTo(cs, "progression", "legendary", item("minecraft:totem_of_undying", 3));
+			addTo(cs, "progression", "legendary", item("minecraft:enchanted_golden_apple", 3));
+			addTo(cs, "progression", "legendary", item("minecraft:netherite_block", 1));
+			addTo(cs, "progression", "legendary", item("minecraft:beacon", 2));
+			for (String gun : new String[] {"glock_17", "m1911", "uzi", "db_short", "m870", "kar98", "hk_mp5a5", "ump45", "rhino357", "m1014"}) {
+				addTo(cs, "weapons", "rare", Guns.caseDrop(gun));
+			}
+			for (String gun : new String[] {"vector45", "hk_mp7a1", "taurus500", "sks_tactical", "m700", "type_81", "m4a1", "ak12", "g36k", "qbz_95", "svd", "mk14", "deagle_golden"}) {
+				addTo(cs, "weapons", "epic", Guns.caseDrop(gun));
+			}
+			for (String gun : new String[] {"hk416d", "scar_l", "scar_h", "aug", "fn_fal", "mcx_spear_lt", "aa12", "rpk", "pkm", "m107"}) {
+				addTo(cs, "weapons", "legendary", Guns.caseDrop(gun));
+			}
+			for (String gun : new String[] {"glock_17", "uzi"}) {
+				addTo(cs, "mod", "rare", Guns.caseDrop(gun));
+			}
+			for (String gun : new String[] {"m870", "vector45"}) {
+				addTo(cs, "mod", "epic", Guns.caseDrop(gun));
+			}
+			Bubble.LOG.info("Cases: added more weapons, guns, Mod Case and Progression Case items");
+			changed = true;
+		}
 		// 1.22.0: gear prizes can come enchanted, Apothic or Factory New (both)
 		if (!done.contains(new com.google.gson.JsonPrimitive("conditions_v1"))) {
 			done.add("conditions_v1");
@@ -1216,6 +1463,57 @@ public final class Gamble {
 			        {"item": "simplyswords:stormbringer"}, {"item": "simplyswords:awakened_lichblade"}, {"item": "simplyswords:the_devourer"},
 			        {"item": "minecraft:mace"},
 			        {"show": "minecraft:netherite_sword", "name": "Random Mythic Apotheosis item", "command": "bubble apothloot {player} mythic"}
+			      ]
+			    },
+			    "armor": {
+			      "name": "Armor Case",
+			      "color": "aqua",
+			      "common": [{"item": "minecraft:iron_helmet"}, {"item": "minecraft:iron_chestplate"}, {"item": "minecraft:iron_leggings"}, {"item": "minecraft:iron_boots"}, {"item": "minecraft:chainmail_chestplate"}, {"item": "minecraft:turtle_helmet"}, {"item": "minecraft:shield"}, {"item": "mekanismtools:bronze_chestplate"}, {"item": "mekanismtools:bronze_leggings"}, {"item": "mekanismtools:lapis_lazuli_chestplate"}, {"item": "mekanismtools:refined_glowstone_chestplate"}, {"item": "cyclic:copper_chestplate"}, {"item": "cyclic:copper_leggings"}, {"item": "twilightforest:ironwood_chestplate"}, {"item": "twilightforest:ironwood_leggings"}, {"item": "aether:zanite_chestplate"}],
+			      "uncommon": [{"item": "minecraft:diamond_helmet"}, {"item": "minecraft:diamond_leggings"}, {"item": "minecraft:diamond_boots"}, {"item": "mekanismtools:steel_helmet"}, {"item": "mekanismtools:steel_leggings"}, {"item": "mekanismtools:steel_boots"}, {"item": "mekanismtools:osmium_helmet"}, {"item": "mekanismtools:osmium_boots"}, {"item": "twilightforest:steeleaf_chestplate"}, {"item": "twilightforest:steeleaf_leggings"}, {"item": "twilightforest:knightmetal_helmet"}, {"item": "twilightforest:knightmetal_boots"}, {"item": "twilightforest:arctic_leggings"}, {"item": "aether:gravitite_helmet"}, {"item": "aether:gravitite_boots"}, {"item": "aether:zanite_leggings"}, {"item": "oritech:exo_helmet"}, {"item": "oritech:exo_boots"}, {"item": "cyclic:emerald_helmet"}, {"item": "cyclic:emerald_boots"}],
+			      "rare": [{"item": "minecraft:diamond_chestplate"}, {"item": "mekanismtools:steel_chestplate"}, {"item": "mekanismtools:osmium_chestplate"}, {"item": "mekanismtools:osmium_leggings"}, {"item": "twilightforest:knightmetal_chestplate"}, {"item": "twilightforest:knightmetal_leggings"}, {"item": "twilightforest:yeti_helmet"}, {"item": "twilightforest:yeti_boots"}, {"item": "twilightforest:fiery_helmet"}, {"item": "twilightforest:fiery_boots"}, {"item": "twilightforest:naga_chestplate"}, {"item": "aether:gravitite_chestplate"}, {"item": "aether:gravitite_leggings"}, {"item": "aether:neptune_chestplate"}, {"item": "aether:neptune_leggings"}, {"item": "aether:obsidian_helmet"}, {"item": "aether:obsidian_boots"}, {"item": "cyclic:emerald_chestplate"}, {"item": "cyclic:emerald_leggings"}, {"item": "oritech:exo_chestplate"}, {"item": "oritech:exo_leggings"}, {"item": "mekanism:free_runners_armored"}],
+			      "epic": [{"item": "minecraft:netherite_helmet"}, {"item": "minecraft:netherite_boots"}, {"item": "mekanismtools:refined_obsidian_helmet"}, {"item": "mekanismtools:refined_obsidian_leggings"}, {"item": "mekanismtools:refined_obsidian_boots"}, {"item": "twilightforest:yeti_chestplate"}, {"item": "twilightforest:yeti_leggings"}, {"item": "twilightforest:fiery_chestplate"}, {"item": "twilightforest:fiery_leggings"}, {"item": "twilightforest:phantom_chestplate"}, {"item": "twilightforest:phantom_helmet"}, {"item": "aether:valkyrie_helmet"}, {"item": "aether:valkyrie_chestplate"}, {"item": "aether:valkyrie_leggings"}, {"item": "aether:valkyrie_boots"}, {"item": "aether:phoenix_helmet"}, {"item": "aether:phoenix_boots"}, {"item": "aether:obsidian_chestplate"}, {"item": "aether:obsidian_leggings"}, {"item": "cyclic:crystal_helmet"}, {"item": "cyclic:crystal_boots"}, {"item": "mekanism:jetpack_armored"}, {"item": "mekanism:mekasuit_helmet"}, {"item": "mekanism:mekasuit_boots"}, {"item": "projecte:dm_helmet"}, {"item": "projecte:dm_boots"}],
+			      "legendary": [{"item": "minecraft:netherite_chestplate"}, {"item": "minecraft:netherite_leggings"}, {"item": "cyclic:crystal_chestplate"}, {"item": "cyclic:crystal_leggings"}, {"item": "mekanismtools:refined_obsidian_chestplate"}, {"item": "mekanism:mekasuit_pants"}, {"item": "mekanism:mekasuit_bodyarmor"}, {"item": "aether:phoenix_chestplate"}, {"item": "aether:phoenix_leggings"}, {"item": "projecte:dm_chestplate"}, {"item": "projecte:dm_leggings"}, {"item": "projecte:rm_helmet"}, {"item": "projecte:rm_boots"}, {"item": "projecte:gem_helmet"}, {"item": "oritech:jetpack_exo_elytra"}]
+			    },
+			    "boss": {
+			      "name": "Boss Case",
+			      "color": "dark_red",
+			      "odds": [55, 28, 12, 4, 1],
+			      "common": [
+			        {"item": "cataclysm:black_steel_ingot", "count": 6}, {"item": "cataclysm:ancient_metal_ingot", "count": 4},
+			        {"item": "cataclysm:koboleton_bone", "count": 8}, {"item": "cataclysm:amethyst_crab_shell", "count": 2},
+			        {"item": "cataclysm:crystallized_coral_fragments", "count": 6}, {"item": "cataclysm:blessed_amethyst_crab_meat", "count": 4},
+			        {"item": "cataclysm:black_steel_targe"}, {"item": "cataclysm:azure_sea_shield"}, {"item": "cataclysm:khopesh"},
+			        {"item": "cataclysm:bone_reptile_helmet"}, {"item": "cataclysm:bone_reptile_chestplate"},
+			        {"item": "simplycataclysm:black_steel_katana"}, {"item": "simplycataclysm:ancient_metal_twinblade"}
+			      ],
+			      "uncommon": [
+			        {"item": "cataclysm:witherite_ingot", "count": 2}, {"item": "cataclysm:cursium_ingot"}, {"item": "cataclysm:enderite_ingot"},
+			        {"item": "cataclysm:essence_of_the_storm"}, {"item": "cataclysm:lacrima"}, {"item": "cataclysm:void_jaw"},
+			        {"item": "cataclysm:chitin_claw"}, {"item": "cataclysm:monstrous_horn"}, {"item": "cataclysm:bloom_stone_pauldrons"},
+			        {"item": "cataclysm:sticky_gloves"}, {"item": "cataclysm:sandstorm_in_a_bottle"}, {"item": "cataclysm:coral_bardiche"},
+			        {"item": "cataclysm:void_eye"}, {"item": "cataclysm:flame_eye"}, {"item": "cataclysm:mech_eye"}, {"item": "cataclysm:monstrous_eye"},
+			        {"item": "cataclysm:abyss_eye"}, {"item": "cataclysm:desert_eye"}, {"item": "cataclysm:cursed_eye"}, {"item": "cataclysm:storm_eye"}
+			      ],
+			      "rare": [
+			        {"item": "cataclysm:ignitium_ingot", "count": 2}, {"item": "cataclysm:meat_shredder"}, {"item": "cataclysm:tidal_claws"},
+			        {"item": "cataclysm:ancient_spear"}, {"item": "cataclysm:the_immolator"}, {"item": "cataclysm:cursed_bow"},
+			        {"item": "cataclysm:wrath_of_the_desert"}, {"item": "cataclysm:monstrous_helm"}, {"item": "cataclysm:ignitium_helmet"},
+			        {"item": "cataclysm:ignitium_boots"}, {"item": "cataclysm:cursium_helmet"}, {"item": "cataclysm:cursium_boots"},
+			        {"item": "cataclysm:blazing_grips"}, {"item": "cataclysm:vitality_ankh"}, {"item": "cataclysm:ring_of_grudged"},
+			        {"item": "cataclysm:berserker_soul_amulet"}, {"item": "simplycataclysm:witherite_katana"}, {"item": "simplycataclysm:cursium_katana"},
+			        {"item": "simplycataclysm:ignitium_halberd"}
+			      ],
+			      "epic": [
+			        {"item": "cataclysm:astrape"}, {"item": "cataclysm:ceraunus"}, {"item": "cataclysm:the_annihilator"},
+			        {"item": "cataclysm:void_forge"}, {"item": "cataclysm:infernal_forge"}, {"item": "cataclysm:brontes"},
+			        {"item": "cataclysm:gauntlet_of_guard"}, {"item": "cataclysm:bulwark_of_the_flame"}, {"item": "cataclysm:ignitium_chestplate"},
+			        {"item": "cataclysm:ignitium_leggings"}, {"item": "cataclysm:cursium_chestplate"}, {"item": "cataclysm:cursium_leggings"},
+			        {"item": "cataclysm:wither_assault_shoulder_weapon"}, {"item": "cataclysm:void_assault_shoulder_weapon"},
+			        {"item": "simplycataclysm:ignitium_katana"}, {"item": "simplycataclysm:ignitium_twinblade"}, {"item": "bubble:wheel_spin", "count": 2}
+			      ],
+			      "legendary": [
+			        {"item": "cataclysm:the_incinerator"}, {"item": "cataclysm:gauntlet_of_maelstrom"}, {"item": "cataclysm:gauntlet_of_bulwark"},
+			        {"item": "cataclysm:soul_render"}, {"item": "cataclysm:ignitium_elytra_chestplate"}, {"item": "cataclysm:laser_gatling"}
 			      ]
 			    }
 			  }

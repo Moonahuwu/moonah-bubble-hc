@@ -44,6 +44,8 @@ final class DownCam {
 	private static boolean mine;
 	/** Everyone and everything else that was there. */
 	private static ReplayActors actors;
+	/** Boss cam: the boss's name (the replay ends on the kill, not on going down), or null for a down cam. */
+	private static String boss;
 
 	private DownCam() {
 	}
@@ -58,24 +60,31 @@ final class DownCam {
 	}
 
 	static void start(Payloads.Killcam replay) {
+		start(replay, null);
+	}
+
+	/** `bossName` set: a boss cam (how the boss went down). */
+	static void start(Payloads.Killcam replay, String bossName) {
 		Minecraft mc = Minecraft.getInstance();
 		if (mc.level == null || mc.player == null || replay.frames().size() < 2
 				|| !mc.level.dimension().location().toString().equals(replay.dimension())) {
 			return;
 		}
 		boolean isMine = replay.player().equals(mc.player.getUUID());
-		if (ClientSettings.downCam == 0 || (ClientSettings.downCam == 1 && !isMine)) {
-			return;
+		if (ClientSettings.downCam == 0 || (bossName == null && ClientSettings.downCam == 1 && !isMine)) {
+			return; // boss cams play on "yours" too: it's your team's win
 		}
-		if (active() && mine && !isMine) {
+		boolean mineNow = isMine && bossName == null;
+		if (active() && mine && !mineNow) {
 			return; // your own replay is playing: don't cut it off for someone else's
 		}
-		if (!isMine && (mc.screen != null || mc.player.hurtTime > 0)) {
+		if (!mineNow && (mc.screen != null || mc.player.hurtTime > 0)) {
 			return; // busy (in a menu, or being hit): skip theirs
 		}
 		stop();
 		subject = replay.player();
-		mine = isMine;
+		mine = mineNow;
+		boss = bossName;
 		ClientLevel level = mc.level;
 		Payloads.Frame first = replay.frames().get(0);
 		ghost = new KillcamReplay.Ghost(level, new GameProfile(UUID.randomUUID(), replay.name()), replay.player());
@@ -139,7 +148,7 @@ final class DownCam {
 			stop();
 			return;
 		}
-		if (!mine && mc.player.hurtTime > 0 && !moonahmc.bubble.Revive.isDown(mc.player)) {
+		if (!mine && mc.player.hurtTime > 0 && !moonahmc.bubble.Revive.isDown(mc.player) && t > 2) {
 			stop(); // you're being hit while watching someone else's: back to you
 			return;
 		}
@@ -167,7 +176,9 @@ final class DownCam {
 			}
 			lastFrame = Math.max(lastFrame, (int) idx);
 		}
-		if (t == end) {
+		if (t == end && boss != null) {
+			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.8f, 1f, false);
+		} else if (t == end) {
 			// the hit that put you down: you drop to a crawl
 			ghost.hurtTime = ghost.hurtDuration = 10;
 			ghost.setPose(Pose.SWIMMING);
@@ -203,6 +214,7 @@ final class DownCam {
 		clip = null;
 		subject = null;
 		mine = false;
+		boss = null;
 	}
 
 	static void renderHud(GuiGraphics ctx) {
@@ -212,8 +224,11 @@ final class DownCam {
 		Font font = Minecraft.getInstance().font;
 		int w = ctx.guiWidth();
 		ctx.fill(0, 0, w, 22, 0x88000000);
-		String title = mine || clip == null ? "How you went down" : "How " + clip.name() + " went down";
-		ctx.drawString(font, title, (w - font.width(title)) / 2, 4, Rarity.pulse(0xFFFF5555, 0xFFFFC0C0, 1.4f), true);
+		boolean you = clip != null && Minecraft.getInstance().player != null && clip.player().equals(Minecraft.getInstance().player.getUUID());
+		String title = boss != null ? (you ? "You took down " : clip.name() + " took down ") + boss
+				: mine || clip == null ? "How you went down" : "How " + clip.name() + " went down";
+		int color = boss != null ? Rarity.pulse(0xFFFFC94A, 0xFFFFF2B0, 1.4f) : Rarity.pulse(0xFFFF5555, 0xFFFFC0C0, 1.4f);
+		ctx.drawString(font, title, (w - font.width(title)) / 2, 4, color, true);
 		String skip = "Click to skip";
 		ctx.drawString(font, skip, (w - font.width(skip)) / 2, 13, 0xFF9AA3AF, false);
 	}

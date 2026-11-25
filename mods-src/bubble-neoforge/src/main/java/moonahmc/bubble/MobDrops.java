@@ -24,10 +24,43 @@ import java.util.List;
 /**
  * Cases, Wheel Spins and Strange Matter from mobs a player kills. Any hostile mob has a small chance of dropping a
  * random case; Bubble's own mobs (and the Warden) have their own chances, pay Strange Matter by how hard they are, and
- * the Warden and the Evil Watcher always drop a case or a spin. All of it is in config/bubble-cases.json, "mobDrops".
+ * the Warden and the Evil Watcher always drop a case or a spin. Cataclysm's mini-bosses pay well and now and then drop
+ * the Boss Case ("bossCase"); its bosses ("boss": true) pay everyone who helped (Bosses). All of it is in
+ * config/bubble-cases.json, "mobDrops".
  */
 final class MobDrops {
 	private MobDrops() {
+	}
+
+	/**
+	 * Cataclysm: bosses (paid to everyone who helped, by how hard they are: health, damage, how nasty the fight is) and
+	 * mini-bosses (by /bubble mobpower). Added to existing cases files once (Gamble.migrate "cataclysm_bosses_v1").
+	 */
+	static JsonObject cataclysm() {
+		return JsonParser.parseString("""
+				{
+				  "cataclysm:ender_guardian":        {"matter": 200, "eidolons": 3, "boss": true},
+				  "cataclysm:netherite_monstrosity": {"matter": 300, "eidolons": 4, "boss": true},
+				  "cataclysm:ancient_remnant":       {"matter": 300, "eidolons": 4, "boss": true},
+				  "cataclysm:maledictus":            {"matter": 300, "eidolons": 4, "boss": true},
+				  "cataclysm:the_leviathan":         {"matter": 350, "eidolons": 5, "boss": true},
+				  "cataclysm:scylla":                {"matter": 350, "eidolons": 5, "boss": true},
+				  "cataclysm:ignis":                 {"matter": 400, "eidolons": 5, "boss": true},
+				  "cataclysm:the_harbinger":         {"matter": 400, "eidolons": 5, "boss": true},
+				  "cataclysm:clawdian":       {"matter": 70, "case": 0.35, "spin": 0.1,  "bossCase": 0.08},
+				  "cataclysm:amethyst_crab":  {"matter": 60, "case": 0.3,  "spin": 0.08, "bossCase": 0.06},
+				  "cataclysm:kobolediator":   {"matter": 60, "case": 0.3,  "spin": 0.08, "bossCase": 0.06},
+				  "cataclysm:aptrgangr":      {"matter": 60, "case": 0.3,  "spin": 0.08, "bossCase": 0.06},
+				  "cataclysm:the_prowler":    {"matter": 60, "case": 0.3,  "spin": 0.08, "bossCase": 0.06},
+				  "cataclysm:coralssus":      {"matter": 50, "case": 0.25, "spin": 0.06, "bossCase": 0.05},
+				  "cataclysm:ender_golem":    {"matter": 50, "case": 0.25, "spin": 0.06, "bossCase": 0.05},
+				  "cataclysm:wadjet":         {"matter": 50, "case": 0.25, "spin": 0.06, "bossCase": 0.05},
+				  "cataclysm:coral_golem":    {"matter": 25, "case": 0.12, "spin": 0.03},
+				  "cataclysm:hippocamtus":    {"matter": 15, "case": 0.06, "spin": 0.02},
+				  "cataclysm:ignited_revenant": {"matter": 12, "case": 0.05, "spin": 0.02},
+				  "cataclysm:ignited_berserker": {"matter": 12, "case": 0.05, "spin": 0.02},
+				  "cataclysm:deepling_brute": {"matter": 8,  "case": 0.03, "spin": 0.01}
+				}""").getAsJsonObject();
 	}
 
 	/** The defaults, added to the cases file once (see Gamble.migrate). */
@@ -55,8 +88,8 @@ final class MobDrops {
 			if (dead.level().isClientSide || !(dead instanceof Mob) || !(e.getSource().getEntity() instanceof ServerPlayer killer)) {
 				return;
 			}
-			if (Lobby.active() || !BubbleServer.playing()) {
-				return;
+			if (Lobby.active() || !BubbleServer.playing() || Bosses.handles(dead)) {
+				return; // bosses: everyone who helped is paid (Bosses)
 			}
 			JsonObject cfg = Gamble.mobDrops();
 			if (cfg == null) {
@@ -117,6 +150,9 @@ final class MobDrops {
 				if (r.nextDouble() < num(m, "spin", 0) * bonus) {
 					drops.add(spin());
 				}
+			}
+			if (r.nextDouble() < num(m, "bossCase", 0) * bonus && Gamble.exists("boss")) {
+				drops.add(CaseItem.of("boss", 1)); // mini-bosses: now and then the Boss Case
 			}
 			if (elite && m.has("guaranteed") && m.get("guaranteed").getAsBoolean()) {
 				drops.add(randomCase(r)); // an elite Evil Watcher or Warden: a case on top

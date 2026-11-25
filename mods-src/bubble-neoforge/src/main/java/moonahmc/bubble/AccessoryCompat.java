@@ -31,6 +31,23 @@ public final class AccessoryCompat {
 		return ModList.get().isLoaded("curios");
 	}
 
+	/** One worn accessory (a Curios slot): what's in it, and how to put it back. */
+	record Worn(java.util.function.Supplier<ItemStack> get, java.util.function.Consumer<ItemStack> set) {
+	}
+
+	/** Every Curios slot the player has, in a fixed order (by slot type, then index). Cosmetic slots are left out. */
+	static java.util.List<Worn> worn(ServerPlayer p) {
+		java.util.List<Worn> out = new java.util.ArrayList<>();
+		CuriosApi.getCuriosInventory(p).ifPresent(handler -> new java.util.TreeMap<>(handler.getCurios()).forEach((id, slots) -> {
+			IDynamicStackHandler stacks = slots.getStacks();
+			for (int i = 0; i < stacks.getSlots(); i++) {
+				int slot = i;
+				out.add(new Worn(() -> stacks.getStackInSlot(slot), s -> stacks.setStackInSlot(slot, s)));
+			}
+		}));
+		return out;
+	}
+
 	/** Takes every equipped accessory (and cosmetic one) off the player and returns them, or null if they had none. */
 	static CompoundTag capture(ServerPlayer p) {
 		if (!available()) {

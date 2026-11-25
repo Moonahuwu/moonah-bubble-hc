@@ -25,9 +25,7 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.Pose;
-import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Creeper;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 
@@ -40,8 +38,9 @@ import java.util.UUID;
 
 /**
  * The rest of a replay: client-only stand-ins for the mobs, other players and projectiles that were there, moved
- * frame by frame, plus gun tracers and explosions. While one plays, the real mobs, players and projectiles are hidden
- * on this screen only (nothing in the world moves), and they're back the moment it stops.
+ * frame by frame, plus gun tracers and explosions. While one plays, the real ones it stands in for are hidden on this
+ * screen only (nothing in the world moves), and they're back the moment it stops. Anything the replay doesn't cover
+ * (too far away, or not there then) stays where it is.
  */
 public final class ReplayActors {
 	private static final EquipmentSlot[] GEAR_SLOTS = {EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND, EquipmentSlot.HEAD,
@@ -55,6 +54,8 @@ public final class ReplayActors {
 	private final Payloads.Scene scene;
 	private final Entity[] copies;
 	private final boolean[] done;
+	/** The real entities (by id) this replay stands in for. */
+	private final Set<Integer> covers = new java.util.HashSet<>();
 	private int lastFrame = -1;
 	private double prevIdx;
 	private double idx;
@@ -64,6 +65,9 @@ public final class ReplayActors {
 		this.scene = scene == null ? Payloads.Scene.EMPTY : scene;
 		this.copies = new Entity[this.scene.actors().size()];
 		this.done = new boolean[copies.length];
+		for (Payloads.Actor a : this.scene.actors()) {
+			covers.add(a.entity());
+		}
 		playing.add(this);
 	}
 
@@ -81,10 +85,15 @@ public final class ReplayActors {
 
 	/** Mixin (EntityRenderDispatcher): hide the real thing while a replay stands in for it. */
 	public static boolean hides(Entity e) {
-		if (playing.isEmpty() || exempt.contains(e) || e instanceof ArmorStand) {
+		if (playing.isEmpty() || exempt.contains(e)) {
 			return false;
 		}
-		return e instanceof LivingEntity || e instanceof Projectile || e instanceof net.minecraft.world.entity.item.PrimedTnt;
+		for (ReplayActors r : playing) {
+			if (r.covers.contains(e.getId())) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Puts everything where it was at (fractional) frame `at` of the clip. Call once a tick, going forwards. */
