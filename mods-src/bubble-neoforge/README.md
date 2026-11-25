@@ -254,6 +254,13 @@ A second currency that never resets (saved in `bubble-eidolons.json` in the serv
   over about 1.5 seconds; everyone sees it. Plasma, Electric, Love, Smoke (25-35), Fire, Stars, Bubbles (35-40),
   Rainbow, Trans flag (60) and LOL (75). You can wear one with a particle trail. The textures are drawn by
   `tools/make_trail_textures.py`.
+- **Names** (their own tab, with a preview of your own name): your name's colour in chat (anything that names you,
+  including join and death messages), the tab list and above your head. Solid Gold, Aqua, Lime, Hot pink, Crimson,
+  Lavender (15); gradients Sunset, Ocean, Toxic, Candy (30); animated Rainbow (55), Aurora, Inferno (50), where the
+  colours flow along your name; and glowing Golden, Ghost and Void (70), where a bright shimmer sweeps across it. The
+  moving ones use the **Prism** library (already in the pack for Legendary Tooltips); without it they show still. The
+  server sends names in their main colour and each client draws the style (`NameStyles`, `client/FancyNames`,
+  `client/PrismNames`).
 - **Hall of Fame:** longest run, most wins, most runs ended (the last one to end a run wears **[Run Ender]** until the
   next run ends), biggest gambler, most bosses, luckiest unboxing, most Eidolons earned.
 - **Betting:** on the ready-up screen, bet Eidolons on who ends this run (or "Nobody: we finish"). Winners split the
@@ -536,8 +543,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.26.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.26.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.27.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.27.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

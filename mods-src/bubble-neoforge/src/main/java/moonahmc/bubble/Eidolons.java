@@ -90,7 +90,24 @@ public final class Eidolons {
 			new Cosmetic("title_bait", "title", "Watcher Bait", 15, 0xFF4040),
 			new Cosmetic("title_survivor", "title", "Nuke Survivor", 20, 0x7CE07C),
 			new Cosmetic("title_veteran", "title", "Bubble Veteran", 25, 0x55E0E8),
-			new Cosmetic("title_legend", "title", "Legend", 100, 0xFF7CFF));
+			new Cosmetic("title_legend", "title", "Legend", 100, 0xFF7CFF),
+			// Name colours (NameStyles): your name in chat, the tab list and above your head
+			new Cosmetic("name_gold", "name", "Gold", 15, 0xFFAA00),
+			new Cosmetic("name_aqua", "name", "Aqua", 15, 0x55FFFF),
+			new Cosmetic("name_lime", "name", "Lime", 15, 0x7CFF4F),
+			new Cosmetic("name_pink", "name", "Hot pink", 15, 0xFF5FC8),
+			new Cosmetic("name_crimson", "name", "Crimson", 15, 0xE0303A),
+			new Cosmetic("name_lavender", "name", "Lavender", 15, 0xB79CFF),
+			new Cosmetic("name_sunset", "name", "Sunset (gradient)", 30, 0xFF5E62),
+			new Cosmetic("name_ocean", "name", "Ocean (gradient)", 30, 0x2E8BFF),
+			new Cosmetic("name_toxic", "name", "Toxic (gradient)", 30, 0xB6FF3B),
+			new Cosmetic("name_candy", "name", "Candy (gradient)", 30, 0xFF77E9),
+			new Cosmetic("name_rainbow", "name", "Rainbow (animated)", 55, 0xFF4040),
+			new Cosmetic("name_aurora", "name", "Aurora (animated)", 50, 0x3CF0C0),
+			new Cosmetic("name_inferno", "name", "Inferno (animated)", 50, 0xFF3A1A),
+			new Cosmetic("name_glow_gold", "name", "Golden glow", 70, 0xFFC93C),
+			new Cosmetic("name_glow_ghost", "name", "Ghost glow", 70, 0x8FF3FF),
+			new Cosmetic("name_glow_void", "name", "Void glow", 70, 0xB266FF));
 
 	public static Upgrade upgrade(String id) {
 		return UPGRADES.stream().filter(u -> u.id.equals(id)).findFirst().orElse(null);
@@ -121,6 +138,7 @@ public final class Eidolons {
 		String trail = "";
 		String title = "";
 		String ribbon = "";
+		String nameStyle = "";
 		Stats stats = new Stats();
 	}
 
@@ -156,6 +174,8 @@ public final class Eidolons {
 
 	/** Name titles shown above heads and in chat (both sides; the client fills it from the Titles payload). */
 	public static final Map<UUID, Component> TITLES = new ConcurrentHashMap<>();
+	/** Name colours (NameStyles ids), both sides; the client fills it from the Titles payload. */
+	public static final Map<UUID, String> NAME_STYLES = new ConcurrentHashMap<>();
 
 	private Eidolons() {
 	}
@@ -268,6 +288,7 @@ public final class Eidolons {
 	public static final int UNEQUIP_TITLE = 4;
 	public static final int REQUEST = 5;
 	public static final int UNEQUIP_RIBBON = 6;
+	public static final int UNEQUIP_NAME = 7;
 
 	/** Client to server: buy / equip something, or ask for the state. */
 	public record Action(int action, String id) implements CustomPacketPayload {
@@ -284,7 +305,7 @@ public final class Eidolons {
 	}
 
 	/** Server to client: everyone's title (shown above heads, in chat and in the tab list). */
-	public record Titles(Map<UUID, String> text, Map<UUID, Integer> color) implements CustomPacketPayload {
+	public record Titles(Map<UUID, String> text, Map<UUID, Integer> color, Map<UUID, String> names) implements CustomPacketPayload {
 		public static final Type<Titles> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "eidolon_titles"));
 		public static final StreamCodec<RegistryFriendlyByteBuf, Titles> CODEC = StreamCodec.ofMember((t, buf) -> {
 			buf.writeVarInt(t.text.size());
@@ -292,6 +313,11 @@ public final class Eidolons {
 				buf.writeUUID(k);
 				buf.writeUtf(v, 64);
 				buf.writeInt(t.color.getOrDefault(k, 0xFFFFFF));
+			});
+			buf.writeVarInt(t.names.size());
+			t.names.forEach((k, v) -> {
+				buf.writeUUID(k);
+				buf.writeUtf(v, 64);
 			});
 		}, buf -> {
 			Map<UUID, String> text = new HashMap<>();
@@ -302,7 +328,12 @@ public final class Eidolons {
 				text.put(id, buf.readUtf(64));
 				color.put(id, buf.readInt());
 			}
-			return new Titles(text, color);
+			Map<UUID, String> names = new HashMap<>();
+			n = buf.readVarInt();
+			for (int i = 0; i < n; i++) {
+				names.put(buf.readUUID(), buf.readUtf(64));
+			}
+			return new Titles(text, color, names);
 		});
 
 		@Override
@@ -425,16 +456,22 @@ public final class Eidolons {
 		});
 		// Titles in chat, the tab list and above heads (the client runs the same listener with its own map)
 		bus.addListener((PlayerEvent.NameFormat e) -> {
+			Component name = styledName(e.getEntity(), e.getDisplayname());
 			Component t = TITLES.get(e.getEntity().getUUID());
 			if (t != null) {
-				e.setDisplayname(Component.empty().append(t).append(" ").append(e.getDisplayname()));
+				e.setDisplayname(Component.empty().append(t).append(" ").append(name));
+			} else if (name != e.getDisplayname()) {
+				e.setDisplayname(name);
 			}
 		});
 		bus.addListener((PlayerEvent.TabListNameFormat e) -> {
 			Component t = TITLES.get(e.getEntity().getUUID());
+			Component base = e.getDisplayName() != null ? e.getDisplayName() : e.getEntity().getName();
+			Component name = styledName(e.getEntity(), base);
 			if (t != null) {
-				Component base = e.getDisplayName() != null ? e.getDisplayName() : e.getEntity().getName();
-				e.setDisplayName(Component.empty().append(t).append(" ").append(base));
+				e.setDisplayName(Component.empty().append(t).append(" ").append(name));
+			} else if (name != base) {
+				e.setDisplayName(name);
 			}
 		});
 		bus.addListener((ServerTickEvent.Post e) -> {
@@ -498,6 +535,7 @@ public final class Eidolons {
 			case UNEQUIP_TRAIL -> pr.trail = "";
 			case UNEQUIP_TITLE -> pr.title = "";
 			case UNEQUIP_RIBBON -> pr.ribbon = "";
+			case UNEQUIP_NAME -> pr.nameStyle = "";
 			default -> {
 			}
 		}
@@ -511,6 +549,8 @@ public final class Eidolons {
 			pr.trail = c.id;
 		} else if (c.kind.equals("ribbon")) {
 			pr.ribbon = c.id;
+		} else if (c.kind.equals("name")) {
+			pr.nameStyle = c.id;
 		} else {
 			pr.title = c.id;
 		}
@@ -785,8 +825,12 @@ public final class Eidolons {
 		Map<UUID, String> text = new HashMap<>();
 		Map<UUID, Integer> color = new HashMap<>();
 		Map<UUID, String> ribbons = new HashMap<>();
+		Map<UUID, String> names = new HashMap<>();
 		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 			Profile pr = profile(p);
+			if (!pr.nameStyle.isEmpty() && NameStyles.spec(pr.nameStyle) != null) {
+				names.put(p.getUUID(), pr.nameStyle);
+			}
 			if (!pr.ribbon.isEmpty() && cosmetic(pr.ribbon) != null) {
 				ribbons.put(p.getUUID(), pr.ribbon);
 			}
@@ -804,12 +848,12 @@ public final class Eidolons {
 				color.put(p.getUUID(), c);
 			}
 		}
-		applyTitles(text, color);
+		applyTitles(text, color, names);
 		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
 			p.refreshDisplayName();
 			p.refreshTabListName();
 			if (ServerPlayNetworking.canSend(p, Titles.ID)) {
-				ServerPlayNetworking.send(p, new Titles(text, color));
+				ServerPlayNetworking.send(p, new Titles(text, color, names));
 			}
 			if (ServerPlayNetworking.canSend(p, Ribbons.ID)) {
 				ServerPlayNetworking.send(p, new Ribbons(ribbons));
@@ -818,9 +862,21 @@ public final class Eidolons {
 	}
 
 	/** Used on both sides. */
-	public static void applyTitles(Map<UUID, String> text, Map<UUID, Integer> color) {
+	public static void applyTitles(Map<UUID, String> text, Map<UUID, Integer> color, Map<UUID, String> names) {
+		NAME_STYLES.clear();
+		NAME_STYLES.putAll(names);
 		TITLES.clear();
 		text.forEach((id, t) -> TITLES.put(id, Component.literal("[" + t + "]").withStyle(s -> s.withColor(color.getOrDefault(id, 0xFFFFFF)))));
+	}
+
+	/** The player's name in their name colour (if they have one and nothing else renamed them). */
+	private static Component styledName(net.minecraft.world.entity.player.Player p, Component name) {
+		String id = NAME_STYLES.get(p.getUUID());
+		String plain = p.getGameProfile().getName();
+		if (id == null || name == null || !name.getString().equals(plain)) {
+			return name;
+		}
+		return NameStyles.style(plain, id, name.getStyle());
 	}
 
 	private static void trails(MinecraftServer s) {
@@ -912,6 +968,9 @@ public final class Eidolons {
 			}
 			if (pr.ribbon == null) {
 				pr.ribbon = "";
+			}
+			if (pr.nameStyle == null) {
+				pr.nameStyle = "";
 			}
 		});
 	}

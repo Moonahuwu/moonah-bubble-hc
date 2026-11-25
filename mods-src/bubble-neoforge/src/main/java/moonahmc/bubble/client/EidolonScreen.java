@@ -58,7 +58,7 @@ public final class EidolonScreen extends ScaledScreen {
 		fit();
 		left = (width - W) / 2;
 		top = (height - H) / 2;
-		String[] tabs = {"Upgrades", "Cosmetics", "Trails", "Hall of Fame"};
+		String[] tabs = {"Upgrades", "Cosmetics", "Trails", "Names", "Hall of Fame"};
 		int tx = left + 18;
 		for (int i = 0; i < tabs.length; i++) {
 			int index = i;
@@ -91,7 +91,7 @@ public final class EidolonScreen extends ScaledScreen {
 		} else if (tab == 1) {
 			int[] counts = new int[2];
 			for (Eidolons.Cosmetic c : Eidolons.COSMETICS) {
-				if (c.kind().equals("ribbon")) {
+				if (c.kind().equals("ribbon") || c.kind().equals("name")) {
 					continue;
 				}
 				int col = c.kind().equals("trail") ? 0 : 1;
@@ -115,6 +115,31 @@ public final class EidolonScreen extends ScaledScreen {
 				if (equipped) {
 					b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal("Click to take it off")));
 				}
+			}
+		} else if (tab == 3) {
+			String mine = myNameStyle();
+			List<Eidolons.Cosmetic> names = names();
+			for (int i = 0; i < names.size(); i++) {
+				Eidolons.Cosmetic c = names.get(i);
+				int x = nameX(i);
+				int y = nameY(i);
+				boolean owned = st.owned().contains(c.id());
+				boolean equipped = c.id().equals(mine);
+				BubbleScreen.FlatButton b = addRenderableWidget(new BubbleScreen.FlatButton(x + (W - 36) / 2 - 8 - 70, y + 2, 70, 16,
+						Component.literal(equipped ? "Equipped" : owned ? "Equip" : "Buy  " + c.cost()), () -> {
+					if (!owned) {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.BUY_COSMETIC, c.id()));
+					} else if (!equipped) {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.EQUIP, c.id()));
+					} else {
+						ClientPlayNetworking.send(new Eidolons.Action(Eidolons.UNEQUIP_NAME, c.id()));
+					}
+				}));
+				b.ghost = equipped;
+				b.color = PURPLE;
+				b.active = owned || st.eidolons() >= c.cost();
+				b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(c.name()
+						+ (equipped ? "\nClick to take it off" : ""))));
 			}
 		} else if (tab == 2) {
 			String mine = minecraft != null && minecraft.player != null ? RibbonTrails.worn.get(minecraft.player.getUUID()) : null;
@@ -143,6 +168,22 @@ public final class EidolonScreen extends ScaledScreen {
 				}
 			}
 		}
+	}
+
+	private static List<Eidolons.Cosmetic> names() {
+		return Eidolons.COSMETICS.stream().filter(c -> c.kind().equals("name")).toList();
+	}
+
+	private String myNameStyle() {
+		return minecraft != null && minecraft.player != null ? Eidolons.NAME_STYLES.get(minecraft.player.getUUID()) : null;
+	}
+
+	private int nameX(int i) {
+		return left + 18 + (i % 2) * ((W - 36) / 2);
+	}
+
+	private int nameY(int i) {
+		return top + 82 + (i / 2) * 22;
 	}
 
 	private static List<Eidolons.Cosmetic> ribbons() {
@@ -229,7 +270,7 @@ public final class EidolonScreen extends ScaledScreen {
 			ctx.drawString(font, "TITLES (above your head and in chat)", left + 18 + (W - 36) / 2 + 4, top + 68, PURPLE, false);
 			int[] counts = new int[2];
 			for (Eidolons.Cosmetic c : Eidolons.COSMETICS) {
-				if (c.kind().equals("ribbon")) {
+				if (c.kind().equals("ribbon") || c.kind().equals("name")) {
 					continue;
 				}
 				int col = c.kind().equals("trail") ? 0 : 1;
@@ -238,6 +279,23 @@ public final class EidolonScreen extends ScaledScreen {
 				roundRect(ctx, x, y, (W - 36) / 2 - 4, 20, 5, CARD);
 				String name = c.kind().equals("title") ? "[" + c.name() + "]" : c.name();
 				ctx.drawString(font, name, x + 8, y + 6, 0xFF000000 | c.color(), false);
+			}
+		} else if (tab == 3) {
+			ctx.drawString(font, "NAME COLOURS: your name in chat, the tab list and above your head", left + 22, top + 68, PURPLE, false);
+			String me = minecraft != null && minecraft.player != null ? minecraft.player.getGameProfile().getName() : "You";
+			List<Eidolons.Cosmetic> names = names();
+			for (int i = 0; i < names.size(); i++) {
+				Eidolons.Cosmetic c = names.get(i);
+				int x = nameX(i);
+				int y = nameY(i);
+				roundRect(ctx, x, y, (W - 36) / 2 - 4, 20, 5, CARD);
+				Component preview = FancyNames.preview(me, c.id());
+				ctx.drawString(font, preview, x + 8, y + 6, 0xFFFFFFFF, true);
+				String label = c.name().replace(" (gradient)", "").replace(" (animated)", "");
+				int room = (W - 36) / 2 - 8 - 70 - 8 - (x + 8 + font.width(preview) + 6 - x);
+				if (font.width(label) <= room) {
+					ctx.drawString(font, label, x + 8 + font.width(preview) + 6, y + 6, MUTED, false);
+				}
 			}
 		} else if (tab == 2) {
 			ctx.drawString(font, "TRAILS: a ribbon behind you that fades out (wear one with a particle trail too)", left + 22, top + 66, PURPLE, false);

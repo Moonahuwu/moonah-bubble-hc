@@ -102,8 +102,16 @@ public final class BubbleClient {
 				rs.refresh();
 			}
 		}));
+		FancyNames.init();
+		// name colours in chat: any message that names a player shows their name in its style
+		bus.addListener((net.neoforged.neoforge.client.event.ClientChatReceivedEvent e) -> {
+			Component styled = FancyNames.restyle(e.getMessage());
+			if (styled != e.getMessage()) {
+				e.setMessage(styled);
+			}
+		});
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Eidolons.Titles.ID, (payload, context) -> context.client().execute(() -> {
-			moonahmc.bubble.Eidolons.applyTitles(payload.text(), payload.color());
+			moonahmc.bubble.Eidolons.applyTitles(payload.text(), payload.color(), payload.names());
 			if (context.client().level != null) {
 				context.client().level.players().forEach(net.minecraft.world.entity.player.Player::refreshDisplayName);
 			}
