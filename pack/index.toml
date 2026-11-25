@@ -2,11 +2,16 @@ hash-format = "sha256"
 
 [[files]]
 file = "addons/MoonahMC-Lucky-Blocks.zip"
-hash = "3121b82182849e2670012322f73b5b9be4aa61f08d23a0e718af662a50321c22"
+hash = "7f8d441a8359e809297831d0de80d175f12f658c8e63ffdbddd3b46c4e58d7ad"
 
 [[files]]
 file = "mods/3dskinlayers.pw.toml"
 hash = "2dc498bd8a43a8e02fc9d08fe5846ac17f6eabbecbf38ae39aa7b1f23fe100b0"
+metafile = true
+
+[[files]]
+file = "mods/ae2.pw.toml"
+hash = "e5a4c0315e40bab4b2ba410dd5d2dd8b7662eaea525c1b2e6bebfa35fe3e71c7"
 metafile = true
 
 [[files]]
@@ -45,6 +50,11 @@ hash = "716d930feff599bf9ce732e05979fbae8025dc8a3c13ccf4f1cb207a70883bc6"
 metafile = true
 
 [[files]]
+file = "mods/applied-energistics-2-wireless-terminals.pw.toml"
+hash = "0b00e3fcc86a4ab7744269fc576bb23180a29dc0e44954511907a8b5386e3f53"
+metafile = true
+
+[[files]]
 file = "mods/architectury-api.pw.toml"
 hash = "21347d7f9c96cebacb7238dbef2670e2906a11572606016c8184e9485947dacc"
 metafile = true
@@ -65,8 +75,13 @@ hash = "fc8954e0d3fa66b917d2c84ee04d07b073a9eb6f719d09e1ff85527c1d61a10e"
 metafile = true
 
 [[files]]
-file = "mods/bubble-neoforge-1.26.0.jar"
-hash = "7b92be193bc00df58dbd3ce5d33b764f53f1bab2192bc75b2e02e618b2e75198"
+file = "mods/bookshelf-lib.pw.toml"
+hash = "68d6016fa3707c434b3aca5db041c7518c70feb53d0183faa2502cc6efd4c827"
+metafile = true
+
+[[files]]
+file = "mods/bubble-neoforge-1.27.0.jar"
+hash = "38e17a2e47d24ede06952d39a465c2c499b11596a352af446588c3603bde73fd"
 
 [[files]]
 file = "mods/cataclysm-dimension.pw.toml"
@@ -74,8 +89,28 @@ hash = "392be2d6ab4b62dc0ae92e832e7a7b125893e259bbc5e8a428705c98a6dbc62d"
 metafile = true
 
 [[files]]
+file = "mods/chisels-bits.pw.toml"
+hash = "5f2998cf925a3b0366af0f5fff84bed6995fd8715b14b80f136f4607eba4af4d"
+metafile = true
+
+[[files]]
 file = "mods/client-tweaks.pw.toml"
 hash = "9ffb5faad0515226f429facfe8231b6395c72ffa4a731c0548802e5f69ff6b7b"
+metafile = true
+
+[[files]]
+file = "mods/clumps.pw.toml"
+hash = "2acaff560bbda5741538528a2967355ec86a8f7564adba0b2316989c66892374"
+metafile = true
+
+[[files]]
+file = "mods/configured.pw.toml"
+hash = "af4dc4828902eae1784568632a749fe9a442943f1570ac0ba3ea75e79934be41"
+metafile = true
+
+[[files]]
+file = "mods/controlling.pw.toml"
+hash = "65c8086d2ec3d39acc7bd36c7a0306ccc43b602b38fa07d13291bc478ef7dfff"
 metafile = true
 
 [[files]]
@@ -99,8 +134,18 @@ hash = "a7597b3a9fb7eeabede31287082fc8b5274e2ec3b42a0ce3672c4a867f09c9c5"
 metafile = true
 
 [[files]]
+file = "mods/dark-utilities.pw.toml"
+hash = "654c9f414bbfc234b174ed91976f630e6b3026a0484a277f0fe319ab15612417"
+metafile = true
+
+[[files]]
 file = "mods/distanthorizons.pw.toml"
 hash = "0c20fea3407ed0db85b4b171f1820a24987f2659946fadd30bae044205041b09"
+metafile = true
+
+[[files]]
+file = "mods/enchantment-descriptions.pw.toml"
+hash = "88b9e727611f06350c407aeb4ccb41207b5058fef127abe0ff24c13505618aaf"
 metafile = true
 
 [[files]]
@@ -151,6 +196,11 @@ metafile = true
 [[files]]
 file = "mods/gravestone-mod.pw.toml"
 hash = "d18f1ea4c6c1c2f99f18a8725d11e14c93abd29988df24c967794fc52e9c969c"
+metafile = true
+
+[[files]]
+file = "mods/guideme.pw.toml"
+hash = "afbf995d300c4337cc36704087731f5c9a3d7bc49f9110bcfe72b9c345f24bd7"
 metafile = true
 
 [[files]]
@@ -219,6 +269,16 @@ hash = "0d3683a8c533e1fb67bf0b1668089a322fc5f594f9610d441657378ab4f64383"
 metafile = true
 
 [[files]]
+file = "mods/mekanism-tools.pw.toml"
+hash = "efafea92ef966ffe7c3c31209b643a9bbcccb3a8a5a02347b49ff50e015980fe"
+metafile = true
+
+[[files]]
+file = "mods/mekanism.pw.toml"
+hash = "42061fd570a0b7a8063c0860056c6391593190caa0f12d3b49105e52a56817fe"
+metafile = true
+
+[[files]]
 file = "mods/melody.pw.toml"
 hash = "d7ff27bf5e0c0bd5ede8303d5a41cec193f700292c78c86ad6812a5193f013d9"
 metafile = true
@@ -231,6 +291,11 @@ metafile = true
 [[files]]
 file = "mods/modern-lucky-block.pw.toml"
 hash = "3412369f8b85be7493f0cac81b67fb427c22323982dd96165d1e4ad8e72633a4"
+metafile = true
+
+[[files]]
+file = "mods/modernfix.pw.toml"
+hash = "ef65836e005bd42a0f40df30a94eba1ad7ee5ed3194b11eafbeadc64edb44252"
 metafile = true
 
 [[files]]
@@ -249,6 +314,11 @@ hash = "fd84fcf376910b659fdfbcc2401aa545400b0d7c65834eb2fe22bae3a3c921c2"
 metafile = true
 
 [[files]]
+file = "mods/nyctography.pw.toml"
+hash = "fb06fdc9f795e170942dbd1a6e2160b6a0f322aa02873e79c3a830b7fedcca34"
+metafile = true
+
+[[files]]
 file = "mods/oritech.pw.toml"
 hash = "dbb2a2fc538df2577ac83d9eb0d7d4a67b15b3e2f1570ac380dacd79f8ddc0a4"
 metafile = true
@@ -264,8 +334,13 @@ hash = "d7f360ebb9f009d6dc0b368cd8fa399bdff70c0f6ef931687b2a35137f72715d"
 metafile = true
 
 [[files]]
-file = "mods/ping-original.pw.toml"
-hash = "8239bff4e37b254c07362c5efe6bf527cabddaf43662e66f8dbf93a43d7e2ee3"
+file = "mods/pig-pen-cipher.pw.toml"
+hash = "a94365e00ca989024c7d33d1d21ab498bc57c63d60ce736fca65f06239e98e13"
+metafile = true
+
+[[files]]
+file = "mods/ping-wheel.pw.toml"
+hash = "650330109d21831664d2ff597c7a90200eda69a1efaca4e9b0b6b6297ac3c364"
 metafile = true
 
 [[files]]
@@ -276,6 +351,11 @@ metafile = true
 [[files]]
 file = "mods/polymorph.pw.toml"
 hash = "d935e4ce118d15c88b10809df85e801f0e9577855f870f3c28e5a0bd5e7fecf6"
+metafile = true
+
+[[files]]
+file = "mods/prickle.pw.toml"
+hash = "c99c5bac469e8d6ece5aae80f08635e3bbb8367f0c586b6288573c725faefe69"
 metafile = true
 
 [[files]]
@@ -296,6 +376,16 @@ metafile = true
 [[files]]
 file = "mods/rimulib.pw.toml"
 hash = "2a22cbf420928ba6f89da2c81a23393a7d8aa306f77f80262f438217b53daf76"
+metafile = true
+
+[[files]]
+file = "mods/runelic.pw.toml"
+hash = "179aab033baae257dbc270e5e81c67202b6533df97e50b33e7d9653187b0f71e"
+metafile = true
+
+[[files]]
+file = "mods/searchables.pw.toml"
+hash = "ce9ddada6ffd55a512149cc474c6a453281a997a5fdf1b7b4a2cc73f875e704a"
 metafile = true
 
 [[files]]
