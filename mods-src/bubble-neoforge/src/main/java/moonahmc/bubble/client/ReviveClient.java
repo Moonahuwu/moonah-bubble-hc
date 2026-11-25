@@ -161,6 +161,9 @@ final class ReviveClient {
 			// seconds left
 			String secs = e.progress() > 0 ? "Reviving..." : (int) Math.ceil(e.left() / 20.0) + "s";
 			int color = e.progress() > 0 ? 0xFF6EE08A : 0xFF000000 | (255 << 16) | ((int) (gb * 220) << 8) | (int) (gb * 60);
+			if (e.progress() <= 0 && gb < 0.34f) {
+				color = Rarity.pulse(color, 0xFFFFFFFF, 0.5f); // last third: the seconds flash
+			}
 			font.drawInBatch(secs, -font.width(secs) / 2f, e.progress() > 0 ? 8 : 2, color, false, m, buffers, Font.DisplayMode.SEE_THROUGH,
 					0x66000000, LightTexture.FULL_BRIGHT);
 			buffers.endBatch();
@@ -203,10 +206,12 @@ final class ReviveClient {
 				ctx.pose().translate(w / 2f, y, 0);
 				ctx.pose().scale(2.2f, 2.2f, 1);
 				String title = "YOU'RE DOWN";
-				ctx.drawString(font, title, -font.width(title) / 2, 0, 0xFFFF5555, true);
+				// breathes faster as time runs out
+				ctx.drawString(font, title, -font.width(title) / 2, 0, Rarity.pulse(0xFFFF5555, 0xFFFFD0D0, 0.6f + 1.4f * t), true);
 				ctx.pose().popPose();
 				String line = e.progress() > 0 ? e.helper() + " is reviving you" : "Bleeding out in " + (int) Math.ceil(e.left() / 20.0) + "s";
-				ctx.drawString(font, line, (w - font.width(line)) / 2, y + 26, e.progress() > 0 ? 0xFF6EE08A : 0xFFFFFFFF, true);
+				ctx.drawString(font, line, (w - font.width(line)) / 2, y + 26, e.progress() > 0 ? 0xFF6EE08A
+						: t < 0.34f ? Rarity.pulse(0xFFFFFFFF, 0xFFFF5555, 0.5f) : 0xFFFFFFFF, true);
 				String help = "A teammate has to stand right next to you";
 				if (e.progress() <= 0) {
 					ctx.drawString(font, help, (w - font.width(help)) / 2, y + 38, 0xFFB8C0CC, true);

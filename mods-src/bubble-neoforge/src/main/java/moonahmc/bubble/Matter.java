@@ -334,6 +334,7 @@ public final class Matter {
 			return 0;
 		}
 		double each = baseValue(stack.getItem());
+		double cap = saleCap(stack);
 		if (stack.isDamageableItem() && stack.getMaxDamage() > 0) {
 			each *= Math.max(0.1, 1 - stack.getDamageValue() / (double) stack.getMaxDamage());
 		}
@@ -345,6 +346,9 @@ public final class Matter {
 		}
 		each += enchantValue(stack.get(DataComponents.ENCHANTMENTS));
 		each += enchantValue(stack.get(DataComponents.STORED_ENCHANTMENTS));
+		if (cap >= 0) {
+			each = Math.min(each, cap);
+		}
 		double total = each * stack.getCount();
 		ItemContainerContents container = stack.get(DataComponents.CONTAINER);
 		if (container != null) {
@@ -359,6 +363,30 @@ public final class Matter {
 			}
 		}
 		return total;
+	}
+
+	private static final String CAP_KEY = "bubble_sale_cap";
+
+	/** The most this stack sells for, each (case prizes, Gamble.capSale), or -1. */
+	static double saleCap(ItemStack stack) {
+		net.minecraft.world.item.component.CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+		if (data == null) {
+			return -1;
+		}
+		net.minecraft.nbt.CompoundTag tag = data.copyTag();
+		return tag.contains(CAP_KEY) ? tag.getDouble(CAP_KEY) : -1;
+	}
+
+	static void setSaleCap(ItemStack stack, double cap) {
+		net.minecraft.world.item.component.CustomData.update(DataComponents.CUSTOM_DATA, stack, t -> t.putDouble(CAP_KEY, cap));
+		java.util.List<Component> lore = new java.util.ArrayList<>();
+		net.minecraft.world.item.component.ItemLore old = stack.get(DataComponents.LORE);
+		if (old != null) {
+			lore.addAll(old.lines());
+		}
+		lore.add(Component.literal("Case prize: sells for up to " + format(cap) + " Strange Matter")
+				.withStyle(s -> s.withColor(ChatFormatting.DARK_GRAY).withItalic(false)));
+		stack.set(DataComponents.LORE, new net.minecraft.world.item.component.ItemLore(lore));
 	}
 
 	/** Matter for one rarity material, common to mythic. */
@@ -539,7 +567,7 @@ public final class Matter {
 				}
 				List<Ingredient> in = new ArrayList<>();
 				for (Ingredient i : r.getIngredients()) {
-					if (!i.isEmpty()) {
+					if (!i.isEmpty() && !staysInGrid(i)) {
 						in.add(i);
 					}
 				}
@@ -612,6 +640,24 @@ public final class Matter {
 				break;
 			}
 		}
+	}
+
+	/**
+	 * A tool that comes back out of the crafting grid (ProjectE's Philosopher's Stone, AE2's cutting knives...) isn't
+	 * used up, so it doesn't add to what the result is worth. Counting it made every alchemy step snowball.
+	 */
+	private static boolean staysInGrid(Ingredient i) {
+		ItemStack[] options = i.getItems();
+		if (options.length == 0) {
+			return false;
+		}
+		for (ItemStack option : options) {
+			ItemStack left = option.getCraftingRemainingItem();
+			if (left == null || left.isEmpty() || left.getItem() != option.getItem()) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static List<Ingredient> ingredientFields(Object recipe) {

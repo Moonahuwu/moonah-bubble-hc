@@ -194,7 +194,8 @@ public final class CaseScreen extends ScaledScreen {
 					continue;
 				}
 				int tier = reel.tiers().get(i);
-				int color = Gamble.TIER_COLORS[tier];
+				// Epic and Legendary cards breathe a little brighter
+				int color = tier >= 3 ? Rarity.pulse(Gamble.TIER_COLORS[tier], 0xFFFFFFFF, tier >= 4 ? 1.2f : 1.8f) : Gamble.TIER_COLORS[tier];
 				boolean win = done[r] && i == reel.winner();
 				int cw = card - 4;
 				roundRect(ctx, x, y, cw, cardH, 5, win ? 0xFF2A3038 : 0xFF1A1E25);
@@ -235,7 +236,7 @@ public final class CaseScreen extends ScaledScreen {
 				Gamble.Reel reel = roll.reels().get(0);
 				ItemStack won = reel.items().get(reel.winner());
 				int tier = reel.tiers().get(reel.winner());
-				Component line = Component.empty().append(won.getHoverName().copy().withStyle(s -> s.withColor(Gamble.TIER_COLORS[tier] & 0xFFFFFF)))
+				Component line = Component.empty().append(Rarity.tierName(won.getHoverName().getString(), tier))
 						.append(won.getCount() > 1 ? "  ×" + won.getCount() : "");
 				ctx.pose().pushPose();
 				ctx.pose().translate(center, y, 0);
@@ -243,7 +244,7 @@ public final class CaseScreen extends ScaledScreen {
 				ctx.drawString(font, line, -font.width(line) / 2, 0, TEXT, true);
 				ctx.pose().popPose();
 				String tierText = Gamble.TIERS[tier];
-				ctx.drawString(font, tierText, center - font.width(tierText) / 2, y + 16, Gamble.TIER_COLORS[tier], false);
+				ctx.drawString(font, Rarity.tierName(tierText, tier), center - font.width(tierText) / 2, y + 16, Gamble.TIER_COLORS[tier], false);
 			} else {
 				Component line = Component.literal("You won: ").withStyle(s -> s.withColor(MUTED & 0xFFFFFF));
 				for (int r = 0; r < n; r++) {
@@ -253,7 +254,7 @@ public final class CaseScreen extends ScaledScreen {
 					if (r > 0) {
 						line = line.copy().append(Component.literal(", ").withStyle(s -> s.withColor(MUTED & 0xFFFFFF)));
 					}
-					line = line.copy().append(won.getHoverName().copy().withStyle(s -> s.withColor(Gamble.TIER_COLORS[tier] & 0xFFFFFF)));
+					line = line.copy().append(Rarity.tierName(won.getHoverName().getString(), tier));
 				}
 				var lines = font.split(line, W - 40);
 				for (int i = 0; i < Math.min(2, lines.size()); i++) {

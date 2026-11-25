@@ -432,6 +432,51 @@ The prize shows its glint on the reel and the label in its tooltip and the chat 
 `conditions` in `config/bubble-cases.json` (`enchanted`, `apothic`, `factoryNew`). Ops: `/bubble odds case <case> [opens]`
 opens it that many times for nobody and counts the tiers and the better prizes.
 
+**Big prizes have a sale cap.** A case prize worth far more than its tier (ProjectE's red matter gear sells for tens
+of thousands by its recipe) sells for at most 40 / 100 / 250 / 600 / 1,500 Strange Matter each (Common to Legendary).
+Only those prizes are marked ("Case prize: sells for up to ..." in the tooltip); ordinary ones are left alone so they
+still stack. The "sells back for about" numbers in the log count the cap.
+
+**How rare things look (Prism).** With the Prism library (in the pack for Legendary Tooltips):
+- Epic prizes shimmer and Legendary ones flow gold: on the case screen, in the chat broadcast (shift-click the name to
+  put "[Legendary] ..." in your chat box) and in the prize's tooltip (gear only). **★ Factory New** shimmers too.
+- Case editor: a **name style** for each case (plain colour, Legendary gold, Epic shimmer, Factory New, or any Eidolon
+  name colour). It shows on the case item and its shop tile (`"style"` in the case's JSON).
+- Apotheosis elites' names pulse above their heads.
+- Shop tiles and the sell slot show item names in the item's own colour (rarity, name colour).
+- The YOU'RE DOWN title and the bleed-out seconds flash faster as time runs out, the down cam title breathes, and
+  Strange Matter gains shimmer.
+
+Without Prism the same things show in still colours.
+
+## Mods in the cases and shop (1.28.0)
+
+Gear goes in the Weapon Case by how hard it hits (melee damage x attack speed, from `/bubble gearpower <mod>`), next
+to what's already there (iron Simply Swords ~9-12, diamond ~10-14, netherite 12.8):
+
+| Tier | Weapon Case additions |
+|---|---|
+| Common | Bronze, Lapis and Refined Glowstone swords (Mekanism Tools), Nether/Certus Quartz swords (AE2), Copper, Amethyst and Nether swords, Sharpened Boomerang (Cyclic) |
+| Uncommon | Steel and Osmium swords, Fluix Sword, Emerald Sword, Magic Boomerang, Fire and Ice scepters, Charged Staff |
+| Rare | Electric Bow (Mekanism), Evoker Fang, Lightning and Missile scepters (Cyclic), Matter Cannon (AE2), Dark Matter Hammer |
+| Epic | Refined Obsidian Sword (19 dps), Crystal Sword (Cyclic, 23), Dark Matter Sword (21), Atomic Disassembler, Rainbow Cannon |
+| Legendary | Red Matter Sword (27), Red Katar (38), Red Morningstar, Refined Obsidian Paxel (27) |
+
+The Mod Case gets metals, crystals and circuits (common/uncommon), jetpack, free runners, wireless terminal, Cyclic
+charms, Philosopher's Stone (rare), Heart Container, Charm Talisman, Refined Obsidian and Crystal chestplates, HDPE
+elytra, Meka-Tool, Dark Matter chestplate (epic), MekaSuit bodyarmor, Red Matter chestplate and Soulstone (legendary).
+New shop tabs: **Mekanism**, **Applied Energistics**, **Cyclic** and **Gadgets** (Chisels & Bits, Dark Utilities),
+priced well above what each sells for. Without a mod, its rows and case entries just don't show.
+
+ProjectE's Transmutation Table and EMC items aren't in the cases or the shop: turning EMC into items can be sold for
+more Strange Matter than it cost.
+
+Selling: an ingredient that stays in the crafting grid (the Philosopher's Stone, AE2's cutting knives) no longer adds
+to what the result is worth (it made ProjectE's alchemy prices snowball tenfold).
+
+Ops: `/bubble gearpower <mod>` lists a mod's gear strongest first (damage, speed, armour, durability, rarity, sell
+value); `/bubble gearpower <mod>+` lists every item with its sell value. Both also go to the log.
+
 ## Guns (TACZ)
 
 With TACZ installed, guns are super rare: in the Weapon and Mod cases' legendary tier, in about 0.6% of chests, in Lucky
@@ -543,8 +588,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.27.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.27.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.28.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.28.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

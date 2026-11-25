@@ -83,12 +83,30 @@ public final class FancyNames {
 		if (c == null) {
 			return null;
 		}
-		Map<String, NameStyles.Spec> by = styled();
-		return by.isEmpty() ? c : walk(c, by);
+		return walk(c, styled());
 	}
 
+	/**
+	 * Also: a case unbox broadcast marks the prize with "[Epic] ..." / "[Legendary] ..." (its shift-click text), an
+	 * elite's name carries "bubble:elite", and Factory New is its own label; those get their Rarity style.
+	 */
 	private static Component walk(Component c, Map<String, NameStyles.Spec> by) {
 		ComponentContents con = c.getContents();
+		String ins = c.getStyle().getInsertion();
+		if (ins != null) {
+			if (ins.startsWith("[Legendary] ") || ins.startsWith("[Epic] ")) {
+				return Component.empty().setStyle(c.getStyle().withColor((TextColor) null))
+						.append(Rarity.tierName(c.getString(), ins.startsWith("[Legendary] ") ? 4 : 3));
+			}
+			if (ins.equals("bubble:elite")) {
+				TextColor own = c.getStyle().getColor();
+				int base = own != null ? own.getValue() & 0xFFFFFF : 0xFF5555;
+				return Component.literal(c.getString()).setStyle(c.getStyle().withColor(Rarity.elitePulse(base)));
+			}
+		}
+		if (con instanceof PlainTextContents p && p.text().equals(Rarity.FACTORY_NEW_TEXT)) {
+			return Component.empty().setStyle(c.getStyle().withColor((TextColor) null)).append(build(p.text(), Rarity.FACTORY_NEW));
+		}
 		MutableComponent out;
 		if (con instanceof PlainTextContents p && by.containsKey(p.text())) {
 			out = Component.empty().setStyle(c.getStyle().withColor((TextColor) null)).append(build(p.text(), by.get(p.text())));

@@ -194,6 +194,32 @@ public final class Shop {
 				}
 			}
 		}
+		// 1.28.0: Traveler's Backpack and My Lucky Block left the pack; their rows were only ever hidden
+		if (defaultsSeen.add("-retired:travelersbackpack,myluckyblock")) {
+			int gone = 0;
+			for (JsonElement e : secs) {
+				JsonObject so = e.getAsJsonObject();
+				if (so.has("icon") && so.get("icon").getAsString().startsWith("myluckyblock:")) {
+					so.addProperty("icon", "minecraft:cake");
+				}
+				if (!so.has("items")) {
+					continue;
+				}
+				JsonArray items = so.getAsJsonArray("items");
+				for (int i = items.size() - 1; i >= 0; i--) {
+					JsonObject io = items.get(i).getAsJsonObject();
+					String id = io.has("item") && io.get("item").isJsonObject() && io.getAsJsonObject("item").has("id")
+							? io.getAsJsonObject("item").get("id").getAsString() : "";
+					if (id.startsWith("travelersbackpack:") || id.startsWith("myluckyblock:")) {
+						items.remove(i);
+						gone++;
+					}
+				}
+			}
+			if (gone > 0) {
+				Bubble.LOG.info("Shop: removed {} Traveler's Backpack / My Lucky Block rows (those mods aren't in the pack)", gone);
+			}
+		}
 		// 1.21.0: the Attachment Case (an attachment that fits the gun you're holding)
 		if (defaultsSeen.add("+Gamble:attachment_case")) {
 			for (JsonElement e : secs) {
@@ -269,16 +295,11 @@ public final class Shop {
 						{"minecraft:bow", 1, 15}, {"minecraft:crossbow", 1, 25}, {"minecraft:golden_apple", 1, 50},
 						{"minecraft:totem_of_undying", 1, 300}, {"minecraft:trident", 1, 400}, {"minecraft:elytra", 1, 1500},
 						{"minecraft:enchanted_golden_apple", 1, 700}},
-				// Sophisticated Backpacks (NeoForge) first, then Traveler's Backpack; whichever isn't installed is hidden.
+				// Sophisticated Backpacks
 				{{"Backpacks", "sophisticatedbackpacks:backpack"},
 						{"sophisticatedbackpacks:backpack", 1, 40}, {"sophisticatedbackpacks:copper_backpack", 1, 70},
 						{"sophisticatedbackpacks:iron_backpack", 1, 110}, {"sophisticatedbackpacks:gold_backpack", 1, 200},
-						{"sophisticatedbackpacks:diamond_backpack", 1, 400}, {"sophisticatedbackpacks:netherite_backpack", 1, 900},
-						{"travelersbackpack:standard", 1, 60}, {"travelersbackpack:backpack_tank", 1, 30},
-						{"travelersbackpack:hose", 1, 20}, {"travelersbackpack:red_sleeping_bag", 1, 15},
-						{"travelersbackpack:fox", 1, 80}, {"travelersbackpack:bee", 1, 80}, {"travelersbackpack:villager", 1, 80},
-						{"travelersbackpack:creeper", 1, 100}, {"travelersbackpack:iron_golem", 1, 120}, {"travelersbackpack:enderman", 1, 120},
-						{"travelersbackpack:warden", 1, 300}, {"travelersbackpack:wither", 1, 300}, {"travelersbackpack:dragon", 1, 400}},
+						{"sophisticatedbackpacks:diamond_backpack", 1, 400}, {"sophisticatedbackpacks:netherite_backpack", 1, 900}},
 				{{"Backpack upgrades", "sophisticatedbackpacks:stack_upgrade_tier_1"},
 						{"sophisticatedbackpacks:upgrade_base", 1, 20}, {"sophisticatedbackpacks:pickup_upgrade", 1, 50},
 						{"sophisticatedbackpacks:advanced_pickup_upgrade", 1, 120}, {"sophisticatedbackpacks:magnet_upgrade", 1, 120},
@@ -294,16 +315,7 @@ public final class Shop {
 						{"sophisticatedbackpacks:stack_upgrade_starter_tier", 1, 60}, {"sophisticatedbackpacks:stack_upgrade_tier_1", 1, 120},
 						{"sophisticatedbackpacks:stack_upgrade_tier_2", 1, 240}, {"sophisticatedbackpacks:stack_upgrade_tier_3", 1, 480},
 						{"sophisticatedbackpacks:stack_upgrade_tier_4", 1, 960}, {"sophisticatedbackpacks:inception_upgrade", 1, 600},
-						{"sophisticatedbackpacks:everlasting_upgrade", 1, 800},
-						{"travelersbackpack:blank_upgrade", 1, 25}, {"travelersbackpack:iron_tier_upgrade", 1, 80},
-						{"travelersbackpack:gold_tier_upgrade", 1, 160}, {"travelersbackpack:diamond_tier_upgrade", 1, 320},
-						{"travelersbackpack:netherite_tier_upgrade", 1, 640}, {"travelersbackpack:crafting_upgrade", 1, 60},
-						{"travelersbackpack:furnace_upgrade", 1, 60}, {"travelersbackpack:smoker_upgrade", 1, 60},
-						{"travelersbackpack:blast_furnace_upgrade", 1, 90}, {"travelersbackpack:tanks_upgrade", 1, 70},
-						{"travelersbackpack:pickup_upgrade", 1, 80}, {"travelersbackpack:magnet_upgrade", 1, 150},
-						{"travelersbackpack:refill_upgrade", 1, 90}, {"travelersbackpack:feeding_upgrade", 1, 90},
-						{"travelersbackpack:void_upgrade", 1, 50}, {"travelersbackpack:jukebox_upgrade", 1, 50},
-						{"travelersbackpack:lantern_upgrade", 1, 40}},
+						{"sophisticatedbackpacks:everlasting_upgrade", 1, 800}},
 				{{"Apotheosis", "apotheosis:sigil_of_socketing"},
 						{"apotheosis:sigil_of_socketing", 1, 60}, {"apotheosis:sigil_of_withdrawal", 1, 50},
 						{"apotheosis:sigil_of_rebirth", 1, 80}, {"apotheosis:sigil_of_enhancement", 1, 120},
@@ -313,8 +325,8 @@ public final class Shop {
 						{"apotheosis:godforged_pearl", 1, 130}, {"apotheosis:boss_summoner", 1, 150}},
 				{{"Lucky Blocks", "lucky:lucky_block"},
 						{"lucky:lucky_block", 1, 30}, {"lucky:lucky_block", 8, 220}, {"lucky:lucky_block", 32, 800}},
-				{{"Fun", "myluckyblock:my_lucky_block"},
-						{"myluckyblock:my_lucky_block", 1, 25}, {"minecraft:cake", 1, 8}, {"minecraft:jukebox", 1, 25},
+				{{"Fun", "minecraft:cake"},
+						{"minecraft:cake", 1, 8}, {"minecraft:jukebox", 1, 25},
 						{"minecraft:music_disc_pigstep", 1, 150}, {"minecraft:firework_rocket", 64, 70}, {"minecraft:lead", 2, 10}},
 				// Estrogen: Girl Power lets you dash
 				{{"Estrogen", "estrogen:estrogen_pill"},
@@ -326,6 +338,29 @@ public final class Shop {
 				{{"Screens", "waterframes:tv"},
 						{"waterframes:frame", 1, 25}, {"waterframes:tv", 1, 50}, {"waterframes:big_tv", 1, 120},
 						{"waterframes:tv_box", 1, 40}, {"waterframes:projector", 1, 60}, {"waterframes:remote", 1, 30}},
+				// 1.28.0. Prices are well above what each sells for (/bubble gearpower <mod>+), so buying to sell never pays.
+				{{"Mekanism", "mekanism:ingot_osmium"},
+						{"mekanism:ingot_osmium", 8, 40}, {"mekanism:ingot_steel", 8, 60}, {"mekanism:alloy_infused", 4, 40},
+						{"mekanism:basic_control_circuit", 4, 40}, {"mekanism:alloy_reinforced", 2, 80}, {"mekanism:steel_casing", 1, 60},
+						{"mekanism:metallurgic_infuser", 1, 120}, {"mekanism:enrichment_chamber", 1, 150}, {"mekanism:configurator", 1, 30},
+						{"mekanism:energy_tablet", 1, 50}, {"mekanism:jetpack", 1, 200}, {"mekanism:free_runners", 1, 150},
+						{"mekanism:hdpe_elytra", 1, 1200}, {"mekanism:atomic_disassembler", 1, 400}, {"mekanism:meka_tool", 1, 1500},
+						{"mekanism:mekasuit_bodyarmor", 1, 2500}},
+				{{"Applied Energistics", "ae2:fluix_crystal"},
+						{"ae2:certus_quartz_crystal", 8, 40}, {"ae2:fluix_crystal", 8, 80}, {"ae2:silicon", 8, 40},
+						{"ae2:inscriber", 1, 120}, {"ae2:energy_acceptor", 1, 80}, {"ae2:controller", 1, 300}, {"ae2:drive", 1, 150},
+						{"ae2:terminal", 1, 80}, {"ae2:fluix_glass_cable", 16, 40}, {"ae2:item_storage_cell_1k", 1, 40},
+						{"ae2:wireless_terminal", 1, 300}, {"ae2:charged_staff", 1, 60}, {"ae2:matter_cannon", 1, 400}},
+				{{"Cyclic", "cyclic:heart"},
+						{"cyclic:charm_longfall", 1, 120}, {"cyclic:charm_water", 1, 120}, {"cyclic:charm_fire", 1, 200},
+						{"cyclic:charm_speed", 1, 250}, {"cyclic:charm_ultimate", 1, 900}, {"cyclic:heart", 1, 800},
+						{"cyclic:ender_pearl_reuse", 1, 150}, {"cyclic:glove_climb", 1, 100}, {"cyclic:ender_bag", 1, 120},
+						{"cyclic:boomerang_stun", 1, 60}, {"cyclic:scepter_lightning", 1, 300}, {"cyclic:laser_cannon", 1, 600},
+						{"cyclic:crystal_sword", 1, 900}, {"cyclic:soulstone", 1, 2000}},
+				{{"Gadgets", "chiselsandbits:chisel_diamond"},
+						{"chiselsandbits:chisel_iron", 1, 10}, {"chiselsandbits:chisel_diamond", 1, 60}, {"chiselsandbits:bit_bag", 1, 30},
+						{"chiselsandbits:magnifying_glass", 1, 20}, {"darkutils:vector_plate", 8, 20}, {"darkutils:vector_plate_fast", 8, 30},
+						{"darkutils:charm_sloth", 1, 40}, {"darkutils:charm_pride", 1, 60}, {"darkutils:charm_gluttony", 1, 40}},
 		};
 		JsonObject root = new JsonObject();
 		root.addProperty("chargeRate", 2000);
@@ -511,7 +546,14 @@ public final class Shop {
 			List<ShopPayloads.Offer> offers = new ArrayList<>();
 			for (Entry e : sec.entries) {
 				if (e.stack != null) {
-					offers.add(new ShopPayloads.Offer(e.stack.copy(), effectivePrice(e), Matter.value(e.stack)));
+					ItemStack shown = e.stack.copy();
+					if (e.action != null && e.action.startsWith("case:") && !Gamble.caseStyle(e.action.substring(5)).isEmpty()) {
+						// the case's name style, for the shop tile (display only)
+						String style = Gamble.caseStyle(e.action.substring(5));
+						net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, shown,
+								t -> t.putString("bubble_case_style", style));
+					}
+					offers.add(new ShopPayloads.Offer(shown, effectivePrice(e), Matter.value(e.stack)));
 				}
 			}
 			if (hidden(sec)) {

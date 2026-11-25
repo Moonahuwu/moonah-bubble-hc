@@ -34,6 +34,10 @@ public final class CaseItem extends Item {
 		CompoundTag tag = new CompoundTag();
 		tag.putString(KEY, caseId);
 		tag.putInt("color", Gamble.caseColor(caseId));
+		String style = Gamble.caseStyle(caseId);
+		if (!style.isEmpty()) {
+			tag.putString("style", style); // its name moves on the client (client Rarity)
+		}
 		s.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
 		s.set(DataComponents.ITEM_NAME, Component.literal(Gamble.caseName(caseId)).withStyle(s2 -> s2.withColor(Gamble.caseColor(caseId))));
 		s.set(DataComponents.LORE, new ItemLore(List.of(

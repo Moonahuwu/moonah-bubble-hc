@@ -2,11 +2,16 @@ hash-format = "sha256"
 
 [[files]]
 file = "addons/MoonahMC-Lucky-Blocks.zip"
-hash = "7f8d441a8359e809297831d0de80d175f12f658c8e63ffdbddd3b46c4e58d7ad"
+hash = "0b3e5d38cdffec4fa7742bcbd60a9f6db3ce4f926b0e09e690f890d2a8378e93"
 
 [[files]]
 file = "mods/3dskinlayers.pw.toml"
 hash = "2dc498bd8a43a8e02fc9d08fe5846ac17f6eabbecbf38ae39aa7b1f23fe100b0"
+metafile = true
+
+[[files]]
+file = "mods/advancement-plaques.pw.toml"
+hash = "2b02594380f31aa857c89d296afb53bec67621b491956be09a54ab6845552e2a"
 metafile = true
 
 [[files]]
@@ -129,6 +134,11 @@ hash = "eb782f7993af2d30ddab28203fbc9d520d09dd53e36dd624734bfc7e86b34127"
 metafile = true
 
 [[files]]
+file = "mods/cyclic.pw.toml"
+hash = "5c920fb448c69222ba2ea39b1a827f76d1f7150d2fcffb0d443698b53480bdda"
+metafile = true
+
+[[files]]
 file = "mods/cynosure.pw.toml"
 hash = "a7597b3a9fb7eeabede31287082fc8b5274e2ec3b42a0ce3672c4a867f09c9c5"
 metafile = true
@@ -171,6 +181,11 @@ metafile = true
 [[files]]
 file = "mods/ferrite-core.pw.toml"
 hash = "73360e397134d238ee8fd21d33fd7f9275e9441f74f8f1b6ed92278877c0b9f1"
+metafile = true
+
+[[files]]
+file = "mods/flib.pw.toml"
+hash = "c29b6380e2e0f0c21405241e4284201a49ae42837d6e30d2f91e53028f541fb9"
 metafile = true
 
 [[files]]
@@ -221,6 +236,11 @@ metafile = true
 [[files]]
 file = "mods/iris.pw.toml"
 hash = "db1c1e6382878b78e994dba1b9026935f8d1c5ca685c89d2437858e0a0dcab58"
+metafile = true
+
+[[files]]
+file = "mods/item-highlighter.pw.toml"
+hash = "9163b758163681f75e2048c798be880c50392684b127d7d87f42ea588deceb62"
 metafile = true
 
 [[files]]
@@ -364,6 +384,16 @@ hash = "d9b38ba42434eb436d036b1c8add839bee003240dc85cc54ec626aac58c59070"
 metafile = true
 
 [[files]]
+file = "mods/projecte.pw.toml"
+hash = "bdca798ffe4124bf43ea13f1fa5f0593a7539762240edb56c47b1976b413ebc4"
+metafile = true
+
+[[files]]
+file = "mods/puzzles-lib.pw.toml"
+hash = "d465abcc806c0d4fdeefb6a5e774cca4fff0ffd27d7c75954ab4688f4c9eaf05"
+metafile = true
+
+[[files]]
 file = "mods/relics-mod.pw.toml"
 hash = "98ae27f0381f08ada1be2336d2afc106d8cfa99057e6262556570e5877d9b094"
 metafile = true
@@ -456,6 +486,11 @@ metafile = true
 [[files]]
 file = "mods/twilight-lootr.pw.toml"
 hash = "74d6c5320a013d992c65510be6376fbd7a0b4ee481a2398a230d72e8469d6c95"
+metafile = true
+
+[[files]]
+file = "mods/visual-workbench.pw.toml"
+hash = "2684f71394862cff4c20d0f4d8491c0f86f12e66879381295e9088e0eded025d"
 metafile = true
 
 [[files]]

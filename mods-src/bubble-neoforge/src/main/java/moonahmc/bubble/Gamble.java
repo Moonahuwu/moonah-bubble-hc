@@ -366,12 +366,36 @@ public final class Gamble {
 		}
 	}
 
+	/**
+	 * The most a case prize sells for, each, by tier. Only matters for things whose crafting value is huge (ProjectE's
+	 * red matter gear sells for tens of thousands): a lucky unbox shouldn't be a jackpot of Strange Matter.
+	 */
+	static final double[] SALE_CAP = {40, 100, 250, 600, 1500};
+
+	static ItemStack capSale(ItemStack stack, int tier) {
+		if (stack.isEmpty() || tier < 0 || tier >= SALE_CAP.length) {
+			return stack;
+		}
+		double each = Matter.value(stack) / Math.max(1, stack.getCount());
+		if (each <= SALE_CAP[tier]) {
+			return stack; // most prizes: left alone, so they still stack with the same item
+		}
+		Matter.setSaleCap(stack, SALE_CAP[tier]);
+		return stack;
+	}
+
 	private static void deliver(ServerPlayer p, Pending pend, boolean announce) {
 		if (pend.drop.command != null && !pend.drop.command.isBlank()) {
 			String cmd = pend.drop.command.replace("{player}", p.getGameProfile().getName());
 			p.server.getCommands().performPrefixedCommand(p.server.createCommandSourceStack().withSuppressedOutput(), cmd);
 		} else {
-			ItemStack stack = pend.drop.show.copy();
+			ItemStack stack = capSale(pend.drop.show.copy(), pend.tier);
+			if ((pend.tier >= 3 || Condition.isFactoryNew(stack)) && stack.getMaxStackSize() == 1) {
+				// gear only (it never stacks anyway): its tooltip name shimmers like the unbox did (client Rarity)
+				int t = pend.tier;
+				net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, stack,
+						tag -> tag.putInt("bubble_tier", t));
+			}
 			if (!p.getInventory().add(stack)) {
 				p.drop(stack, false);
 			}
@@ -381,7 +405,10 @@ public final class Gamble {
 		if (!announce) {
 			return;
 		}
-		Component item = nameOf(pend.drop.show).copy().withStyle(s -> s.withColor(TIER_COLORS[pend.tier] & 0xFFFFFF));
+		String plainName = nameOf(pend.drop.show).getString();
+		// Epic+: the insertion (shift-click text) also tells clients to animate it (client FancyNames / Rarity)
+		Component item = nameOf(pend.drop.show).copy().withStyle(s -> s.withColor(TIER_COLORS[pend.tier] & 0xFFFFFF)
+				.withInsertion(pend.tier >= 3 ? "[" + TIERS[pend.tier] + "] " + plainName : null));
 		String count = pend.drop.show.getCount() > 1 ? " ×" + pend.drop.show.getCount() : "";
 		Component cond = Condition.label(pend.drop.show);
 		if (cond != null) {
@@ -450,9 +477,30 @@ public final class Gamble {
 	/** index = the inventory slot to copy into the tier. */
 	public static final int CASE_ADD_SLOT = 2;
 	public static final int CASE_REMOVE = 3;
+	/** index = which style (CaseEditorScreen.STYLE_IDS); 0 = none. */
+	public static final int CASE_SET_STYLE = 4;
+	/** The styles a case name can have (same order as the editor). */
+	static String[] caseStyles() {
+		List<String> ids = new ArrayList<>(List.of("", "tier_legendary", "tier_epic", "factory_new"));
+		for (Eidolons.Cosmetic cm : Eidolons.COSMETICS) {
+			if (cm.kind().equals("name")) {
+				ids.add(cm.id());
+			}
+		}
+		return ids.toArray(String[]::new);
+	}
+
+	/** A case's name style ("" = plain colour). */
+	static String caseStyle(String id) {
+		if (casesRoot == null || !casesRoot.getAsJsonObject("cases").has(id)) {
+			return "";
+		}
+		JsonObject co = casesRoot.getAsJsonObject("cases").getAsJsonObject(id);
+		return co.has("style") ? co.get("style").getAsString() : "";
+	}
 
 	/** One case for the editor: its tiers as they are in the file (items from missing mods show as barriers). */
-	public record CaseInfo(String id, String name, List<Float> odds, List<List<ItemStack>> tiers) {
+	public record CaseInfo(String id, String name, List<Float> odds, List<List<ItemStack>> tiers, String style) {
 	}
 
 	public record CaseList(List<CaseInfo> cases) implements CustomPacketPayload {
@@ -462,6 +510,7 @@ public final class Gamble {
 			for (CaseInfo c : l.cases) {
 				buf.writeUtf(c.id, 64);
 				buf.writeUtf(c.name, 64);
+				buf.writeUtf(c.style, 64);
 				for (float o : c.odds) {
 					buf.writeFloat(o);
 				}
@@ -478,6 +527,7 @@ public final class Gamble {
 			for (int i = 0; i < n; i++) {
 				String id = buf.readUtf(64);
 				String name = buf.readUtf(64);
+				String style = buf.readUtf(64);
 				List<Float> odds = new ArrayList<>();
 				for (int t = 0; t < TIERS.length; t++) {
 					odds.add(buf.readFloat());
@@ -491,7 +541,7 @@ public final class Gamble {
 					}
 					tiers.add(tier);
 				}
-				out.add(new CaseInfo(id, name, odds, tiers));
+				out.add(new CaseInfo(id, name, odds, tiers, style));
 			}
 			return new CaseList(out);
 		});
@@ -567,7 +617,8 @@ public final class Gamble {
 				}
 				tiers.add(tier);
 			}
-			out.add(new CaseInfo(ce.getKey(), co.has("name") ? co.get("name").getAsString() : ce.getKey(), f, tiers));
+			out.add(new CaseInfo(ce.getKey(), co.has("name") ? co.get("name").getAsString() : ce.getKey(), f, tiers,
+					co.has("style") ? co.get("style").getAsString() : ""));
 		}
 		ServerPlayNetworking.send(p, new CaseList(out));
 	}
@@ -661,6 +712,16 @@ public final class Gamble {
 				arr.remove(e.index);
 				what = "removed an item from " + TIERS[e.tier];
 			}
+			case CASE_SET_STYLE -> {
+				String[] styles = caseStyles();
+				String style = e.index > 0 && e.index < styles.length ? styles[e.index] : "";
+				if (style.isEmpty()) {
+					co.remove("style");
+				} else {
+					co.addProperty("style", style);
+				}
+				what = "set the name style to " + (style.isEmpty() ? "its plain colour" : style);
+			}
 			default -> {
 				return;
 			}
@@ -711,6 +772,8 @@ public final class Gamble {
 							Drop d = parseDrop(de.getAsJsonObject());
 							if (d == null) {
 								missing++;
+								JsonObject mo = de.getAsJsonObject();
+								Bubble.LOG.info("Cases: left out of {}: {}", ce.getKey(), mo.has("item") ? mo.get("item").getAsString() : mo.toString());
 							} else {
 								pool.add(d);
 							}
@@ -729,7 +792,9 @@ public final class Gamble {
 				for (int t = 0; t < TIERS.length; t++) {
 					List<Drop> pool = c.tiers.get(t);
 					if (!pool.isEmpty()) {
-						ev += share(c.odds, t) * pool.stream().mapToDouble(d -> d.command == null ? Matter.value(d.show) : 0).average().orElse(0);
+						int tier = t;
+						ev += share(c.odds, t) * pool.stream().mapToDouble(d -> d.command == null
+								? Math.min(Matter.value(d.show), SALE_CAP[tier] * d.show.getCount()) : 0).average().orElse(0);
 					}
 				}
 				Bubble.LOG.info("Cases: {} sells back for about {} Strange Matter on average", c.name, Math.round(ev));
@@ -867,6 +932,77 @@ public final class Gamble {
 				root.add("mobDrops", MobDrops.defaults());
 			}
 			Bubble.LOG.info("Cases: added mob drops (cases, spins and Strange Matter from mobs)");
+			changed = true;
+		}
+		// 1.28.0: Mekanism (+ Tools), Applied Energistics 2, Cyclic, ProjectE, Dark Utilities, Chisels & Bits. Weapons go in
+		// the Weapon Case by how hard they hit (/bubble gearpower), everything else in the Mod Case. Without a mod, its
+		// entries just don't show.
+		if (!done.contains(new com.google.gson.JsonPrimitive("new_mods_v1"))) {
+			done.add("new_mods_v1");
+			addTo(cs, "weapons", "common", item("mekanismtools:bronze_sword", 1));
+			addTo(cs, "weapons", "common", item("mekanismtools:lapis_lazuli_sword", 1));
+			addTo(cs, "weapons", "common", item("mekanismtools:refined_glowstone_sword", 1));
+			addTo(cs, "weapons", "common", item("ae2:nether_quartz_sword", 1));
+			addTo(cs, "weapons", "common", item("ae2:certus_quartz_sword", 1));
+			addTo(cs, "weapons", "common", item("cyclic:copper_sword", 1));
+			addTo(cs, "weapons", "common", item("cyclic:amethyst_sword", 1));
+			addTo(cs, "weapons", "common", item("cyclic:netherbrick_sword", 1));
+			addTo(cs, "weapons", "common", item("cyclic:boomerang_damage", 1));
+			addTo(cs, "weapons", "uncommon", item("mekanismtools:steel_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("mekanismtools:osmium_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("ae2:fluix_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("cyclic:emerald_sword", 1));
+			addTo(cs, "weapons", "uncommon", item("cyclic:boomerang_stun", 1));
+			addTo(cs, "weapons", "uncommon", item("cyclic:scepter_fire", 1));
+			addTo(cs, "weapons", "uncommon", item("cyclic:scepter_ice", 1));
+			addTo(cs, "weapons", "uncommon", item("ae2:charged_staff", 1));
+			addTo(cs, "weapons", "rare", item("mekanism:electric_bow", 1));
+			addTo(cs, "weapons", "rare", item("cyclic:evoker_fang", 1));
+			addTo(cs, "weapons", "rare", item("cyclic:scepter_lightning", 1));
+			addTo(cs, "weapons", "rare", item("cyclic:scepter_missile", 1));
+			addTo(cs, "weapons", "rare", item("ae2:matter_cannon", 1));
+			addTo(cs, "weapons", "rare", item("projecte:dm_hammer", 1));
+			addTo(cs, "weapons", "epic", item("mekanismtools:refined_obsidian_sword", 1));
+			addTo(cs, "weapons", "epic", item("cyclic:crystal_sword", 1));
+			addTo(cs, "weapons", "epic", item("projecte:dm_sword", 1));
+			addTo(cs, "weapons", "epic", item("mekanism:atomic_disassembler", 1));
+			addTo(cs, "weapons", "epic", item("cyclic:laser_cannon", 1));
+			addTo(cs, "weapons", "legendary", item("projecte:rm_sword", 1));
+			addTo(cs, "weapons", "legendary", item("projecte:rm_katar", 1));
+			addTo(cs, "weapons", "legendary", item("projecte:rm_morning_star", 1));
+			addTo(cs, "weapons", "legendary", item("mekanismtools:refined_obsidian_paxel", 1));
+			addTo(cs, "mod", "common", item("mekanism:ingot_osmium", 8));
+			addTo(cs, "mod", "common", item("mekanism:ingot_steel", 4));
+			addTo(cs, "mod", "common", item("ae2:certus_quartz_crystal", 6));
+			addTo(cs, "mod", "common", item("ae2:silicon", 4));
+			addTo(cs, "mod", "common", item("cyclic:gem_amber", 4));
+			addTo(cs, "mod", "common", item("chiselsandbits:chisel_iron", 1));
+			addTo(cs, "mod", "uncommon", item("mekanism:alloy_infused", 4));
+			addTo(cs, "mod", "uncommon", item("mekanism:basic_control_circuit", 2));
+			addTo(cs, "mod", "uncommon", item("ae2:fluix_crystal", 6));
+			addTo(cs, "mod", "uncommon", item("cyclic:ender_pearl_reuse", 1));
+			addTo(cs, "mod", "uncommon", item("mekanismtools:steel_chestplate", 1));
+			addTo(cs, "mod", "uncommon", item("darkutils:charm_sloth", 1));
+			addTo(cs, "mod", "uncommon", item("chiselsandbits:chisel_diamond", 1));
+			addTo(cs, "mod", "rare", item("mekanism:jetpack", 1));
+			addTo(cs, "mod", "rare", item("mekanism:free_runners", 1));
+			addTo(cs, "mod", "rare", item("mekanism:alloy_reinforced", 2));
+			addTo(cs, "mod", "rare", item("ae2:wireless_terminal", 1));
+			addTo(cs, "mod", "rare", item("cyclic:charm_speed", 1));
+			addTo(cs, "mod", "rare", item("cyclic:glove_climb", 1));
+			addTo(cs, "mod", "rare", item("projecte:philosophers_stone", 1));
+			addTo(cs, "mod", "rare", item("cyclic:ender_bag", 1));
+			addTo(cs, "mod", "epic", item("cyclic:heart", 1));
+			addTo(cs, "mod", "epic", item("cyclic:charm_ultimate", 1));
+			addTo(cs, "mod", "epic", item("mekanismtools:refined_obsidian_chestplate", 1));
+			addTo(cs, "mod", "epic", item("cyclic:crystal_chestplate", 1));
+			addTo(cs, "mod", "epic", item("mekanism:hdpe_elytra", 1));
+			addTo(cs, "mod", "epic", item("mekanism:meka_tool", 1));
+			addTo(cs, "mod", "epic", item("projecte:dm_chestplate", 1));
+			addTo(cs, "mod", "legendary", item("mekanism:mekasuit_bodyarmor", 1));
+			addTo(cs, "mod", "legendary", item("projecte:rm_chestplate", 1));
+			addTo(cs, "mod", "legendary", item("cyclic:soulstone", 1));
+			Bubble.LOG.info("Cases: added Mekanism, AE2, Cyclic, ProjectE, Dark Utilities and Chisels & Bits items");
 			changed = true;
 		}
 		// 1.22.0: gear prizes can come enchanted, Apothic or Factory New (both)

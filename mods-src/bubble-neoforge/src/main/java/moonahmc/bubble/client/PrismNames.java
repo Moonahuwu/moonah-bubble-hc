@@ -27,6 +27,21 @@ final class PrismNames {
 	private PrismNames() {
 	}
 
+	private static final Map<Integer, DynamicColor> pulses = new HashMap<>();
+	private static final net.minecraft.network.chat.TextColor NO_COLOR = net.minecraft.network.chat.TextColor.fromRgb(0xFEFEFD);
+
+	/** One colour for a whole name that breathes between `base` and nearly white (elites). Shared per colour. */
+	static DynamicColor pulse(int base, float seconds) {
+		return pulses.computeIfAbsent(base, b -> new DynamicColor(List.of(DynamicColor.fromRgb(b),
+				DynamicColor.fromRgb(NameStyles.mix(b, 0xFFFFFF, 0.6f))), seconds * UNITS_PER_SECOND));
+	}
+
+	/** Prism's colour for an item (its name colour or rarity), or null if it has none. */
+	static net.minecraft.network.chat.TextColor itemColor(net.minecraft.world.item.ItemStack stack) {
+		net.minecraft.network.chat.TextColor c = com.anthonyhilyard.prism.item.ItemColors.getColorForItem(stack, NO_COLOR);
+		return c == null || c == NO_COLOR || c.getValue() == NO_COLOR.getValue() ? null : c;
+	}
+
 	static MutableComponent letters(String name, NameStyles.Spec s) {
 		DynamicColor[] ph = phases.computeIfAbsent(s.id(), k -> make(s));
 		MutableComponent out = Component.empty();

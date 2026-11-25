@@ -917,8 +917,10 @@ public final class ShopScreen extends ScaledScreen {
 				ctx.drawString(font, Component.literal("\u2605"), x + 4, y + 3, STAR);
 			}
 			ctx.pose().popPose();
-			String name = font.plainSubstrByWidth(o.stack().getHoverName().getString(), TILE_W - 6);
-			ctx.drawString(font, Component.literal(name), x + (TILE_W - font.width(name)) / 2, y + 36, TEXT, false);
+			Component full = Rarity.itemName(o.stack());
+			String name = font.plainSubstrByWidth(full.getString(), TILE_W - 6);
+			Component shown = name.equals(full.getString()) ? full : Component.literal(name).withStyle(full.getStyle());
+			ctx.drawString(font, shown, x + (TILE_W - font.width(name)) / 2, y + 36, TEXT, false);
 			String price = String.format("%,d", o.price());
 			int pw = font.width(price) + 12;
 			int px = x + (TILE_W - pw) / 2;
@@ -942,7 +944,7 @@ public final class ShopScreen extends ScaledScreen {
 		int ey = top + H - 14 - 44;
 		roundRect(ctx, ex, ey, gridW(), 44, 6, 0xFF20262D);
 		ctx.renderItem(o.stack(), ex + 6, ey + 3);
-		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(o.stack().getHoverName().getString(), 150)), ex + 26, ey + 8, TEXT, false);
+		ctx.drawString(font, fit(Rarity.itemName(o.stack()), 150), ex + 26, ey + 8, TEXT, false);
 		String sells = "sells for " + moonahmc.bubble.Matter.format(o.sellValue()) + " (price can't go lower)";
 		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(sells, gridW() - 180)), ex + gridW() - 8
 				- Math.min(gridW() - 180, font.width(sells)), ey + 8, MUTED, false);
@@ -982,7 +984,7 @@ public final class ShopScreen extends ScaledScreen {
 			int rw = gridW();
 			roundRect(ctx, gridX(), ry, rw, ROW_H, 6, CARD);
 			ctx.renderItem(ch.stack(), gridX() + 7, ry + 7);
-			ctx.drawString(font, Component.literal(font.plainSubstrByWidth(ch.stack().getHoverName().getString(), 120)), gridX() + 30, ry + 6, TEXT, false);
+			ctx.drawString(font, fit(Rarity.itemName(ch.stack()), 120), gridX() + 30, ry + 6, TEXT, false);
 			// energy bar
 			int bx = gridX() + 30;
 			int bw = rw - 30 - 86;
@@ -1064,4 +1066,14 @@ public final class ShopScreen extends ScaledScreen {
 		super.tick();
 		updateVisibility();
 	}
+
+	/** A (possibly styled) name cut to `w` pixels; kept whole and styled when it fits. */
+	private Component fit(Component name, int w) {
+		String full = name.getString();
+		if (font.width(full) <= w) {
+			return name;
+		}
+		return Component.literal(font.plainSubstrByWidth(full, w)).withStyle(name.getStyle());
+	}
 }
+

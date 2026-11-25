@@ -103,10 +103,11 @@ public final class BubbleClient {
 			}
 		}));
 		FancyNames.init();
+		Rarity.register(); // Prism: animated prize names, elite nameplates, item colours
 		// name colours in chat: any message that names a player shows their name in its style
 		bus.addListener((net.neoforged.neoforge.client.event.ClientChatReceivedEvent e) -> {
 			Component styled = FancyNames.restyle(e.getMessage());
-			if (styled != e.getMessage()) {
+			if (!styled.equals(e.getMessage())) {
 				e.setMessage(styled);
 			}
 		});

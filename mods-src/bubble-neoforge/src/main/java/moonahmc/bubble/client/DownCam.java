@@ -213,7 +213,7 @@ final class DownCam {
 		int w = ctx.guiWidth();
 		ctx.fill(0, 0, w, 22, 0x88000000);
 		String title = mine || clip == null ? "How you went down" : "How " + clip.name() + " went down";
-		ctx.drawString(font, title, (w - font.width(title)) / 2, 4, 0xFFFF5555, true);
+		ctx.drawString(font, title, (w - font.width(title)) / 2, 4, Rarity.pulse(0xFFFF5555, 0xFFFFC0C0, 1.4f), true);
 		String skip = "Click to skip";
 		ctx.drawString(font, skip, (w - font.width(skip)) / 2, 13, 0xFF9AA3AF, false);
 	}

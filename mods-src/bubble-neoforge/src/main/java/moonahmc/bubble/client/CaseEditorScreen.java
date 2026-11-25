@@ -64,6 +64,23 @@ public final class CaseEditorScreen extends ScaledScreen {
 		rebuildWidgets();
 	}
 
+	/** Case name styles: "" = its plain colour, then the tier styles and every Eidolon name colour. */
+	static final String[] STYLE_IDS;
+	static final String[] STYLE_LABELS;
+
+	static {
+		List<String> ids = new ArrayList<>(List.of("", "tier_legendary", "tier_epic", "factory_new"));
+		List<String> labels = new ArrayList<>(List.of("Plain colour", "Legendary gold", "Epic shimmer", "Factory New"));
+		for (moonahmc.bubble.Eidolons.Cosmetic cm : moonahmc.bubble.Eidolons.COSMETICS) {
+			if (cm.kind().equals("name")) {
+				ids.add(cm.id());
+				labels.add(cm.name().replace(" (gradient)", "").replace(" (animated)", ""));
+			}
+		}
+		STYLE_IDS = ids.toArray(String[]::new);
+		STYLE_LABELS = labels.toArray(String[]::new);
+	}
+
 	private Gamble.CaseInfo current() {
 		Gamble.CaseList l = ClientState.caseList;
 		if (l == null || l.cases().isEmpty()) {
@@ -109,6 +126,17 @@ public final class CaseEditorScreen extends ScaledScreen {
 			armed = -1;
 		}));
 		pick.onChange = this::rebuildWidgets;
+		// name style (Prism): how the case's name looks on the case item and in the shop
+		String[] styles = new String[STYLE_IDS.length];
+		for (int i = 0; i < styles.length; i++) {
+			styles[i] = STYLE_LABELS[i];
+		}
+		int current = java.util.Arrays.asList(STYLE_IDS).indexOf(c.style());
+		BubbleScreen.Choice style = addRenderableWidget(new BubbleScreen.Choice(left + W - 14 - 180 - 8 - 130, top + 14, 130, 16, styles,
+				() -> Math.max(0, java.util.Arrays.asList(STYLE_IDS).indexOf(c.style())), v -> ClientPlayNetworking.send(
+						new Gamble.CaseEdit(Gamble.CASE_SET_STYLE, c.id(), 0, v, List.of()))));
+		style.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(
+				"Name style: how this case's name looks on the case item and in the shop (" + (current <= 0 ? "plain colour" : STYLE_LABELS[current]) + ")")));
 		// tier tabs
 		double total = c.odds().stream().mapToDouble(Float::doubleValue).sum();
 		int tx = left + 14;

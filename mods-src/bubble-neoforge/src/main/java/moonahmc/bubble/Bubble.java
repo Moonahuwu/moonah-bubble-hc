@@ -43,6 +43,7 @@ public final class Bubble {
 		// Shared Apotheosis world tiers (only when Apotheosis is installed)
 		if (net.neoforged.fml.ModList.get().isLoaded("apotheosis")) {
 			ApothTiers.init();
+			EliteNames.init(); // elites' names pulse above their heads (client Rarity)
 		}
 	}
 }

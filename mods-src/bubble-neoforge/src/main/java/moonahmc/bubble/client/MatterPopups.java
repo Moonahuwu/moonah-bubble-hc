@@ -96,7 +96,8 @@ final class MatterPopups {
 				continue;
 			}
 			String text = (p.amount > 0 ? "+" : "-") + Matter.format(Math.abs(Math.round(p.amount)));
-			int color = p.amount > 0 ? GAIN : LOSS;
+			// gains shimmer while they're fresh, losses just fade
+			int color = p.amount > 0 ? Rarity.pulse(GAIN, 0xFFFFFFFF, 0.7f) : LOSS;
 			int a = Math.max(5, Math.round(alpha * 255)) << 24;
 			int w = font.width(text) + 12;
 			ctx.pose().pushPose();

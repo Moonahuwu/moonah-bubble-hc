@@ -192,7 +192,7 @@ final class InventoryOverlay {
 			}
 			ShopPayloads.QuoteResult q = ClientState.quote;
 			boolean fresh = q != null && ItemStack.matches(q.stack(), cursor);
-			lines.add(Component.literal("Sell ").append(Component.literal(cursor.getCount() + "× ")).append(cursor.getHoverName()));
+			lines.add(Component.literal("Sell ").append(Component.literal(cursor.getCount() + "× ")).append(Rarity.itemName(cursor)));
 			if (fresh && q.total() < 0) {
 				lines.add(Component.literal("can't be sold").withStyle(ChatFormatting.RED));
 			} else {
