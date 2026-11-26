@@ -272,6 +272,7 @@ public final class Revive {
 		downed.put(p.getUUID(), new Down(source, c.reviveSeconds * 20));
 		hobble(p, true);
 		BubbleServer.rememberDown(p); // the kill cam clip, and their own down cam
+		RunTally.down(p); // ✚ in the tab list
 		server.getPlayerList().broadcastSystemMessage(Component.literal("✚ ").withStyle(ChatFormatting.YELLOW)
 				.append(p.getDisplayName()).append(Component.literal(" is down! Stand next to them to revive them (" + c.reviveSeconds + "s)")
 						.withStyle(ChatFormatting.YELLOW)), false);

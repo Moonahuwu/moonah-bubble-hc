@@ -22,6 +22,7 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble status                   print the settings
  * /bubble radius <n>               (ops) set the radius, 2-500
  * /bubble enable|disable           (ops) turn the bubble on/off
+ * /bubble team on|off              (ops) everyone on one team (friendly fire on; allied-checking effects skip teammates)
  * /bubble edge teleport|push|wrap  (ops) what happens at the edge (wrap: back in on the opposite side)
  * /bubble shape ring|sphere        (ops) sphere also limits how far apart people can be vertically
  * /bubble soullink on|off          (ops) shared health
@@ -140,6 +141,8 @@ final class BubbleCommand {
 						.executes(ctx -> Bosses.test(ctx.getSource(), "kill", StringArgumentType.getString(ctx, "mob")))))
 				.then(literal("summon").then(argument("mob", StringArgumentType.greedyString())
 						.executes(ctx -> Bosses.test(ctx.getSource(), "summon", StringArgumentType.getString(ctx, "mob")))))));
+		d.register(literal("bubble").then(literal("netcheck").requires(src -> src.hasPermission(2))
+				.then(argument("mod", StringArgumentType.word()).executes(ctx -> netCheck(ctx.getSource(), StringArgumentType.getString(ctx, "mod"))))));
 		d.register(literal("bubble").then(literal("wraptest").requires(src -> src.hasPermission(2)).executes(ctx -> BubbleServer.wrapTest(ctx.getSource()))));
 		d.register(literal("bubble").then(literal("mobpower").requires(src -> src.hasPermission(2))
 				.then(argument("mod", StringArgumentType.greedyString()).executes(ctx ->
@@ -209,6 +212,9 @@ final class BubbleCommand {
 				.then(literal("shape").requires(s -> s.hasPermission(2))
 						.then(literal("ring").executes(c -> set(c.getSource(), null, null, null, null, false)))
 						.then(literal("sphere").executes(c -> set(c.getSource(), null, null, null, null, true))))
+				.then(literal("team").requires(s -> s.hasPermission(2))
+						.then(literal("on").executes(c -> team(c.getSource(), true)))
+						.then(literal("off").executes(c -> team(c.getSource(), false))))
 				.then(literal("soullink").requires(s -> s.hasPermission(2))
 						.then(literal("on").executes(c -> set(c.getSource(), null, null, true, null, null)))
 						.then(literal("off").executes(c -> set(c.getSource(), null, null, false, null, null))))
@@ -302,6 +308,34 @@ final class BubbleCommand {
 		BubbleServer.saveConfig();
 		c.getSource().sendSuccess(() -> Component.literal("The next new world will use " + (clean.isEmpty() ? "a random seed" : "seed " + clean)
 				+ " (\"Retry\" still replays the current seed)."), true);
+		return 1;
+	}
+
+	/** Ops: /bubble netcheck <mod>. Which of that mod's packets Architectury knows about on this side (for mod bugs). */
+	private static int netCheck(CommandSourceStack src, String mod) {
+		StringBuilder sb = new StringBuilder("netcheck " + mod + ":");
+		try {
+			Class<?> agg = Class.forName("dev.architectury.impl.NetworkAggregator");
+			for (String f : new String[] {"S2C_CODECS", "S2C_TYPE", "C2S_CODECS", "C2S_TYPE"}) {
+				java.util.Map<?, ?> m = (java.util.Map<?, ?>) agg.getField(f).get(null);
+				sb.append(' ').append(f).append('(').append(m.getClass().getSimpleName()).append(")=").append(m.keySet().stream().map(Object::toString).filter(k -> k.startsWith(mod + ":")).sorted().toList());
+			}
+		} catch (Throwable t) {
+			sb.append(" failed: ").append(t);
+		}
+		String msg = sb.toString();
+		src.sendSuccess(() -> Component.literal(msg), false);
+		Bubble.LOG.info(msg);
+		return 1;
+	}
+
+	/** /bubble team on|off: everyone on one team (friendly fire still on), so allied-checking effects skip teammates. */
+	private static int team(CommandSourceStack src, boolean on) {
+		BubbleServer.config.teamUp = on;
+		BubbleServer.saveConfig();
+		RunTally.applyTeam();
+		src.sendSuccess(() -> Component.literal(on ? "Everyone is on one team: you can still hurt each other, but weapons and abilities that pick sides leave teammates alone."
+				: "Team off: everyone is on their own again."), true);
 		return 1;
 	}
 

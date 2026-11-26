@@ -28,6 +28,20 @@ Everyone on the server is tied together inside one bubble, one death can end the
 - **Portals:** when someone changes dimension, everyone else follows them 2 seconds later.
 - **Who counts:** survival/adventure players who are alive. With fewer than two players there's no bubble.
 
+## Tab list and team (1.31.0)
+
+- **Downs and deaths this run** show after each name in the tab list: yellow **✚3** (gone down 3 times) and red
+  **☠1** (died once). Counted from the end of the lobby; kept in the world folder (`bubble-tally.json`), so a restart
+  keeps it, **Another life** carries on counting, and a new world or a retry starts from nothing.
+- **One team:** everyone is on a scoreboard team called "bubble" with friendly fire on. You can still hit, shoot and
+  kill each other, but weapons and abilities that check who's on your side leave teammates alone (Simply Swords'
+  area abilities, homing shots, summons, pets and most mods' sweeps and explosions that skip allies). Players an op
+  put on another team stay there. Ops: `/bubble team on|off` (`teamUp` in `config/bubble.json`).
+- **Fix for "codec is null" kicks** (FTB Ultimine and others): Architectury keeps every mod's packets in a list that
+  isn't safe when NeoForge builds several mods at once, so now and then a start-up silently lost one, and then using
+  that mod (Ultimine, most often) kicked you until the next restart (architectury-api#713). Bubble makes that list
+  thread-safe before any mod registers. Ops can check with `/bubble netcheck <mod>`.
+
 ## When someone dies (hardcore reset)
 
 1. **Kill cam** (8 s): a replay of the last 3 seconds of the player who died, with their skin and gear, and the
@@ -646,7 +660,7 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   Strange Matter (this world) or Eidolons (forever), online or offline. The same is in the Bubble menu > Admin >
   **Currencies** (type an amount, then + gives, - takes, = sets on any row). Changes are told to ops and the player and
   go in the run log.
-- Ops: `/bubble radius <2-500>`, `enable|disable`, `edge teleport|push|wrap`, `shape ring|sphere`, `wraptest` (where bubble wrap would put someone leaving in 8 directions round you), `soullink on|off`,
+- Ops: `/bubble radius <2-500>`, `enable|disable`, `edge teleport|push|wrap`, `team on|off`, `netcheck <mod>`, `shape ring|sphere`, `wraptest` (where bubble wrap would put someone leaving in 8 directions round you), `soullink on|off`,
   `hardcore on|off`, `newrun` (end the run now), `next` (skip the kill cam / end the vote now),
   `decide next|retry|life`, `seed <seed>|random`, `matter give <player> <amount>`, `shop reload`, `tier <name>`,
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
@@ -658,8 +672,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.30.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.30.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

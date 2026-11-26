@@ -874,6 +874,7 @@ public final class BubbleServer {
 
 	/** Called from ServerPlayerMixin once a player has finished dying (drops, death message and stats are done). */
 	public static void afterDeath(ServerPlayer player, DamageSource source) {
+		RunTally.death(player); // ☠ in the tab list
 		onDeath(player, source);
 	}
 

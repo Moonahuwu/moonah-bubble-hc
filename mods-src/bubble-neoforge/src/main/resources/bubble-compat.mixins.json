@@ -1,0 +1,11 @@
+{
+  "required": false,
+  "package": "moonahmc.bubble.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "ArchitecturyNetFixMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

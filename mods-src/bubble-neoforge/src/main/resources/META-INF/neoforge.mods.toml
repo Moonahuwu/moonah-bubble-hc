@@ -15,6 +15,9 @@ Keeps everyone together inside a shared bubble around the group, and one death c
 [[mixins]]
 config = "bubble.mixins.json"
 
+[[mixins]]
+config = "bubble-compat.mixins.json"
+
 [[dependencies.bubble]]
 modId = "neoforge"
 type = "required"

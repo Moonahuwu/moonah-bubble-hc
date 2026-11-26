@@ -22,6 +22,8 @@ public final class BubbleConfig {
 	public boolean pushMode = false;
 	/** Bubble wrap: leave by one side, come back in on the opposite side (like screen wrap). Wins over pushMode. */
 	public boolean wrapMode = false;
+	/** Everyone on one scoreboard team (friendly fire on), so allied-checking weapons and abilities skip teammates. */
+	public boolean teamUp = true;
 	/** Everyone shares one health bar. */
 	public boolean soulLink = false;
 	/** Any death ends the run: kill cam, post-game stats, then a vote on what's next. */

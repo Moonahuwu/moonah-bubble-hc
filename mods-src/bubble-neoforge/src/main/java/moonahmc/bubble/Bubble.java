@@ -37,6 +37,7 @@ public final class Bubble {
 		Goals.init(); // game modes, stages and the goals HUD
 		Guns.init(); // TACZ guns on rare mobs
 		MobDrops.init(); // cases, spins and Strange Matter from mobs
+		RunTally.init(); // downs and deaths this run in the tab list; everyone on one team
 		Bosses.init(); // bosses pay everyone who helped, boss cam, mini-boss elites, the wheel's "Summon a boss"
 		VideoShare.init(); // shop Video tab
 		AccessoryCompat.init(); // Curios: right-click to equip accessories
