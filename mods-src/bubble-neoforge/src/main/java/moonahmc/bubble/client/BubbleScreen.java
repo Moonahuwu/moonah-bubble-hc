@@ -82,6 +82,7 @@ public final class BubbleScreen extends ScaledScreen {
 	private int cardW;
 	private boolean bubble;
 	private boolean push;
+	private boolean wrap;
 	private boolean soulLink;
 	private boolean hardcore;
 	private boolean vertical;
@@ -89,7 +90,7 @@ public final class BubbleScreen extends ScaledScreen {
 	private Toggle bubbleToggle;
 	private Toggle soulToggle;
 	private Toggle hardcoreToggle;
-	private Segmented edgeSwitch;
+	private Segmented3 edgeSwitch;
 	private Segmented shapeSwitch;
 	private RadiusSlider slider;
 
@@ -155,6 +156,7 @@ public final class BubbleScreen extends ScaledScreen {
 		loadPregame();
 		bubble = ClientState.bubbleEnabled;
 		push = ClientState.pushMode;
+		wrap = ClientState.wrapMode;
 		soulLink = ClientState.soulLink;
 		hardcore = ClientState.hardcoreReset;
 		vertical = ClientState.vertical;
@@ -240,10 +242,12 @@ public final class BubbleScreen extends ScaledScreen {
 			hardcore = v;
 			send();
 		}, DANGER));
-		edgeSwitch = addRenderableWidget(new Segmented(col(1) + cardW - 12 - 104, row(1) + 7, 104, 18, "Teleport", "Push", () -> push, v -> {
-			push = v;
-			send();
-		}));
+		edgeSwitch = addRenderableWidget(new Segmented3(col(1) + cardW - 12 - 114, row(1) + 7, 114, 18, new String[] {"Pull", "Push", "Wrap"},
+				() -> wrap ? 2 : push ? 1 : 0, v -> {
+					push = v == 1;
+					wrap = v == 2;
+					send();
+				}));
 		shapeSwitch = addRenderableWidget(new Segmented(left + W - 28 - 104, row(2) + 6, 104, 18, "Ring", "Sphere", () -> vertical, v -> {
 			vertical = v;
 			send();
@@ -297,6 +301,7 @@ public final class BubbleScreen extends ScaledScreen {
 		}
 		bubble = ClientState.bubbleEnabled;
 		push = ClientState.pushMode;
+		wrap = ClientState.wrapMode;
 		soulLink = ClientState.soulLink;
 		hardcore = ClientState.hardcoreReset;
 		vertical = ClientState.vertical;
@@ -309,7 +314,7 @@ public final class BubbleScreen extends ScaledScreen {
 
 	private void send() {
 		if (ClientState.canEdit) {
-			ClientPlayNetworking.send(new Payloads.Update(bubble, push, soulLink, hardcore, vertical, radius));
+			ClientPlayNetworking.send(new Payloads.Update(bubble, push, soulLink, hardcore, vertical, radius, wrap));
 		}
 	}
 
@@ -360,7 +365,8 @@ public final class BubbleScreen extends ScaledScreen {
 		card(ctx, mouseX, mouseY, col(0), row(0), "Bubble", "Keep everyone within the radius of the group");
 		card(ctx, mouseX, mouseY, col(1), row(0), "Soul link", "Everyone shares one health bar. Hurt one, hurt all");
 		card(ctx, mouseX, mouseY, col(0), row(1), "Hardcore reset", "One death ends the run and starts a new world");
-		card(ctx, mouseX, mouseY, col(1), row(1), "Edge", push ? "Nudged back toward the group" : "Teleported to the nearest player");
+		card(ctx, mouseX, mouseY, col(1), row(1), "Edge", wrap ? "Out one side, back in the other"
+				: push ? "Nudged back toward the group" : "Teleported to the nearest player");
 		cardAt(ctx, mouseX, mouseY, left + 14, row(2), W - 28, 70);
 		ctx.drawString(font, Component.literal("Bubble radius"), left + 28, row(2) + 11, TEXT, false);
 		String value = radius + (radius == 1 ? " block" : " blocks") + (vertical ? " in every direction" : " across");
@@ -923,6 +929,52 @@ public final class BubbleScreen extends ScaledScreen {
 	}
 
 	/** Two-option switch, e.g. Teleport | Push. getter true = the right option. */
+	/** Three-way switch (the bubble edge: pull, push, wrap). */
+	static final class Segmented3 extends AbstractWidget {
+		private final String[] labels;
+		private final java.util.function.IntSupplier getter;
+		private final java.util.function.IntConsumer setter;
+		private float anim;
+
+		Segmented3(int x, int y, int w, int h, String[] labels, java.util.function.IntSupplier getter, java.util.function.IntConsumer setter) {
+			super(x, y, w, h, Component.empty());
+			this.labels = labels;
+			this.getter = getter;
+			this.setter = setter;
+			this.anim = getter.getAsInt();
+		}
+
+		@Override
+		protected void renderWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
+			int on = getter.getAsInt();
+			anim += (on - anim) * 0.3f;
+			var tr = MinecraftClientHolder.text();
+			roundRect(ctx, getX(), getY(), width, height, 6, active ? 0xFF2A2F37 : 0xFF23272E);
+			int part = width / labels.length;
+			int kx = getX() + 2 + Math.round(anim * part);
+			roundRect(ctx, kx, getY() + 2, part - 4 + (on == labels.length - 1 ? width - part * labels.length : 0), height - 4, 5, active ? ACCENT : 0xFF4A5059);
+			for (int i = 0; i < labels.length; i++) {
+				int px = getX() + i * part;
+				boolean hover = active && isHovered() && mouseX >= px && mouseX < px + part;
+				int color = i == on ? 0xFF0D1F17 : hover ? TEXT : MUTED;
+				ctx.drawString(tr, Component.literal(labels[i]), px + (part - tr.width(labels[i])) / 2, getY() + (height - 8) / 2, color, false);
+			}
+		}
+
+		@Override
+		public void onClick(double mouseX, double mouseY) {
+			int i = Math.max(0, Math.min(labels.length - 1, (int) ((mouseX - getX()) / (width / (double) labels.length))));
+			if (i != getter.getAsInt()) {
+				setter.accept(i);
+			}
+		}
+
+		@Override
+		protected void updateWidgetNarration(NarrationElementOutput builder) {
+			builder.add(NarratedElementType.TITLE, Component.literal(labels[Math.max(0, Math.min(labels.length - 1, getter.getAsInt()))]));
+		}
+	}
+
 	static final class Segmented extends AbstractWidget {
 		private final String leftLabel;
 		private final String rightLabel;

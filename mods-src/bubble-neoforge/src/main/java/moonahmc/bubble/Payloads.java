@@ -19,7 +19,7 @@ public final class Payloads {
 
 	/** Server to client: current settings, whether this player may edit them, and info for the screen. */
 	public record State(boolean bubbleEnabled, boolean pushMode, boolean soulLink, boolean hardcoreReset, boolean vertical,
-						int radius, boolean canEdit, int players, int run) implements CustomPacketPayload {
+						int radius, boolean canEdit, int players, int run, boolean wrapMode) implements CustomPacketPayload {
 		public static final Type<State> ID = id("state");
 		public static final StreamCodec<RegistryFriendlyByteBuf, State> CODEC = StreamCodec.ofMember((s, buf) -> {
 			buf.writeBoolean(s.bubbleEnabled);
@@ -31,8 +31,9 @@ public final class Payloads {
 			buf.writeBoolean(s.canEdit);
 			buf.writeVarInt(s.players);
 			buf.writeVarInt(s.run);
+			buf.writeBoolean(s.wrapMode);
 		}, buf -> new State(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(),
-				buf.readVarInt(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt()));
+				buf.readVarInt(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean()));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {
@@ -42,7 +43,7 @@ public final class Payloads {
 
 	/** Client to server: an operator changed the settings. The server checks permission and clamps values. */
 	public record Update(boolean bubbleEnabled, boolean pushMode, boolean soulLink, boolean hardcoreReset, boolean vertical,
-						 int radius) implements CustomPacketPayload {
+						 int radius, boolean wrapMode) implements CustomPacketPayload {
 		public static final Type<Update> ID = id("update");
 		public static final StreamCodec<RegistryFriendlyByteBuf, Update> CODEC = StreamCodec.ofMember((u, buf) -> {
 			buf.writeBoolean(u.bubbleEnabled);
@@ -51,8 +52,9 @@ public final class Payloads {
 			buf.writeBoolean(u.hardcoreReset);
 			buf.writeBoolean(u.vertical);
 			buf.writeVarInt(u.radius);
+			buf.writeBoolean(u.wrapMode);
 		}, buf -> new Update(buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(),
-				buf.readVarInt()));
+				buf.readVarInt(), buf.readBoolean()));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {

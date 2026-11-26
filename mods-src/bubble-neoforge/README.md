@@ -11,9 +11,15 @@ Everyone on the server is tied together inside one bubble, one death can end the
 - **Shape:** **Ring** (default) limits how far apart you can be across. **Sphere** also limits up and down, so nobody
   can go caving 100 blocks below everyone else.
 - **Edge:** step past the radius (2-500 blocks, 50 by default) and either
-  - **Teleport** (default): you're teleported to the nearest player who is inside, or
+  - **Pull** (teleport, the default): you're teleported to the nearest player who is inside,
   - **Push:** you're nudged back toward the group. If you're stuck (in a wall, boxed in, or just not getting any closer)
-    for about 4 seconds (2.5 in a wall), you're teleported instead. Anyone more than 24 blocks past the edge is teleported too.
+    for about 4 seconds (2.5 in a wall), you're teleported instead. Anyone more than 24 blocks past the edge is teleported too, or
+  - **Wrap** (bubble wrap, like screen wrap): out one side, back in the other. You come in on the opposite side of the
+    bubble, a couple of blocks inside the edge, at the open spot nearest your own height, still facing and moving the
+    same way. On foot you land on the ground (the top of it, if there's nothing open near your height); gliding or
+    flying you can come out in the air. No room at all (open ocean): pulled to the nearest player instead. Riding
+    something gets you off it. In sphere mode it goes straight through the middle in 3D.
+  Pick it in the Bubble menu (Edge: Pull / Push / Wrap) or with `/bubble edge teleport|push|wrap`.
 - **Forcefield:** players with the mod see the edge as a glowing wall (or dome, in sphere mode). It fades in as they
   get near (each player picks how near under *Wall shows within* in the Bubble menu: 4-64 blocks or always; saved in
   their own `config/bubble-client.json`) and ripples when it pushes them. Only the nearby patch is drawn, so it's cheap. Players without the mod see particles.
@@ -640,7 +646,7 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
   Strange Matter (this world) or Eidolons (forever), online or offline. The same is in the Bubble menu > Admin >
   **Currencies** (type an amount, then + gives, - takes, = sets on any row). Changes are told to ops and the player and
   go in the run log.
-- Ops: `/bubble radius <2-500>`, `enable|disable`, `edge teleport|push`, `shape ring|sphere`, `soullink on|off`,
+- Ops: `/bubble radius <2-500>`, `enable|disable`, `edge teleport|push|wrap`, `shape ring|sphere`, `wraptest` (where bubble wrap would put someone leaving in 8 directions round you), `soullink on|off`,
   `hardcore on|off`, `newrun` (end the run now), `next` (skip the kill cam / end the vote now),
   `decide next|retry|life`, `seed <seed>|random`, `matter give <player> <amount>`, `shop reload`, `tier <name>`,
   `apothloot <player> [common|uncommon|rare|epic|mythic]` (a random Apotheosis item; the lucky blocks use it).
@@ -652,8 +658,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.29.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.29.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.30.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.30.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

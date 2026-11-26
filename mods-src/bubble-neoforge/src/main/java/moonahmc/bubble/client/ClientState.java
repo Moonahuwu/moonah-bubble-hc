@@ -10,6 +10,7 @@ public final class ClientState {
 	public static boolean available;
 	public static boolean bubbleEnabled = true;
 	public static boolean pushMode;
+	public static boolean wrapMode;
 	public static boolean soulLink;
 	public static boolean hardcoreReset = true;
 	public static boolean vertical;
@@ -55,6 +56,7 @@ public final class ClientState {
 		available = true;
 		bubbleEnabled = s.bubbleEnabled();
 		pushMode = s.pushMode();
+		wrapMode = s.wrapMode();
 		soulLink = s.soulLink();
 		hardcoreReset = s.hardcoreReset();
 		vertical = s.vertical();

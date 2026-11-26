@@ -218,7 +218,7 @@ public final class BubbleServer {
 			// Runs end on death anyway, so skip the death screen and go straight to the kill cam.
 			s.getGameRules().getRule(GameRules.RULE_DO_IMMEDIATE_RESPAWN).set(config.hardcoreReset, s);
 			Bubble.LOG.info("Bubble ready: run #{}, bubble {}, radius {}, edge {}, soul link {}, hardcore reset {}, shape {}, seed {}",
-					config.run, config.bubbleEnabled ? "on" : "off", config.radius, config.pushMode ? "push" : "teleport",
+					config.run, config.bubbleEnabled ? "on" : "off", config.radius, edgeName(),
 					config.soulLink ? "on" : "off", config.hardcoreReset ? "on" : "off", config.vertical ? "sphere" : "ring", currentSeed);
 		});
 		bus.addListener((ServerStoppedEvent e) -> {
@@ -463,7 +463,10 @@ public final class BubbleServer {
 			double d = dist(p, cx, cy, cz);
 			if (d > r) {
 				double over = d - r;
-				if (config.pushMode && over <= PUSH_ESCAPE && !isStuck(p, over)) {
+				if (config.wrapMode) {
+					stuck.remove(p.getUUID());
+					wrap(world, p, group, cx, cy, cz);
+				} else if (config.pushMode && over <= PUSH_ESCAPE && !isStuck(p, over)) {
 					push(p, cx, cy, cz, over);
 				} else {
 					stuck.remove(p.getUUID());
@@ -520,6 +523,137 @@ public final class BubbleServer {
 		if (last == null || tick - last > 20) {
 			p.serverLevel().playSound(null, p.getX(), p.getY(), p.getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.PLAYERS, 0.5f, 1.6f);
 		}
+	}
+
+	/**
+	 * Bubble wrap: out one side, in the other. They come back in on the opposite side of the bubble (a couple of blocks
+	 * inside), at the open spot nearest their own height, still facing and moving the same way. On foot they land on
+	 * the ground; flying (elytra, creative-style flight) they can come out in the air. No room there (the ocean, inside
+	 * a mountain): pulled back to the nearest player as usual.
+	 */
+	private static void wrap(ServerLevel world, ServerPlayer p, List<ServerPlayer> group, double cx, double cy, double cz) {
+		Long last = lastPull.get(p.getUUID());
+		if (last != null && tick - last < 10) {
+			return;
+		}
+		Vec3 spot = wrapSpot(world, p, cx, cy, cz);
+		if (spot == null) {
+			pullBack(world, p, group, cx, cy, cz);
+			return;
+		}
+		lastPull.put(p.getUUID(), tick);
+		if (p.isPassenger()) {
+			p.stopRiding();
+		}
+		Vec3 from = p.position();
+		Vec3 v = p.getDeltaMovement();
+		boolean air = airborne(p);
+		world.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, from.x, from.y + 1, from.z, 30, 0.3, 0.6, 0.3, 0.05);
+		world.playSound(null, from.x, from.y, from.z, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 0.6f, 1.4f);
+		p.teleportTo(world, spot.x, spot.y, spot.z, p.getYRot(), p.getXRot());
+		if (!air) {
+			p.fallDistance = 0;
+		}
+		p.setDeltaMovement(v);
+		p.hurtMarked = true;
+		p.connection.send(new ClientboundSetEntityMotionPacket(p));
+		world.sendParticles(net.minecraft.core.particles.ParticleTypes.REVERSE_PORTAL, spot.x, spot.y + 1, spot.z, 30, 0.3, 0.6, 0.3, 0.05);
+		world.playSound(null, spot.x, spot.y, spot.z, SoundEvents.CHORUS_FRUIT_TELEPORT, SoundSource.PLAYERS, 0.6f, 1.6f);
+		p.displayClientMessage(Component.literal("Bubble wrap! Back in on the other side").withStyle(ChatFormatting.AQUA), true);
+	}
+
+	/**
+	 * Ops: /bubble wraptest. A stand-in player just past the edge in 8 directions round the source (as the bubble's
+	 * center): where bubble wrap would put them. Nothing is moved.
+	 */
+	static int wrapTest(net.minecraft.commands.CommandSourceStack src) {
+		ServerLevel level = src.getLevel();
+		ServerPlayer fake = net.neoforged.neoforge.common.util.FakePlayerFactory.getMinecraft(level);
+		Vec3 c = src.getPosition();
+		int r = config.radius;
+		StringBuilder sb = new StringBuilder("wraptest r=" + r + ":");
+		for (int k = 0; k < 8; k++) {
+			double a = k * Math.PI / 4;
+			double x = c.x + Math.cos(a) * (r + 1);
+			double z = c.z + Math.sin(a) * (r + 1);
+			int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(x), (int) Math.floor(z));
+			fake.moveTo(x, y, z);
+			Vec3 to = wrapSpot(level, fake, c.x, c.y, c.z);
+			sb.append(String.format(java.util.Locale.ROOT, " [%d: from %.0f,%d,%.0f -> %s]", k * 45, x, y, z,
+					to == null ? "none (pull back)" : String.format(java.util.Locale.ROOT, "%.0f,%.0f,%.0f d=%.1f", to.x, to.y, to.z,
+							Math.hypot(to.x - c.x, to.z - c.z))));
+		}
+		String msg = sb.toString();
+		src.sendSuccess(() -> Component.literal(msg), false);
+		Bubble.LOG.info(msg);
+		return 1;
+	}
+
+	/** Gliding or flying: they can come back in mid-air. */
+	private static boolean airborne(ServerPlayer p) {
+		return p.isFallFlying() || p.getAbilities().flying;
+	}
+
+	/** Where `p` comes back in: straight across the bubble from where they left, a little inside the edge. */
+	private static Vec3 wrapSpot(ServerLevel world, ServerPlayer p, double cx, double cy, double cz) {
+		Vec3 off = new Vec3(p.getX() - cx, config.vertical ? p.getY() - cy : 0, p.getZ() - cz);
+		double len = off.length();
+		if (len < 1e-3) {
+			return null;
+		}
+		Vec3 u = off.scale(1 / len);
+		int r = config.radius;
+		boolean air = airborne(p);
+		// a couple of blocks in from the far edge; no room there, try a bit further in
+		for (int in = 2; in <= Math.max(2, Math.min(16, r / 2)); in++) {
+			double tx = cx - u.x * (r - in);
+			double tz = cz - u.z * (r - in);
+			double ty = config.vertical ? cy - u.y * (r - in) : p.getY();
+			net.minecraft.core.BlockPos at = openNear(world, net.minecraft.util.Mth.floor(tx), net.minecraft.util.Mth.floor(ty), net.minecraft.util.Mth.floor(tz), 24, air);
+			if (at != null) {
+				return new Vec3(tx, at.getY(), tz);
+			}
+		}
+		if (!config.vertical) {
+			// nothing open near their height (a mountain or a cliff there): the top of the ground, unless it's water
+			double tx = cx - u.x * (r - 2);
+			double tz = cz - u.z * (r - 2);
+			int x = net.minecraft.util.Mth.floor(tx);
+			int z = net.minecraft.util.Mth.floor(tz);
+			world.getChunk(x >> 4, z >> 4);
+			int top = world.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
+			net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, top, z);
+			if (top > world.getMinBuildHeight() + 1 && roomAt(world, pos) && roomAt(world, pos.above())) {
+				return new Vec3(tx, top, tz);
+			}
+		}
+		return null;
+	}
+
+	/** The nearest spot up or down from y with room for a player (and ground under it unless they can be in the air). */
+	private static net.minecraft.core.BlockPos openNear(ServerLevel world, int x, int y, int z, int range, boolean air) {
+		world.getChunk(x >> 4, z >> 4); // load it (it may be far off)
+		for (int i = 0; i <= range * 2; i++) {
+			int dy = (i % 2 == 0) ? i / 2 : -(i + 1) / 2;
+			int yy = y + dy;
+			if (yy <= world.getMinBuildHeight() + 1 || yy >= world.getMaxBuildHeight() - 2) {
+				continue;
+			}
+			net.minecraft.core.BlockPos pos = new net.minecraft.core.BlockPos(x, yy, z);
+			if (!roomAt(world, pos) || !roomAt(world, pos.above())) {
+				continue;
+			}
+			net.minecraft.core.BlockPos below = pos.below();
+			boolean ground = world.getBlockState(below).isFaceSturdy(world, below, net.minecraft.core.Direction.UP);
+			if (ground || air) {
+				return pos;
+			}
+		}
+		return null;
+	}
+
+	private static boolean roomAt(ServerLevel world, net.minecraft.core.BlockPos pos) {
+		return world.getBlockState(pos).getCollisionShape(world, pos).isEmpty() && world.getFluidState(pos).isEmpty();
 	}
 
 	private static void pullBack(ServerLevel world, ServerPlayer p, List<ServerPlayer> group, double cx, double cy, double cz) {
@@ -1345,12 +1479,17 @@ public final class BubbleServer {
 			sendState(player, server.getPlayerList().getPlayerCount());
 			return;
 		}
-		apply(u.bubbleEnabled(), u.pushMode(), u.soulLink(), u.hardcoreReset(), u.vertical(), u.radius(), player.getName().getString());
+		apply(u.bubbleEnabled(), u.pushMode(), u.soulLink(), u.hardcoreReset(), u.vertical(), u.radius(), u.wrapMode(), player.getName().getString());
 	}
 
 	static void apply(boolean bubble, boolean push, boolean soulLink, boolean hardcore, boolean vertical, int radius, String by) {
+		apply(bubble, push, soulLink, hardcore, vertical, radius, config.wrapMode, by);
+	}
+
+	static void apply(boolean bubble, boolean push, boolean soulLink, boolean hardcore, boolean vertical, int radius, boolean wrap, String by) {
 		boolean changed = config.bubbleEnabled != bubble || config.pushMode != push || config.soulLink != soulLink
-				|| config.hardcoreReset != hardcore || config.vertical != vertical || config.radius != radius;
+				|| config.hardcoreReset != hardcore || config.vertical != vertical || config.radius != radius || config.wrapMode != wrap;
+		config.wrapMode = wrap;
 		config.vertical = vertical;
 		config.bubbleEnabled = bubble;
 		config.pushMode = push;
@@ -1381,7 +1520,7 @@ public final class BubbleServer {
 	private static void sendState(ServerPlayer p, int count) {
 		if (ServerPlayNetworking.canSend(p, Payloads.State.ID)) {
 			ServerPlayNetworking.send(p, new Payloads.State(config.bubbleEnabled, config.pushMode, config.soulLink,
-					config.hardcoreReset, config.vertical, config.radius, p.hasPermissions(2), count, config.run));
+					config.hardcoreReset, config.vertical, config.radius, p.hasPermissions(2), count, config.run, config.wrapMode));
 		}
 	}
 
@@ -1413,9 +1552,13 @@ public final class BubbleServer {
 		config.save(configPath);
 	}
 
+	static String edgeName() {
+		return config.wrapMode ? "wrap" : config.pushMode ? "push" : "teleport";
+	}
+
 	static Component statusText() {
 		return Component.literal("bubble " + (config.bubbleEnabled ? "on" : "off") + ", radius " + config.radius
-				+ ", " + (config.vertical ? "sphere" : "ring") + ", edge " + (config.pushMode ? "push" : "teleport") + ", soul link " + (config.soulLink ? "on" : "off")
+				+ ", " + (config.vertical ? "sphere" : "ring") + ", edge " + edgeName() + ", soul link " + (config.soulLink ? "on" : "off")
 				+ ", hardcore reset " + (config.hardcoreReset ? "on" : "off") + ", run #" + config.run).withStyle(ChatFormatting.WHITE);
 	}
 

@@ -20,6 +20,8 @@ public final class BubbleConfig {
 	public boolean bubbleEnabled = true;
 	/** false = teleport leavers to the nearest player, true = push them back towards the group. */
 	public boolean pushMode = false;
+	/** Bubble wrap: leave by one side, come back in on the opposite side (like screen wrap). Wins over pushMode. */
+	public boolean wrapMode = false;
 	/** Everyone shares one health bar. */
 	public boolean soulLink = false;
 	/** Any death ends the run: kill cam, post-game stats, then a vote on what's next. */

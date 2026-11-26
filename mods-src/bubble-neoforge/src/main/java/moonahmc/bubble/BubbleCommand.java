@@ -22,7 +22,7 @@ import static net.minecraft.commands.Commands.literal;
  * /bubble status                   print the settings
  * /bubble radius <n>               (ops) set the radius, 2-500
  * /bubble enable|disable           (ops) turn the bubble on/off
- * /bubble edge teleport|push       (ops) what happens at the edge
+ * /bubble edge teleport|push|wrap  (ops) what happens at the edge (wrap: back in on the opposite side)
  * /bubble shape ring|sphere        (ops) sphere also limits how far apart people can be vertically
  * /bubble soullink on|off          (ops) shared health
  * /bubble hardcore on|off          (ops) death ends the run
@@ -140,6 +140,7 @@ final class BubbleCommand {
 						.executes(ctx -> Bosses.test(ctx.getSource(), "kill", StringArgumentType.getString(ctx, "mob")))))
 				.then(literal("summon").then(argument("mob", StringArgumentType.greedyString())
 						.executes(ctx -> Bosses.test(ctx.getSource(), "summon", StringArgumentType.getString(ctx, "mob")))))));
+		d.register(literal("bubble").then(literal("wraptest").requires(src -> src.hasPermission(2)).executes(ctx -> BubbleServer.wrapTest(ctx.getSource()))));
 		d.register(literal("bubble").then(literal("mobpower").requires(src -> src.hasPermission(2))
 				.then(argument("mod", StringArgumentType.greedyString()).executes(ctx ->
 						Math.max(1, GearPower.mobs(ctx.getSource(), StringArgumentType.getString(ctx, "mod")))))));
@@ -202,8 +203,9 @@ final class BubbleCommand {
 				.then(literal("enable").requires(s -> s.hasPermission(2)).executes(c -> set(c.getSource(), true, null, null, null, null)))
 				.then(literal("disable").requires(s -> s.hasPermission(2)).executes(c -> set(c.getSource(), false, null, null, null, null)))
 				.then(literal("edge").requires(s -> s.hasPermission(2))
-						.then(literal("teleport").executes(c -> set(c.getSource(), null, false, null, null, null)))
-						.then(literal("push").executes(c -> set(c.getSource(), null, true, null, null, null))))
+						.then(literal("teleport").executes(c -> edge(c.getSource(), false, false)))
+						.then(literal("push").executes(c -> edge(c.getSource(), true, false)))
+						.then(literal("wrap").executes(c -> edge(c.getSource(), false, true))))
 				.then(literal("shape").requires(s -> s.hasPermission(2))
 						.then(literal("ring").executes(c -> set(c.getSource(), null, null, null, null, false)))
 						.then(literal("sphere").executes(c -> set(c.getSource(), null, null, null, null, true))))
@@ -300,6 +302,13 @@ final class BubbleCommand {
 		BubbleServer.saveConfig();
 		c.getSource().sendSuccess(() -> Component.literal("The next new world will use " + (clean.isEmpty() ? "a random seed" : "seed " + clean)
 				+ " (\"Retry\" still replays the current seed)."), true);
+		return 1;
+	}
+
+	/** /bubble edge teleport|push|wrap */
+	private static int edge(CommandSourceStack source, boolean push, boolean wrap) {
+		BubbleConfig c = BubbleServer.config;
+		BubbleServer.apply(c.bubbleEnabled, push, c.soulLink, c.hardcoreReset, c.vertical, c.radius, wrap, source.getTextName());
 		return 1;
 	}
 
