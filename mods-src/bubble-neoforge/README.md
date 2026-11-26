@@ -48,6 +48,10 @@ Everyone on the server is tied together inside one bubble, one death can end the
   C&B's rendering library Scena still hands Iris the block it's drawing the old way; Bubble rewrites just that hook to
   current Iris's way when the game starts (the same change as the MIT-licensed chisels-bits-shader-compat patch). It
   only touches that exact broken code, and the log says "Chisels & Bits shader fix: patched ..." when it applied.
+- **Fix (1.31.2): Relics' Glitchy Mantle.** When its glitch went off, everyone who could see that player crashed
+  ("Not building!", relics issues #343 / #356, still in 0.12.11). Relics draws the glitch mask with the player's
+  armour and held items in a buffer that can't take the enchantment glint; Bubble leaves those out of the mask pass
+  (they're drawn normally anyway), so the glitch still shows on the body. Client only.
 
 ## When someone dies (hardcore reset)
 
@@ -679,8 +683,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.2.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.2.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
