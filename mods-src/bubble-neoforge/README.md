@@ -41,6 +41,8 @@ Everyone on the server is tied together inside one bubble, one death can end the
   isn't safe when NeoForge builds several mods at once, so now and then a start-up silently lost one, and then using
   that mod (Ultimine, most often) kicked you until the next restart (architectury-api#713). Bubble makes that list
   thread-safe before any mod registers. Ops can check with `/bubble netcheck <mod>`.
+- **Fix:** a Rainbow Creeper in a down cam or kill cam replay crashed the game for everyone watching (its colour came
+  out negative for the replay's stand-in).
 
 ## When someone dies (hardcore reset)
 

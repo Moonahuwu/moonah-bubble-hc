@@ -64,7 +64,8 @@ final class CreeperRenderers {
 
 		@Override
 		public void render(Creeper creeper, float yaw, float partialTicks, PoseStack pose, MultiBufferSource buffers, int light) {
-			float hue = ((creeper.tickCount + partialTicks) * 0.05f + creeper.getId() * 0.137f) % 1f;
+			// positiveModulo: replay stand-ins have negative ids, and a negative hue crashes Mth.hsvToRgb
+			float hue = Mth.positiveModulo((creeper.tickCount + partialTicks) * 0.05f + creeper.getId() * 0.137f, 1f);
 			super.render(creeper, yaw, partialTicks, pose, tinted(buffers, Mth.hsvToRgb(hue, 0.8f, 1f)), light);
 		}
 	}
