@@ -18,6 +18,9 @@ config = "bubble.mixins.json"
 [[mixins]]
 config = "bubble-compat.mixins.json"
 
+[[mixins]]
+config = "bubble-scena.mixins.json"
+
 [[dependencies.bubble]]
 modId = "neoforge"
 type = "required"

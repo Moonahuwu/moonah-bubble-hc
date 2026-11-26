@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "package": "moonahmc.bubble.mixinscena",
+  "plugin": "moonahmc.bubble.client.ScenaShaderFix",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "ScenaShaderMarkerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

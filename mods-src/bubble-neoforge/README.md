@@ -43,6 +43,11 @@ Everyone on the server is tied together inside one bubble, one death can end the
   thread-safe before any mod registers. Ops can check with `/bubble netcheck <mod>`.
 - **Fix:** a Rainbow Creeper in a down cam or kill cam replay crashed the game for everyone watching (its colour came
   out negative for the replay's stand-in).
+- **Fix (1.31.1): Chisels & Bits with shaders.** A chiseled block in view crashed the game with a shaderpack on
+  ("ChunkBuildBuffers cannot be cast to BlockSensitiveBufferBuilder", C&B issues #1381 / #1385, not fixed upstream).
+  C&B's rendering library Scena still hands Iris the block it's drawing the old way; Bubble rewrites just that hook to
+  current Iris's way when the game starts (the same change as the MIT-licensed chisels-bits-shader-compat patch). It
+  only touches that exact broken code, and the log says "Chisels & Bits shader fix: patched ..." when it applied.
 
 ## When someone dies (hardcore reset)
 
@@ -674,8 +679,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
