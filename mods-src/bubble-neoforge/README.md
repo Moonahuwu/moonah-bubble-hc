@@ -112,11 +112,11 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   whatever hit you) and you stay limp until someone revives you; teammates can grab and drag you to safety. When a
   death ends the run, the kill cam's stand-in holds still at the moment of death and your ragdoll (in your gear) drops
   right there; the server tells everyone's replay when it drops, so the two line up (a replay running behind skips to
-  that moment). The down cam ends on your real ragdoll too. (With the Ragdoll Corpse mod installed, its corpses get
+  that moment). The down cam ends on your real ragdoll too. With Ragdoll Corpse installed, its corpses get your gear,
+  and the one from a run-ending death is held back so only the kill cam's body appears (1.40.1). Off with
+  `ragdollDowns` in `config/bubble.json`; `/bubble ragdolltest` (ops) drops a test body where you stand.
   **Thrown (1.40.2):** if an explosion or a big hit (5+ hearts) did it, the body flies the way it threw you, both in the
   kill cam and when you go down (explosions harder the more they hurt, always with some lift).
-  your gear and the kill cam's one only appears at that moment; the pack doesn't use it.) Off with `ragdollDowns` in `config/bubble.json`;
-  `/bubble ragdolltest` (ops) drops a test body where you stand.
 - **How fragile (1.37.0):** Bubble menu > Admin > **Ragdolls** sets, live, what turns players into ragdolls and what
   ragdolls do: presets (**Sturdy**, **Normal** = the mods' own, **Fragile**, **Glass**), then each on its own: the speed
   change that ragdolls you (a sudden stop), the hit damage and fall/crash damage that do, how far hits and blasts throw
