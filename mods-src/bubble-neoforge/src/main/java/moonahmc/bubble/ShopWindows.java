@@ -55,7 +55,7 @@ import java.util.UUID;
  * are in config/bubble.json (shop...Seconds). State (dimensions seen, chest counts) is kept in the world folder, so a
  * new world starts fresh.
  */
-final class ShopWindows {
+public final class ShopWindows {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static MinecraftServer server;
 	private static Path file;
@@ -76,6 +76,8 @@ final class ShopWindows {
 	}
 
 	static void init() {
+		moonahmc.bubble.net.ServerPlayNetworking.registerGlobalReceiver(Edit.ID,
+				(payload, context) -> context.server().execute(() -> edit(context.player(), payload)));
 		var bus = NeoForge.EVENT_BUS;
 		bus.addListener((ServerStartedEvent e) -> {
 			server = e.getServer();
@@ -168,6 +170,126 @@ final class ShopWindows {
 
 	private static int now() {
 		return server == null ? 0 : server.getTickCount();
+	}
+
+	/** Is this tab (by name) buyable between windows too? */
+	static boolean alwaysOpen(String tab) {
+		return BubbleServer.config.shopAlwaysOpen.contains(tab);
+	}
+
+	// ------------------------------------------------------------------ the admin screen (Bubble menu > Admin > Shop windows)
+
+	/** Server to client: the shop windows settings and every tab with whether it stays open. */
+	public record Settings(boolean enabled, int start, int dimension, int boss, int elite, int chest, int chests,
+						   List<String> tabs, List<Boolean> open) implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+		public static final Type<Settings> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "shop_windows"));
+		public static final net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, Settings> CODEC =
+				net.minecraft.network.codec.StreamCodec.ofMember((s, buf) -> {
+					buf.writeBoolean(s.enabled);
+					for (int v : new int[] {s.start, s.dimension, s.boss, s.elite, s.chest, s.chests}) {
+						buf.writeVarInt(v);
+					}
+					buf.writeVarInt(s.tabs.size());
+					for (int i = 0; i < s.tabs.size(); i++) {
+						buf.writeUtf(s.tabs.get(i), 64);
+						buf.writeBoolean(s.open.get(i));
+					}
+				}, buf -> {
+					boolean on = buf.readBoolean();
+					int[] v = new int[6];
+					for (int i = 0; i < 6; i++) {
+						v[i] = buf.readVarInt();
+					}
+					int n = Math.min(buf.readVarInt(), 128);
+					List<String> tabs = new ArrayList<>(n);
+					List<Boolean> open = new ArrayList<>(n);
+					for (int i = 0; i < n; i++) {
+						tabs.add(buf.readUtf(64));
+						open.add(buf.readBoolean());
+					}
+					return new Settings(on, v[0], v[1], v[2], v[3], v[4], v[5], tabs, open);
+				});
+
+		@Override
+		public Type<? extends net.minecraft.network.protocol.common.custom.CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
+	/** Client to server: an op changed them (or, with request set, just wants them). */
+	public record Edit(boolean request, Settings settings) implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+		public static final Type<Edit> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "shop_windows_edit"));
+		public static final net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, Edit> CODEC =
+				net.minecraft.network.codec.StreamCodec.ofMember((e, buf) -> {
+					buf.writeBoolean(e.request);
+					Settings.CODEC.encode(buf, e.settings);
+				}, buf -> new Edit(buf.readBoolean(), Settings.CODEC.decode(buf)));
+
+		@Override
+		public Type<? extends net.minecraft.network.protocol.common.custom.CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
+	static void register(moonahmc.bubble.net.PayloadTypeRegistry<net.minecraft.network.RegistryFriendlyByteBuf> s2c,
+						 moonahmc.bubble.net.PayloadTypeRegistry<net.minecraft.network.RegistryFriendlyByteBuf> c2s) {
+		s2c.register(Settings.ID, Settings.CODEC);
+		c2s.register(Edit.ID, Edit.CODEC);
+	}
+
+	static Settings settings() {
+		BubbleConfig c = BubbleServer.config;
+		List<String> tabs = Shop.tabNames();
+		List<Boolean> open = tabs.stream().map(ShopWindows::alwaysOpen).toList();
+		return new Settings(c.shopWindows, c.shopStartSeconds, c.shopDimensionSeconds, c.shopBossSeconds, c.shopEliteSeconds,
+				c.shopChestSeconds, c.shopChests, tabs, open);
+	}
+
+	private static void sendSettings(ServerPlayer p) {
+		if (moonahmc.bubble.net.ServerPlayNetworking.canSend(p, Settings.ID)) {
+			moonahmc.bubble.net.ServerPlayNetworking.send(p, settings());
+		}
+	}
+
+	private static void edit(ServerPlayer p, Edit e) {
+		if (!p.hasPermissions(2)) {
+			return;
+		}
+		if (!e.request()) {
+			Settings s = e.settings();
+			BubbleConfig c = BubbleServer.config;
+			boolean wasOn = c.shopWindows;
+			c.shopWindows = s.enabled();
+			c.shopStartSeconds = s.start();
+			c.shopDimensionSeconds = s.dimension();
+			c.shopBossSeconds = s.boss();
+			c.shopEliteSeconds = s.elite();
+			c.shopChestSeconds = s.chest();
+			c.shopChests = s.chests();
+			// tabs this screen knows about are set from it; any others in the list (hidden tabs) are kept
+			List<String> known = Shop.tabNames();
+			List<String> keep = new ArrayList<>(c.shopAlwaysOpen.stream().filter(t -> !known.contains(t)).toList());
+			for (int i = 0; i < s.tabs().size() && i < s.open().size(); i++) {
+				if (s.open().get(i) && known.contains(s.tabs().get(i))) {
+					keep.add(s.tabs().get(i));
+				}
+			}
+			c.shopAlwaysOpen = keep;
+			c.clamp();
+			BubbleServer.saveConfig();
+			wasOpen.clear();
+			if (server != null) {
+				server.getPlayerList().getPlayers().forEach(Shop::sendCatalog);
+				if (wasOn != c.shopWindows) {
+					server.getPlayerList().broadcastSystemMessage(Component.literal(c.shopWindows
+							? "🛒 " + p.getGameProfile().getName() + " made the shop open only at key moments of the run."
+							: "🛒 " + p.getGameProfile().getName() + " made the shop open all the time.").withStyle(ChatFormatting.AQUA), false);
+				}
+				server.getPlayerList().getPlayers().stream().filter(q -> q.hasPermissions(2)).forEach(ShopWindows::sendSettings);
+			}
+			return;
+		}
+		sendSettings(p);
 	}
 
 	/** Can `p` buy right now? */
@@ -350,6 +472,9 @@ final class ShopWindows {
 							+ ". /bubble shopwindow on|off|open <players> [seconds]"), false);
 					return 1;
 				})
+				.then(Commands.literal("tab").then(Commands.argument("name", com.mojang.brigadier.arguments.StringArgumentType.string())
+						.then(Commands.literal("always").executes(c -> tab(c.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(c, "name"), true)))
+						.then(Commands.literal("windows").executes(c -> tab(c.getSource(), com.mojang.brigadier.arguments.StringArgumentType.getString(c, "name"), false)))))
 				.then(Commands.literal("on").executes(c -> set(c.getSource(), true)))
 				.then(Commands.literal("off").executes(c -> set(c.getSource(), false)))
 				.then(Commands.literal("open").then(Commands.argument("players", EntityArgument.players())
@@ -369,6 +494,21 @@ final class ShopWindows {
 					: "🛒 The shop is open all the time again.").withStyle(ChatFormatting.AQUA), false);
 		}
 		src.sendSuccess(() -> Component.literal("Shop windows " + (on ? "on" : "off")), true);
+		return 1;
+	}
+
+	private static int tab(CommandSourceStack src, String name, boolean always) {
+		List<String> list = BubbleServer.config.shopAlwaysOpen;
+		list.remove(name);
+		if (always) {
+			list.add(name);
+		}
+		BubbleServer.saveConfig();
+		if (server != null) {
+			server.getPlayerList().getPlayers().forEach(Shop::sendCatalog);
+		}
+		src.sendSuccess(() -> Component.literal("Shop tab '" + name + "' " + (always ? "stays open between windows" : "follows the shop windows")
+				+ (Shop.tabNames().contains(name) ? "" : " (no tab has that name right now)")), true);
 		return 1;
 	}
 

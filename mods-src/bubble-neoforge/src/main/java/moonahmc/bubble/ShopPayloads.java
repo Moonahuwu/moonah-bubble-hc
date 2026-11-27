@@ -55,7 +55,8 @@ public final class ShopPayloads {
 
 	/** A shop tab. charging = the special "charge your Oritech gear" tab. */
 	/** gamble = a tab of cases: shown under Gamble instead of Shop. video = the "paste a link, show everyone" tab. */
-	public record Section(String name, ItemStack icon, boolean charging, List<Offer> offers, boolean gamble, boolean video) {
+	/** alwaysOpen: buyable between shop windows too (ShopWindows). */
+	public record Section(String name, ItemStack icon, boolean charging, List<Offer> offers, boolean gamble, boolean video, boolean alwaysOpen) {
 	}
 
 	/** Server to client: the whole catalogue (sent when the shop opens, and again whenever an op edits it). */
@@ -83,6 +84,7 @@ public final class ShopPayloads {
 				}
 				buf.writeBoolean(s.gamble);
 				buf.writeBoolean(s.video);
+				buf.writeBoolean(s.alwaysOpen);
 			}
 			buf.writeBoolean(c.shopClosed);
 			buf.writeVarInt(c.window + 1);
@@ -103,7 +105,8 @@ public final class ShopPayloads {
 					offers.add(new Offer(readStack(buf), buf.readVarInt(), buf.readDouble()));
 				}
 				boolean gamble = buf.readBoolean();
-				sections.add(new Section(name, icon, charging, offers, gamble, buf.readBoolean()));
+				boolean video = buf.readBoolean();
+				sections.add(new Section(name, icon, charging, offers, gamble, video, buf.readBoolean()));
 			}
 			boolean shut = buf.readBoolean();
 			int window = buf.readVarInt() - 1;

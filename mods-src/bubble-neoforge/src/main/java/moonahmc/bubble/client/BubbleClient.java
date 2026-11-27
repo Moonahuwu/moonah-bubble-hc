@@ -180,6 +180,12 @@ public final class BubbleClient {
 		}));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.PostStatus.ID, (payload, context) -> context.client().execute(
 				() -> ClientState.postStatus = payload));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.ShopWindows.Settings.ID, (payload, context) -> context.client().execute(() -> {
+			ShopWindowsScreen.settings = payload;
+			if (context.client().screen instanceof ShopWindowsScreen s) {
+				s.refresh();
+			}
+		}));
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.CurrencyAdmin.ListRows.ID, (payload, context) -> context.client().execute(() -> {
 			CurrencyAdminScreen.rows = payload.rows();
 			if (context.client().screen instanceof CurrencyAdminScreen s) {

@@ -52,6 +52,8 @@ public final class BubbleConfig {
 	public int shopChestSeconds = 60;
 	/** Lootr chests a player opens per shop window. */
 	public int shopChests = 10;
+	/** Shop tabs that stay open between shop windows (by tab name). Charging is the Charging tab. */
+	public java.util.List<String> shopAlwaysOpen = new java.util.ArrayList<>(java.util.List.of("Essentials", "Video", "Charging", "Guns"));
 	/** With Sable Ragdolls installed: going down turns you into a ragdoll until you're revived. */
 	public boolean ragdollDowns = true;
 	/** A fall from at least this many blocks kills you outright, no going down (0 = falls always let you go down). */
@@ -95,6 +97,9 @@ public final class BubbleConfig {
 		shopEliteSeconds = Math.max(0, Math.min(3600, shopEliteSeconds));
 		shopChestSeconds = Math.max(0, Math.min(3600, shopChestSeconds));
 		shopChests = Math.max(1, Math.min(500, shopChests));
+		if (shopAlwaysOpen == null) {
+			shopAlwaysOpen = new java.util.ArrayList<>();
+		}
 		gunArmorPen = Double.isNaN(gunArmorPen) ? 0.8 : Math.max(0, Math.min(1, gunArmorPen));
 		if (nextSeed == null) {
 			nextSeed = "";

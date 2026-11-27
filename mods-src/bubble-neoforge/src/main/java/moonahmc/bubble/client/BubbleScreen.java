@@ -482,13 +482,14 @@ public final class BubbleScreen extends ScaledScreen {
 			{"Revive", "Brings back everyone spectating (Another life after a death)", "Revive", ""},
 			{"Spin the wheel", "Spins the start-of-run wheel now", "Spin", ""},
 			{"Shop", "Turns buying in the shop off/on. Gamble and selling still work", "Close shop", ""},
+			{"Shop windows", "When the shop opens in a run, for how long, which tabs stay open", "Edit", ""},
 			{"Objectives", "Add or remove objectives and stages in any game mode", "Edit", ""},
 			{"Wheel slices", "Switch slices on/off on both wheels, set weights, do one now", "Edit", ""},
 			{"Random events", "Hordes, watchers, supply drops: toggle them, or force one now", "Edit", ""},
 			{"Currencies", "Give, take or set anyone's Strange Matter and Eidolons", "Open", ""}};
 	private static final int[] ADMIN_ACTIONS = {moonahmc.bubble.BubbleServer.ADMIN_START, moonahmc.bubble.BubbleServer.ADMIN_NEXT_WORLD,
 			moonahmc.bubble.BubbleServer.ADMIN_RETRY_SEED, moonahmc.bubble.BubbleServer.ADMIN_END_RUN, moonahmc.bubble.BubbleServer.ADMIN_SKIP,
-			moonahmc.bubble.BubbleServer.ADMIN_REVIVE, moonahmc.bubble.BubbleServer.ADMIN_WHEEL, moonahmc.bubble.BubbleServer.ADMIN_SHOP, -1, -2, -3, -4};
+			moonahmc.bubble.BubbleServer.ADMIN_REVIVE, moonahmc.bubble.BubbleServer.ADMIN_WHEEL, moonahmc.bubble.BubbleServer.ADMIN_SHOP, -5, -1, -2, -3, -4};
 	private final long[] armed = new long[ADMIN.length];
 
 	private int adminY(int i) {
@@ -538,7 +539,11 @@ public final class BubbleScreen extends ScaledScreen {
 					minecraft.setScreen(new CurrencyAdminScreen(this));
 					return;
 				}
-				if (ADMIN_ACTIONS[index] < -1) {
+				if (ADMIN_ACTIONS[index] == -5) {
+					minecraft.setScreen(new ShopWindowsScreen(this));
+					return;
+				}
+				if (ADMIN_ACTIONS[index] < -1 && ADMIN_ACTIONS[index] > -4) {
 					minecraft.setScreen(new WheelAdminScreen(this, ADMIN_ACTIONS[index] == -2 ? 0 : 2));
 					return;
 				}

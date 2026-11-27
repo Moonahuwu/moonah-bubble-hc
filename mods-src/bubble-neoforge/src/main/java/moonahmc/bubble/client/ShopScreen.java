@@ -250,7 +250,14 @@ public final class ShopScreen extends ScaledScreen {
 
 	/** Looking at the Shop side while an admin has it closed (ops in edit mode still see it). */
 	private boolean closedHere() {
-		return ClientState.catalog != null && !editing && ((ClientState.catalog.shopClosed() && !gambleMode) || windowShut());
+		if (ClientState.catalog == null || editing) {
+			return false;
+		}
+		if (ClientState.catalog.shopClosed() && !gambleMode) {
+			return true;
+		}
+		ShopPayloads.Section sec = currentSection();
+		return windowShut() && (sec == null || !sec.alwaysOpen());
 	}
 
 	/** Between shop windows: buying, gambling and charging wait for the next one. */

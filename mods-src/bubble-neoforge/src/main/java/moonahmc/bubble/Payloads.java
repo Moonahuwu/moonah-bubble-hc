@@ -550,6 +550,7 @@ public final class Payloads {
 		c2s.register(Vote.ID, Vote.CODEC);
 		c2s.register(SaveSeed.ID, SaveSeed.CODEC);
 		ShopPayloads.register(s2c, c2s);
+		ShopWindows.register(s2c, c2s);
 		PregamePayloads.register(s2c, c2s);
 	}
 }

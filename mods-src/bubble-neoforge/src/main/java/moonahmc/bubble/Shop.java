@@ -635,11 +635,22 @@ public final class Shop {
 			if (hidden(sec)) {
 				continue;
 			}
-			out.add(new ShopPayloads.Section(sec.name, icon(sec), sec.charging, offers, isGamble(sec), sec.video));
+			out.add(new ShopPayloads.Section(sec.name, icon(sec), sec.charging, offers, isGamble(sec), sec.video, ShopWindows.alwaysOpen(sec.name)));
 		}
 		ServerPlayNetworking.send(p, new ShopPayloads.Catalog(p.hasPermissions(2), chargeRate, emcRate, out, closed,
 				ShopWindows.windowFor(p), ShopWindows.info(p)));
 		Matter.sendBalance(p);
+	}
+
+	/** Every tab's name, in order (for the shop windows admin screen). */
+	static List<String> tabNames() {
+		List<String> out = new ArrayList<>();
+		for (Section sec : sections) {
+			if (!hidden(sec)) {
+				out.add(sec.name);
+			}
+		}
+		return out;
 	}
 
 	/** Tabs players don't see: Charging without an energy mod, Video without WaterMedia (or with no price). */
@@ -727,7 +738,7 @@ public final class Shop {
 			refuseClosed(p);
 			return;
 		}
-		if (!ShopWindows.isOpen(p) && !sec.video) {
+		if (!ShopWindows.isOpen(p) && !sec.video && !ShopWindows.alwaysOpen(sec.name)) {
 			ShopWindows.refuse(p);
 			sendCatalog(p);
 			return;
@@ -846,7 +857,7 @@ public final class Shop {
 			refuseClosed(p);
 			return;
 		}
-		if (!ShopWindows.isOpen(p)) {
+		if (!ShopWindows.isOpen(p) && sections.stream().noneMatch(s -> s.charging && ShopWindows.alwaysOpen(s.name))) {
 			ShopWindows.refuse(p);
 			return;
 		}

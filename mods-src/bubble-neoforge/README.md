@@ -176,8 +176,14 @@ moments. Selling always works, and outside a run (lobby, post-game) it's open.
 | Every 10 looter (Lootr) chests you open | 60 s (`shopChestSeconds`, `shopChests`) | that player |
 
 Chat says when it opens and closes, the shop shows the time left ("OPEN 1:23"), and while it's closed it says what
-opens it and how many chests you've got towards the next one. Settings in `config/bubble.json` (0 seconds = that one
-doesn't open it); `/bubble shopwindow on|off` and `/bubble shopwindow open <players> [seconds]` for ops. Also in 1.32.0:
+opens it and how many chests you've got towards the next one.
+
+**Always open (1.36.0):** some tabs stay buyable between windows: by default **Essentials**, **Video**, **Charging**
+and **Guns** (the ammo crates). **Ops:** Bubble menu > Admin > **Shop windows** turns the windows on/off, sets how
+long each moment opens the shop (or Off), how many looter chests a window takes, and which tabs stay open (one switch
+per tab). Every change applies straight away. The same settings are in `config/bubble.json` (`shopWindows`,
+`shop...Seconds`, `shopChests`, `shopAlwaysOpen`), and there are commands: `/bubble shopwindow on|off`,
+`/bubble shopwindow open <players> [seconds]`, `/bubble shopwindow tab "<tab>" always|windows`. Also in 1.32.0:
 ender pearls, blaze rods, netherite scrap, the elytras and the Progression Case aren't sold any more (no buying your
 way through the run).
 
@@ -726,8 +732,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.35.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.35.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.36.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.36.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
