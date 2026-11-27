@@ -11,6 +11,7 @@ import net.minecraft.world.level.Level;
  * Looks and acts like a normal skeleton, but the moment it can see its target it sprays arrows: 8 a tick, 160 a second,
  * as long as it keeps line of sight. The arrows are light, can't be picked up and vanish when they land, so the server
  * doesn't fill up with them. Damage is still limited by the usual half-second of invulnerability after each hit.
+ * Killed by a player, it drops its bow (the Gatling Bow, which fires the same way) 8% of the time.
  */
 public class GatlingSkeleton extends Skeleton {
 	static final int ARROWS_PER_TICK = 8;
@@ -18,6 +19,17 @@ public class GatlingSkeleton extends Skeleton {
 
 	public GatlingSkeleton(EntityType<? extends Skeleton> type, Level level) {
 		super(type, level);
+	}
+
+	/** How often one drops its bow (the Gatling Bow) when a player kills it. */
+	static final float BOW_DROP = 0.08f;
+
+	@Override
+	protected void dropCustomDeathLoot(net.minecraft.server.level.ServerLevel level, net.minecraft.world.damagesource.DamageSource source, boolean recentlyHit) {
+		super.dropCustomDeathLoot(level, source, recentlyHit);
+		if (recentlyHit && source.getEntity() instanceof net.minecraft.world.entity.player.Player && random.nextFloat() < BOW_DROP) {
+			spawnAtLocation(new net.minecraft.world.item.ItemStack(ModContent.GATLING_BOW.get()));
+		}
 	}
 
 	@Override

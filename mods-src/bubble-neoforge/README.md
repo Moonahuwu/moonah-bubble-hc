@@ -257,6 +257,9 @@ way through the run).
   8 a tick (160 a second), for as long as it keeps line of sight (up to 24 blocks). Its arrows are light, can't be
   picked up and vanish when they land, so they don't pile up. Hits are still limited by the half-second of
   invulnerability after each one, but that adds up fast; shields help. Spawns in the dark and burns in daylight.
+  **Gatling Bow (1.35.0):** one killed by a player drops its bow 8% of the time. Hold right-click and it sprays arrows
+  the same way (8 a tick, the same light arrows). It needs no arrows, but every tick of firing costs a point of
+  durability: about 19 seconds of fire from new, longer with Unbreaking, and Mending repairs it.
 - **The Jockey Jockey:** a spider with a cave spider riding it. One bite from the spider gives you every harmful effect
   in the game (every mod's too, but not instant ones like Instant Damage) for 10 seconds. Spawns in the dark.
 - **Swarm zombie:** looks, sounds and acts exactly like a zombie (it's even called "Zombie"). Kill it and it bursts into
@@ -723,8 +726,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.34.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.34.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.35.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.35.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

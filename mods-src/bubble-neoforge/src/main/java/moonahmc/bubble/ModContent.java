@@ -24,6 +24,9 @@ public final class ModContent {
 	/** Spins the mid-run wheel (found in cases and chests). */
 	public static final DeferredHolder<Item, WheelSpinItem> WHEEL_SPIN = ITEMS.register("wheel_spin",
 			() -> new WheelSpinItem(new Item.Properties().stacksTo(16).rarity(net.minecraft.world.item.Rarity.EPIC)));
+	/** The gatling skeleton's bow: hold right-click to spray arrows (dropped by gatling skeletons now and then). */
+	public static final DeferredHolder<Item, GatlingBowItem> GATLING_BOW = ITEMS.register("gatling_bow",
+			() -> new GatlingBowItem(new Item.Properties().durability(384).rarity(net.minecraft.world.item.Rarity.EPIC)));
 	private static final DeferredRegister<com.mojang.serialization.MapCodec<? extends net.neoforged.neoforge.common.loot.IGlobalLootModifier>> LOOT_MODIFIERS =
 			DeferredRegister.create(net.neoforged.neoforge.registries.NeoForgeRegistries.Keys.GLOBAL_LOOT_MODIFIER_SERIALIZERS, Bubble.MOD_ID);
 	static {
@@ -85,6 +88,9 @@ public final class ModContent {
 		modBus.addListener((BuildCreativeModeTabContentsEvent e) -> {
 			if (e.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
 				e.accept(WHEEL_SPIN.get());
+			}
+			if (e.getTabKey() == CreativeModeTabs.COMBAT) {
+				e.accept(GATLING_BOW.get());
 			}
 			if (e.getTabKey() == CreativeModeTabs.SPAWN_EGGS) {
 				ITEMS.getEntries().stream().filter(i -> i.get() instanceof DeferredSpawnEggItem).forEach(i -> e.accept(i.get()));
