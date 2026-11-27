@@ -97,7 +97,7 @@ public final class WheelAdminScreen extends ScaledScreen {
 	}
 
 	private int listTop() {
-		return top + (tab == 2 ? 112 : 70);
+		return top + (tab == 2 ? 136 : 70);
 	}
 
 	private int visibleRows() {
@@ -219,12 +219,28 @@ public final class WheelAdminScreen extends ScaledScreen {
 		int y = top + 62;
 		addRenderableWidget(new BubbleScreen.Toggle(left + 24, y, () -> ev.get("enabled").getAsBoolean(), v -> send("events_enabled", 0, v ? 1 : 0)));
 		addRenderableWidget(new BubbleScreen.Toggle(left + 150, y, () -> ev.get("announce").getAsBoolean(), v -> send("events_announce", 0, v ? 1 : 0)));
-		int min = ev.get("min").getAsInt(), max = ev.get("max").getAsInt();
+		// with the director on these are the minutes of calm it waits for; off, the timer's minutes
+		boolean calmMode = ev.has("director") && ev.get("director").getAsBoolean() && ev.has("calmMin");
+		String lo = calmMode ? "events_calm_min" : "events_min";
+		String hi = calmMode ? "events_calm_max" : "events_max";
+		int min = calmMode ? ev.get("calmMin").getAsInt() : ev.get("min").getAsInt();
+		int max = calmMode ? ev.get("calmMax").getAsInt() : ev.get("max").getAsInt();
 		int bx = left + 262;
-		ghost(bx, y + 1, "-", () -> send("events_min", 0, Math.max(1, min - 1)));
-		ghost(bx + 44, y + 1, "+", () -> send("events_min", 0, Math.min(max, min + 1)));
-		ghost(bx + 90, y + 1, "-", () -> send("events_max", 0, Math.max(min, max - 1)));
-		ghost(bx + 134, y + 1, "+", () -> send("events_max", 0, max + 1));
+		ghost(bx, y + 1, "-", () -> send(lo, 0, Math.max(1, min - 1)));
+		ghost(bx + 44, y + 1, "+", () -> send(lo, 0, Math.min(max, min + 1)));
+		ghost(bx + 90, y + 1, "-", () -> send(hi, 0, Math.max(min, max - 1)));
+		ghost(bx + 134, y + 1, "+", () -> send(hi, 0, max + 1));
+		if (calmMode) {
+			// the director's dials: gift share, gift after a fight, gap between events
+			int ry = y + 46;
+			int gift = ev.get("gift").getAsInt(), fight = ev.get("fightGift").getAsInt(), gap = ev.get("gap").getAsInt();
+			ghost(left + 64, ry, "-", () -> send("events_gift", 0, Math.max(0, gift - 5)));
+			ghost(left + 108, ry, "+", () -> send("events_gift", 0, Math.min(100, gift + 5)));
+			ghost(left + 222, ry, "-", () -> send("events_fight_gift", 0, Math.max(0, fight - 10)));
+			ghost(left + 266, ry, "+", () -> send("events_fight_gift", 0, Math.min(100, fight + 10)));
+			ghost(left + 334, ry, "-", () -> send("events_gap", 0, Math.max(0, gap - 15)));
+			ghost(left + 386, ry, "+", () -> send("events_gap", 0, Math.min(1800, gap + 15)));
+		}
 		boolean dir = ev.has("director") && ev.get("director").getAsBoolean();
 		BubbleScreen.FlatButton director = addRenderableWidget(new BubbleScreen.FlatButton(left + W - 16 - 46 - 4 - 110 - 4 - 92, y + 24, 92, 16,
 				Component.literal(dir ? "Director: on" : "Director: off"), () -> send("events_director", 0, dir ? 0 : 1)));
@@ -274,10 +290,20 @@ public final class WheelAdminScreen extends ScaledScreen {
 			ctx.drawString(font, Component.literal("Random events"), left + 62, y + 5, TEXT, false);
 			ctx.drawString(font, Component.literal("Announce"), left + 188, y + 5, TEXT, false);
 			int bx = left + 262;
-			ctx.drawString(font, Component.literal(String.valueOf(ev.get("min").getAsInt())), bx + 22, y + 5, ACCENT, false);
+			boolean calmMode = ev.has("director") && ev.get("director").getAsBoolean() && ev.has("calmMin");
+			ctx.drawString(font, Component.literal(String.valueOf(ev.get(calmMode ? "calmMin" : "min").getAsInt())), bx + 22, y + 5, ACCENT, false);
 			ctx.drawString(font, Component.literal("to"), bx + 66, y + 5, MUTED, false);
-			ctx.drawString(font, Component.literal(String.valueOf(ev.get("max").getAsInt())), bx + 112, y + 5, ACCENT, false);
-			ctx.drawString(font, Component.literal("min"), bx + 156, y + 5, MUTED, false);
+			ctx.drawString(font, Component.literal(String.valueOf(ev.get(calmMode ? "calmMax" : "max").getAsInt())), bx + 112, y + 5, ACCENT, false);
+			ctx.drawString(font, Component.literal(calmMode ? "min calm" : "min"), bx + 156, y + 5, MUTED, false);
+			if (calmMode) {
+				int ry = y + 46;
+				ctx.drawString(font, Component.literal("Gifts"), left + 24, ry + 4, TEXT, false);
+				ctx.drawString(font, Component.literal(ev.get("gift").getAsInt() + "%"), left + 84, ry + 4, ACCENT, false);
+				ctx.drawString(font, Component.literal("After a fight"), left + 140, ry + 4, TEXT, false);
+				ctx.drawString(font, Component.literal(ev.get("fightGift").getAsInt() + "%"), left + 242, ry + 4, ACCENT, false);
+				ctx.drawString(font, Component.literal("Gap"), left + 308, ry + 4, TEXT, false);
+				ctx.drawString(font, Component.literal(ev.get("gap").getAsInt() + "s"), left + 354, ry + 4, ACCENT, false);
+			}
 			int next = ev.get("next").getAsInt();
 			boolean dir = ev.has("director") && ev.get("director").getAsBoolean();
 			String when = !ev.get("enabled").getAsBoolean() ? "Random events are off"

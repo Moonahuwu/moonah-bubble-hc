@@ -30,14 +30,12 @@ final class Director {
 	/** Below this the group is calm; at or above INTENSE it's a fight. */
 	private static final double CALM = 10;
 	private static final double INTENSE = 35;
-	/** At least this long between two director events (seconds). */
-	private static final int MIN_GAP = 90;
 
 	private static double heat;
 	private static int calm;
 	private static int target = -1;
 	private static int intense;
-	private static int sinceLast = MIN_GAP;
+	private static int sinceLast = 9999;
 	/** Seconds until a post-fight gift (-1 = none coming). */
 	private static int giftIn = -1;
 
@@ -62,8 +60,13 @@ final class Director {
 		calm = 0;
 		target = -1;
 		intense = 0;
-		sinceLast = MIN_GAP;
+		sinceLast = 9999;
 		giftIn = -1;
+	}
+
+	/** The calm range changed: pick a new target from it. */
+	static void retarget() {
+		target = -1;
 	}
 
 	/** Once a second while a run is on and someone is playing (from RandomEvents). */
@@ -92,7 +95,7 @@ final class Director {
 			giftIn = -1;
 		} else if (heat < CALM) {
 			calm++;
-			if (intense >= 30 && giftIn < 0 && s.overworld().random.nextFloat() < 0.6f) {
+			if (intense >= 30 && giftIn < 0 && s.overworld().random.nextInt(100) < RandomEvents.fightGift()) {
 				giftIn = 15; // the fight's over: something nice in a moment
 			}
 			intense = 0;
@@ -108,8 +111,8 @@ final class Director {
 			}
 			return;
 		}
-		if (calm >= target && sinceLast >= MIN_GAP && heat < CALM) {
-			boolean gift = s.overworld().random.nextFloat() < 0.3f;
+		if (calm >= target && sinceLast >= RandomEvents.minGap() && heat < CALM) {
+			boolean gift = s.overworld().random.nextInt(100) < RandomEvents.giftChance();
 			if (RandomEvents.fire(gift) || (gift && RandomEvents.fire(false))) {
 				sinceLast = 0;
 			}

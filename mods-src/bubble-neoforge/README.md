@@ -414,7 +414,9 @@ ammo, or the shop opening for a minute). Nothing random is added while a fight i
 a good chance of a gift once things settle. Dangerous events (rainbow horde, Evil Watcher, nuke creeper) are rarer
 before the first stage is cleared, and an **Enderman pack** is three times as likely while the team has under 12 pearls
 and eyes between them. Admin > Random events has a Director on/off button and shows what it's doing; `/bubble director`
-does too. Off = the old timer (every 10 to 20 minutes).
+does too. With the director on, that screen's minutes are the **calm** it waits for, and a row under them sets the
+share of gifts (30%), the chance of a gift after a big fight (60%) and the shortest gap between two events (90 s); each
+event's weight is on its own row as before. All of it applies straight away (1.39.1). Off = the old timer (every 10 to 20 minutes).
 
 **Pearls (1.39.0):** Watchers drop 2-4 ender pearls when a player kills them (Evil Watchers 4-6), and about 1 chest in
 10 has a pearl or two (`chestPearls` in the cases file's extras).
@@ -770,8 +772,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.39.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.39.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.39.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.39.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

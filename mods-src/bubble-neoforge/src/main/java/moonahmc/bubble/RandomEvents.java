@@ -71,6 +71,22 @@ public final class RandomEvents {
 	private static boolean director = true;
 	private static int calmMin = 3;
 	private static int calmMax = 6;
+	/** Director: % of its events that are gifts; % chance of a gift after a big fight; seconds between two events. */
+	private static int giftChance = 30;
+	private static int fightGift = 60;
+	private static int minGap = 90;
+
+	static int giftChance() {
+		return giftChance;
+	}
+
+	static int fightGift() {
+		return fightGift;
+	}
+
+	static int minGap() {
+		return minGap;
+	}
 	private static List<Event> events = new ArrayList<>();
 	private static MinecraftServer server;
 	/** Overworld game time of the next random event (-1 = not scheduled yet). */
@@ -492,6 +508,11 @@ public final class RandomEvents {
 		o.addProperty("max", maxMinutes);
 		o.addProperty("next", secondsToNext());
 		o.addProperty("director", director);
+		o.addProperty("calmMin", calmMin);
+		o.addProperty("calmMax", calmMax);
+		o.addProperty("gift", giftChance);
+		o.addProperty("fightGift", fightGift);
+		o.addProperty("gap", minGap);
 		o.addProperty("directorStatus", Director.status());
 		JsonArray arr = new JsonArray();
 		for (Event e : events) {
@@ -516,6 +537,11 @@ public final class RandomEvents {
 				case "min" -> root.addProperty("minMinutes", Math.max(1, Math.min(240, value)));
 				case "max" -> root.addProperty("maxMinutes", Math.max(1, Math.min(240, value)));
 				case "director" -> root.addProperty("director", value != 0);
+				case "calm_min" -> root.addProperty("calmMin", Math.max(1, Math.min(120, value)));
+				case "calm_max" -> root.addProperty("calmMax", Math.max(1, Math.min(120, value)));
+				case "gift" -> root.addProperty("giftChance", Math.max(0, Math.min(100, value)));
+				case "fight_gift" -> root.addProperty("fightGiftChance", Math.max(0, Math.min(100, value)));
+				case "gap" -> root.addProperty("minGapSeconds", Math.max(0, Math.min(1800, value)));
 				case "event_enabled", "event_weight" -> {
 					JsonArray arr = root.getAsJsonArray("events");
 					if (index < 0 || index >= arr.size()) {
@@ -535,6 +561,9 @@ public final class RandomEvents {
 			Files.writeString(file(), GSON.toJson(root));
 			int oldMin = minMinutes, oldMax = maxMinutes;
 			load();
+			if (what.startsWith("calm_")) {
+				Director.retarget(); // the new range counts from now
+			}
 			if ((what.equals("min") || what.equals("max")) && (oldMin != minMinutes || oldMax != maxMinutes) && nextAt >= 0 && server != null) {
 				schedule();
 			}
@@ -599,6 +628,9 @@ public final class RandomEvents {
 			director = !root.has("director") || root.get("director").getAsBoolean();
 			calmMin = root.has("calmMin") ? Math.max(1, root.get("calmMin").getAsInt()) : 3;
 			calmMax = root.has("calmMax") ? Math.max(calmMin, root.get("calmMax").getAsInt()) : 6;
+			giftChance = root.has("giftChance") ? root.get("giftChance").getAsInt() : 30;
+			fightGift = root.has("fightGiftChance") ? root.get("fightGiftChance").getAsInt() : 60;
+			minGap = root.has("minGapSeconds") ? root.get("minGapSeconds").getAsInt() : 90;
 			List<Event> out = new ArrayList<>();
 			for (JsonElement el : root.getAsJsonArray("events")) {
 				JsonObject eo = el.getAsJsonObject();
