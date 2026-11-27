@@ -101,6 +101,12 @@ final class ShopWindowsScreen extends ScaledScreen {
 		left = (width - W) / 2;
 		top = (height - H) / 2;
 		addRenderableWidget(new BubbleScreen.FlatButton(left + W - 14 - 64, top + H - 30, 64, 20, Component.literal("Back"), this::onClose)).ghost = true;
+		// the master switch (was "Close shop" in the Admin list): off = nobody can buy, whatever the windows say
+		if (ClientState.catalog == null) {
+			ClientPlayNetworking.send(new moonahmc.bubble.ShopPayloads.Request());
+		}
+		addRenderableWidget(new BubbleScreen.Toggle(left + W - 22 - 34, top + 12, () -> ClientState.catalog != null && !ClientState.catalog.shopClosed(),
+				v -> ClientPlayNetworking.send(new moonahmc.bubble.Lobby.Admin(moonahmc.bubble.BubbleServer.ADMIN_SHOP)), 0xFF6EE08A));
 		ShopWindows.Settings s = settings;
 		if (s == null) {
 			return;
@@ -169,7 +175,9 @@ final class ShopWindowsScreen extends ScaledScreen {
 		super.renderBackground(ctx, mouseX, mouseY, delta);
 		ctx.fill(0, 0, width, height, 0x55000000);
 		panel(ctx, left, top, W, H);
-		BubbleScreen.bigText(ctx, font, "Shop windows", left + 22, top + 14);
+		BubbleScreen.bigText(ctx, font, "Shop", left + 22, top + 14);
+		String buying = ClientState.catalog == null ? "" : ClientState.catalog.shopClosed() ? "Buying is off (admin)" : "Buying is on";
+		ctx.drawString(font, buying, left + W - 22 - 34 - 8 - font.width(buying), top + 17, MUTED, false);
 		ShopWindows.Settings s = settings;
 		if (s == null) {
 			ctx.drawString(font, "Loading...", left + 24, top + 50, MUTED, false);

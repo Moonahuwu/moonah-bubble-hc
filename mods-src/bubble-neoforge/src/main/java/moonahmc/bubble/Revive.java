@@ -123,14 +123,20 @@ public final class Revive {
 	}
 
 	/** Server to client: the revive settings (for the Bubble menu). */
-	public record Settings(boolean enabled, int seconds, int holdSeconds, boolean canEdit) implements CustomPacketPayload {
+	/** cooldown: seconds after a revive (0 none); fall: blocks that kill outright (0 never); ragdoll: go limp when down. */
+	public record Settings(boolean enabled, int seconds, int holdSeconds, boolean canEdit, int cooldown, int fall, boolean ragdoll)
+			implements CustomPacketPayload {
 		public static final Type<Settings> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "revive_settings"));
 		public static final StreamCodec<RegistryFriendlyByteBuf, Settings> CODEC = StreamCodec.ofMember((s, buf) -> {
 			buf.writeBoolean(s.enabled);
 			buf.writeVarInt(s.seconds);
 			buf.writeVarInt(s.holdSeconds);
 			buf.writeBoolean(s.canEdit);
-		}, buf -> new Settings(buf.readBoolean(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean()));
+			buf.writeVarInt(s.cooldown);
+			buf.writeVarInt(s.fall);
+			buf.writeBoolean(s.ragdoll);
+		}, buf -> new Settings(buf.readBoolean(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean(), buf.readVarInt(), buf.readVarInt(),
+				buf.readBoolean()));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {
@@ -139,13 +145,16 @@ public final class Revive {
 	}
 
 	/** Client to server: an op changed the revive settings. */
-	public record Edit(boolean enabled, int seconds, int holdSeconds) implements CustomPacketPayload {
+	public record Edit(boolean enabled, int seconds, int holdSeconds, int cooldown, int fall, boolean ragdoll) implements CustomPacketPayload {
 		public static final Type<Edit> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "revive_edit"));
 		public static final StreamCodec<RegistryFriendlyByteBuf, Edit> CODEC = StreamCodec.ofMember((e, buf) -> {
 			buf.writeBoolean(e.enabled);
 			buf.writeVarInt(e.seconds);
 			buf.writeVarInt(e.holdSeconds);
-		}, buf -> new Edit(buf.readBoolean(), buf.readVarInt(), buf.readVarInt()));
+			buf.writeVarInt(e.cooldown);
+			buf.writeVarInt(e.fall);
+			buf.writeBoolean(e.ragdoll);
+		}, buf -> new Edit(buf.readBoolean(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readVarInt(), buf.readBoolean()));
 
 		@Override
 		public Type<? extends CustomPacketPayload> type() {
@@ -253,7 +262,13 @@ public final class Revive {
 		});
 		ServerPlayNetworking.registerGlobalReceiver(Edit.ID, (payload, context) -> context.server().execute(() -> {
 			if (context.player().hasPermissions(2)) {
-				set(payload.enabled(), payload.seconds(), payload.holdSeconds(), context.player().getGameProfile().getName());
+				BubbleConfig c = BubbleServer.config;
+				boolean extrasChanged = c.reviveCooldownSeconds != payload.cooldown() || c.noReviveFallBlocks != payload.fall()
+						|| c.ragdollDowns != payload.ragdoll();
+				c.reviveCooldownSeconds = payload.cooldown();
+				c.noReviveFallBlocks = payload.fall();
+				c.ragdollDowns = payload.ragdoll();
+				set(payload.enabled(), payload.seconds(), payload.holdSeconds(), context.player().getGameProfile().getName(), extrasChanged);
 			} else {
 				sendSettings(context.player());
 			}
@@ -497,6 +512,29 @@ public final class Revive {
 		}
 	}
 
+	/** For the admin status card: who's down and who's on cooldown. */
+	static String statusLine() {
+		if (server == null) {
+			return "";
+		}
+		List<String> down = new ArrayList<>();
+		for (Map.Entry<UUID, Down> e : downed.entrySet()) {
+			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+			if (p != null) {
+				down.add(p.getGameProfile().getName() + " (" + clock(e.getValue().left) + ")");
+			}
+		}
+		List<String> cool = new ArrayList<>();
+		for (Map.Entry<UUID, Integer> e : cooldown.entrySet()) {
+			ServerPlayer p = server.getPlayerList().getPlayer(e.getKey());
+			if (p != null) {
+				cool.add(p.getGameProfile().getName() + " " + clock(e.getValue()));
+			}
+		}
+		String a = down.isEmpty() ? "Nobody is down" : "Down: " + String.join(", ", down);
+		return a + (cool.isEmpty() ? "" : "  ·  Revive cooldown: " + String.join(", ", cool));
+	}
+
 	static String clock(int ticks) {
 		int secs = (ticks + 19) / 20;
 		return secs / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", secs % 60);
@@ -590,13 +628,18 @@ public final class Revive {
 	static void sendSettings(ServerPlayer p) {
 		BubbleConfig c = BubbleServer.config;
 		if (c != null && ServerPlayNetworking.canSend(p, Settings.ID)) {
-			ServerPlayNetworking.send(p, new Settings(c.reviveEnabled, c.reviveSeconds, c.reviveHoldSeconds, p.hasPermissions(2)));
+			ServerPlayNetworking.send(p, new Settings(c.reviveEnabled, c.reviveSeconds, c.reviveHoldSeconds, p.hasPermissions(2),
+					c.reviveCooldownSeconds, c.noReviveFallBlocks, c.ragdollDowns));
 		}
 	}
 
 	static void set(boolean enabled, int seconds, int hold, String by) {
+		set(enabled, seconds, hold, by, false);
+	}
+
+	static void set(boolean enabled, int seconds, int hold, String by, boolean extrasChanged) {
 		BubbleConfig c = BubbleServer.config;
-		boolean changed = c.reviveEnabled != enabled || c.reviveSeconds != seconds || c.reviveHoldSeconds != hold;
+		boolean changed = extrasChanged || c.reviveEnabled != enabled || c.reviveSeconds != seconds || c.reviveHoldSeconds != hold;
 		c.reviveEnabled = enabled;
 		c.reviveSeconds = seconds;
 		c.reviveHoldSeconds = hold;
@@ -606,7 +649,9 @@ public final class Revive {
 			server.getPlayerList().getPlayers().forEach(Revive::sendSettings);
 			if (changed) {
 				server.getPlayerList().broadcastSystemMessage(Component.literal(by + " changed revive: ").withStyle(ChatFormatting.GRAY)
-						.append(Component.literal(c.reviveEnabled ? "on, " + c.reviveSeconds + "s to bleed out, " + c.reviveHoldSeconds + "s to revive" : "off")
+						.append(Component.literal(c.reviveEnabled ? "on, " + c.reviveSeconds + "s to bleed out, " + c.reviveHoldSeconds + "s to revive"
+								+ (c.reviveCooldownSeconds > 0 ? ", " + clock(c.reviveCooldownSeconds * 20) + " cooldown" : ", no cooldown")
+								+ (c.noReviveFallBlocks > 0 ? ", falls of " + c.noReviveFallBlocks + "+ kill" : "") : "off")
 								.withStyle(c.reviveEnabled ? ChatFormatting.GREEN : ChatFormatting.RED)), false);
 			}
 		}

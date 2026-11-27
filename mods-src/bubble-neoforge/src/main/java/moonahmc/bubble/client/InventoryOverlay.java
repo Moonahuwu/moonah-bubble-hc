@@ -245,6 +245,31 @@ final class InventoryOverlay {
 			// bag
 			roundRect(ctx, cx - 6, cy - 3, 12, 9, 2, gold);
 			ctx.fill(cx - 1, cy, cx + 1, cy + 2, 0xFF6B4E12);
+			// a dot in the corner: green = open for you, amber = only the always-open tabs, red = closed by an admin
+			int state = shopState();
+			if (state >= 0) {
+				int dot = state == 0 ? 0xFF6EE08A : state == 1 ? 0xFFF2A94E : 0xFFE06C5A;
+				roundRect(ctx, getX() + width - 7, getY() + 1, 6, 6, 3, 0xFF0B0D10);
+				roundRect(ctx, getX() + width - 6, getY() + 2, 4, 4, 2, dot);
+			}
+			setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal(switch (state) {
+				case 0 -> "Shop (Strange Matter): open";
+				case 1 -> "Shop (Strange Matter): only the always-open tabs right now";
+				case 2 -> "Shop (Strange Matter): closed by an admin (Gamble still works)";
+				default -> "Shop (Strange Matter)";
+			})));
+		}
+
+		/** -1 unknown, 0 open, 1 between shop windows, 2 closed by an admin. */
+		private static int shopState() {
+			ShopPayloads.Catalog c = ClientState.catalog;
+			if (c == null) {
+				return -1;
+			}
+			if (c.shopClosed()) {
+				return 2;
+			}
+			return c.window() != 0 && ShopScreen.windowLeft() != 0 ? 0 : 1;
 		}
 
 		@Override

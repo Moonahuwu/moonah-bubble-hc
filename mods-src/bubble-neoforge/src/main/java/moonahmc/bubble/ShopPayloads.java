@@ -50,7 +50,8 @@ public final class ShopPayloads {
 	}
 
 	/** One thing for sale. sellValue is what the item would sell for, so the edit mode can warn about cheap prices. */
-	public record Offer(ItemStack stack, int price, double sellValue) {
+	/** group: the filter chip it sits under in a merged tab (the tab it used to be in). */
+	public record Offer(ItemStack stack, int price, double sellValue, String group) {
 	}
 
 	/** A shop tab. charging = the special "charge your Oritech gear" tab. */
@@ -81,6 +82,7 @@ public final class ShopPayloads {
 					writeStack(buf, o.stack);
 					buf.writeVarInt(o.price);
 					buf.writeDouble(o.sellValue);
+					buf.writeUtf(o.group == null ? "" : o.group, 64);
 				}
 				buf.writeBoolean(s.gamble);
 				buf.writeBoolean(s.video);
@@ -102,7 +104,7 @@ public final class ShopPayloads {
 				int m = Math.min(buf.readVarInt(), 512);
 				List<Offer> offers = new ArrayList<>(m);
 				for (int j = 0; j < m; j++) {
-					offers.add(new Offer(readStack(buf), buf.readVarInt(), buf.readDouble()));
+					offers.add(new Offer(readStack(buf), buf.readVarInt(), buf.readDouble(), buf.readUtf(64)));
 				}
 				boolean gamble = buf.readBoolean();
 				boolean video = buf.readBoolean();

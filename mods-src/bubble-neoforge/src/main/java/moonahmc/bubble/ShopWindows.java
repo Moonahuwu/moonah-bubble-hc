@@ -336,6 +336,18 @@ public final class ShopWindows {
 		return (ways.isEmpty() ? "" : "Opens for a while after " + String.join(", ", ways) + ". ") + "A Shop Key opens it just for you.";
 	}
 
+	/** For the admin status card. */
+	static String status(ServerPlayer p) {
+		if (Shop.closed) {
+			return "Shop: closed by an admin (gambling and selling still work)";
+		}
+		if (!BubbleServer.config.shopWindows || !running()) {
+			return "Shop: open (" + (BubbleServer.config.shopWindows ? "outside a run" : "shop windows are off") + ")";
+		}
+		int t = left(p);
+		return t > 0 ? "Shop: open for you, " + Revive.clock(t) + " left" : "Shop: closed until the next shop window (always-open tabs work)";
+	}
+
 	/** A Shop Key was used: null if it opened the shop (use one up), otherwise why not (keep it). */
 	static String useKey(ServerPlayer p) {
 		if (!BubbleServer.config.shopWindows || !running()) {

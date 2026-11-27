@@ -107,12 +107,16 @@ public final class ShopScreen extends ScaledScreen {
 		ClientPlayNetworking.send(new ShopPayloads.Request());
 	}
 
+	/** The filter chip picked in a merged tab (null = All). */
+	private String group;
+	private boolean autoPicked;
+
 	private int gridX() {
-		return left + 14 + TAB_W + 8;
+		return noSidebar() ? left + 14 : left + 14 + TAB_W + 8;
 	}
 
 	private int gridY() {
-		return top + 60;
+		return top + 60 + (chipsShown() ? 22 : 0);
 	}
 
 	private int gridW() {
@@ -120,7 +124,59 @@ public final class ShopScreen extends ScaledScreen {
 	}
 
 	private int gridH() {
-		return H - 60 - 14 - (editing && selected >= 0 ? 52 : 0);
+		return H - (gridY() - top) - 14 - (editing && selected >= 0 ? 52 : 0) - (noSidebar() && canEdit() ? 20 : 0);
+	}
+
+	/** The Gamble side is one page now: no tab column unless there's more than one tab (or you're editing). */
+	private boolean noSidebar() {
+		return gambleMode && !editing && shown().size() <= 1;
+	}
+
+	/** A merged tab's groups, in order (Mekanism, AE2...). */
+	private static List<String> groups(ShopPayloads.Section sec) {
+		List<String> out = new ArrayList<>();
+		for (ShopPayloads.Offer o : sec.offers()) {
+			if (!out.contains(o.group())) {
+				out.add(o.group());
+			}
+		}
+		return out;
+	}
+
+	private boolean chipsShown() {
+		ShopPayloads.Section s = ClientState.catalog == null ? null : currentSection();
+		return s != null && !listMode() && !editing && !s.charging() && !videoTab(s) && groups(s).size() >= 2;
+	}
+
+	/** The chips' boxes: {x, width} for All then each group, as far as they fit. */
+	private List<int[]> chipBoxes(List<String> labels) {
+		List<int[]> out = new ArrayList<>();
+		int x = gridX();
+		for (String l : labels) {
+			int w = font.width(l) + 12;
+			if (x + w > gridX() + gridW() - 14) {
+				break;
+			}
+			out.add(new int[] {x, w});
+			x += w + 4;
+		}
+		return out;
+	}
+
+	private List<String> chipLabels(ShopPayloads.Section sec) {
+		List<String> labels = new ArrayList<>();
+		labels.add("All");
+		labels.addAll(groups(sec));
+		return labels;
+	}
+
+	/** Between shop windows: this tab can't be bought from (it's shown dimmed, with when it opens). */
+	private boolean lockedHere() {
+		if (ClientState.catalog == null || editing || listMode()) {
+			return false;
+		}
+		ShopPayloads.Section s = currentSection();
+		return s != null && windowShut() && !s.alwaysOpen() && !(ClientState.catalog.shopClosed() && !gambleMode);
 	}
 
 	@Override
@@ -133,6 +189,7 @@ public final class ShopScreen extends ScaledScreen {
 		if (ClientState.catalog != null) {
 			restoreTab(ClientState.catalog);
 		}
+		pickOpenTab();
 		editButton = addRenderableWidget(new BubbleScreen.FlatButton(left + W - 14 - 52, top + 38, 52, 16, Component.literal("Edit"), () -> {
 			editing = !editing;
 			selected = -1;
@@ -253,11 +310,7 @@ public final class ShopScreen extends ScaledScreen {
 		if (ClientState.catalog == null || editing) {
 			return false;
 		}
-		if (ClientState.catalog.shopClosed() && !gambleMode) {
-			return true;
-		}
-		ShopPayloads.Section sec = currentSection();
-		return windowShut() && (sec == null || !sec.alwaysOpen());
+		return ClientState.catalog.shopClosed() && !gambleMode;
 	}
 
 	/** Between shop windows: buying, gambling and charging wait for the next one. */
@@ -289,7 +342,7 @@ public final class ShopScreen extends ScaledScreen {
 		sectionField.visible = editing;
 		addSectionButton.visible = editing;
 		removeSectionButton.visible = editing && sec != null;
-		chargeAllButton.visible = sec != null && sec.charging() && !closedHere() && !listMode();
+		chargeAllButton.visible = sec != null && sec.charging() && !closedHere() && !lockedHere() && !listMode();
 		boolean videoTab = videoTab(sec) && !listMode();
 		boolean grid = listMode() || (sec != null && !sec.charging() && !videoTab && !closedHere());
 		searchBox.visible = !editing;
@@ -314,7 +367,7 @@ public final class ShopScreen extends ScaledScreen {
 
 	/** The Video tab as players see it (ops in Edit mode get the normal grid, to change the price). */
 	private boolean videoTab(ShopPayloads.Section sec) {
-		return sec != null && sec.video() && !editing && !closedHere();
+		return sec != null && sec.video() && !editing && !closedHere() && !lockedHere();
 	}
 
 	private static int videoPrice(ShopPayloads.Section sec) {
@@ -421,8 +474,11 @@ public final class ShopScreen extends ScaledScreen {
 		} else {
 			ShopPayloads.Section sec = currentSection();
 			if (sec != null) {
+				boolean filter = group != null && chipsShown();
 				for (int i = 0; i < sec.offers().size(); i++) {
-					out.add(new Item(tab, i, sec.offers().get(i)));
+					if (!filter || group.equals(sec.offers().get(i).group())) {
+						out.add(new Item(tab, i, sec.offers().get(i)));
+					}
 				}
 			}
 		}
@@ -487,7 +543,29 @@ public final class ShopScreen extends ScaledScreen {
 	}
 
 	/** Called when a new catalogue arrives (an op changed something). */
+	/** The first time the shop opens between windows, start on a tab you can actually buy from. */
+	private void pickOpenTab() {
+		ShopPayloads.Catalog c = ClientState.catalog;
+		if (autoPicked || c == null) {
+			return;
+		}
+		autoPicked = true;
+		if (!lockedHere()) {
+			return;
+		}
+		for (int i : shown()) {
+			ShopPayloads.Section s = c.sections().get(i);
+			if (s.alwaysOpen() && !s.video() && !s.charging()) {
+				tab = i;
+				favTab = false;
+				scroll = 0;
+				return;
+			}
+		}
+	}
+
 	void refresh() {
+		pickOpenTab();
 		boolean side = gambleMode;
 		ShopPayloads.Section sec = currentSection();
 		if (side != gambleMode) {
@@ -569,12 +647,13 @@ public final class ShopScreen extends ScaledScreen {
 			return false;
 		}
 		// Tabs
-		java.util.List<Integer> tabList = tabRows();
+		java.util.List<Integer> tabList = noSidebar() ? new java.util.ArrayList<>() : tabRows();
 		clampTabScroll(tabList.size());
 		for (int k = tabScroll; k < tabList.size() && k < tabScroll + visibleTabs(); k++) {
 			int i = tabList.get(k);
 			int ty = top + 60 + (k - tabScroll) * TAB_STEP;
 			if (mx >= left + 14 && mx < left + 14 + TAB_W && my >= ty && my < ty + 20) {
+				group = null;
 				if (searching()) {
 					clearSearch();
 				}
@@ -599,7 +678,20 @@ public final class ShopScreen extends ScaledScreen {
 			}
 		}
 		ShopPayloads.Section sec = currentSection();
-		if (sec == null || closedHere() || (!listMode() && videoTab(sec))) {
+		if (sec != null && chipsShown()) {
+			List<String> labels = chipLabels(sec);
+			List<int[]> boxes = chipBoxes(labels);
+			int cy = gridY() - 20;
+			for (int i = 0; i < boxes.size(); i++) {
+				int[] b = boxes.get(i);
+				if (mx >= b[0] && mx < b[0] + b[1] && my >= cy && my < cy + 16) {
+					group = i == 0 ? null : labels.get(i);
+					scroll = 0;
+					return true;
+				}
+			}
+		}
+		if (sec == null || closedHere() || lockedHere() || (!listMode() && videoTab(sec))) {
 			return false;
 		}
 		if (sec.charging() && !listMode()) {
@@ -711,6 +803,7 @@ public final class ShopScreen extends ScaledScreen {
 			return;
 		}
 		gambleMode = gamble;
+		group = null;
 		java.util.List<Integer> tabList = shown();
 		tab = tabList.isEmpty() ? 0 : tabList.get(0);
 		ShopPayloads.Catalog cat = ClientState.catalog;
@@ -804,7 +897,7 @@ public final class ShopScreen extends ScaledScreen {
 		}
 
 		// Tabs
-		java.util.List<Integer> tabList = tabRows();
+		java.util.List<Integer> tabList = noSidebar() ? new java.util.ArrayList<>() : tabRows();
 		clampTabScroll(tabList.size());
 		float targetY = Float.NaN;
 		int picked = selectedRow();
@@ -834,12 +927,16 @@ public final class ShopScreen extends ScaledScreen {
 				continue;
 			}
 			ShopPayloads.Section s = c.sections().get(i);
+			boolean locked = windowShut() && !s.alwaysOpen() && !editing;
 			ctx.renderItem(s.icon(), left + 19, ty + 2);
-			ctx.drawString(font, Component.literal(font.plainSubstrByWidth(s.name(), TAB_W - 30)), left + 39, ty + 6,
-					i == picked && !searching() ? TEXT : MUTED, false);
+			ctx.drawString(font, Component.literal(font.plainSubstrByWidth(s.name(), TAB_W - (locked ? 44 : 30))), left + 39, ty + 6,
+					locked ? 0xFF5A606B : i == picked && !searching() ? TEXT : MUTED, false);
+			if (locked) {
+				ctx.drawString(font, Component.literal("\uD83D\uDD12"), left + 14 + TAB_W - 14, ty + 6, 0xFF7A828E, false);
+			}
 		}
 		drawTabArrows(ctx, tabList.size());
-		if (tabList.isEmpty()) {
+		if (shown().isEmpty()) {
 			ctx.drawString(font, Component.literal(gambleMode ? "No cases yet." : "Nothing here."), gridX(), gridY() + 4, MUTED, false);
 		}
 
@@ -848,26 +945,28 @@ public final class ShopScreen extends ScaledScreen {
 			return;
 		}
 		float slide = 1f - ease((nowMs - tabAnimAt) / 180f);
+		if (chipsShown()) {
+			List<String> labels = chipLabels(sec);
+			List<int[]> boxes = chipBoxes(labels);
+			int cy = gridY() - 20;
+			for (int i = 0; i < boxes.size(); i++) {
+				int[] b = boxes.get(i);
+				boolean on = i == 0 ? group == null : labels.get(i).equals(group);
+				boolean hover = mouseX >= b[0] && mouseX < b[0] + b[1] && mouseY >= cy && mouseY < cy + 16;
+				roundRect(ctx, b[0], cy, b[1], 16, 5, on ? 0xFF253029 : hover ? CARD_HOVER : CARD);
+				if (on) {
+					roundRect(ctx, b[0] + 4, cy + 14, b[1] - 8, 2, 1, ACCENT);
+				}
+				ctx.drawString(font, Component.literal(labels.get(i)), b[0] + 6, cy + 4, on ? TEXT : MUTED, false);
+			}
+		}
 		ctx.pose().pushPose();
 		ctx.pose().translate(slide * 14f, 0, 0);
 		if (closedHere()) {
-			if (windowShut() && !(ClientState.catalog.shopClosed() && !gambleMode)) {
-				String info = ClientState.catalog.windowInfo();
-				var lines = font.split(Component.literal(info.isEmpty() ? "It opens for a while at key moments of the run." : info), gridW() - 40);
-				roundRect(ctx, gridX(), gridY(), gridW() - 14, 58 + lines.size() * 11, 6, CARD);
-				BubbleScreen.bigText(ctx, font, "The shop is closed for now", gridX() + 12, gridY() + 10);
-				int y = gridY() + 30;
-				for (var line : lines) {
-					ctx.drawString(font, line, gridX() + 12, y, MUTED, false);
-					y += 11;
-				}
-				ctx.drawString(font, Component.literal("You can still sell items."), gridX() + 12, y + 2, MUTED, false);
-			} else {
-				roundRect(ctx, gridX(), gridY(), gridW() - 14, 58, 6, CARD);
-				BubbleScreen.bigText(ctx, font, "The shop is closed", gridX() + 12, gridY() + 10);
-				ctx.drawString(font, Component.literal("An admin turned buying off. You can still sell items,"), gridX() + 12, gridY() + 30, MUTED, false);
-				ctx.drawString(font, Component.literal("and the Gamble tab is open."), gridX() + 12, gridY() + 42, MUTED, false);
-			}
+			roundRect(ctx, gridX(), gridY(), gridW() - 14, 58, 6, CARD);
+			BubbleScreen.bigText(ctx, font, "The shop is closed", gridX() + 12, gridY() + 10);
+			ctx.drawString(font, Component.literal("An admin turned buying off. You can still sell items,"), gridX() + 12, gridY() + 30, MUTED, false);
+			ctx.drawString(font, Component.literal("and the Gamble tab is open."), gridX() + 12, gridY() + 42, MUTED, false);
 		} else if (listMode()) {
 			drawGrid(ctx, mouseX, mouseY);
 		} else if (sec.charging()) {
@@ -878,9 +977,34 @@ public final class ShopScreen extends ScaledScreen {
 			drawGrid(ctx, mouseX, mouseY);
 		}
 		ctx.pose().popPose();
+		if (lockedHere()) {
+			drawLocked(ctx);
+		}
 		if (editing && selected >= 0 && selected < sec.offers().size()) {
 			drawEditor(ctx, sec.offers().get(selected));
 		}
+	}
+
+	/** Between windows: the tab's items stay visible but dimmed, with a note on what opens the shop. */
+	private void drawLocked(GuiGraphics ctx) {
+		int x = gridX();
+		int w = gridW() - 14;
+		ctx.pose().pushPose();
+		ctx.pose().translate(0, 0, 300);
+		roundRect(ctx, x, gridY(), w, gridH(), 6, 0xB0101216);
+		String info = ClientState.catalog.windowInfo();
+		var lines = font.split(Component.literal(info.isEmpty() ? "It opens for a while at key moments of the run." : info), w - 40);
+		int boxH = 46 + lines.size() * 11;
+		int by = gridY() + Math.max(8, (gridH() - boxH) / 2);
+		roundRect(ctx, x + 12, by, w - 24, boxH, 6, CARD);
+		BubbleScreen.bigText(ctx, font, "\uD83D\uDD12 Closed for now", x + 24, by + 8);
+		int y = by + 26;
+		for (var line : lines) {
+			ctx.drawString(font, line, x + 24, y, MUTED, false);
+			y += 11;
+		}
+		ctx.drawString(font, Component.literal("Selling always works, and the unlocked tabs are open."), x + 24, y + 2, MUTED, false);
+		ctx.pose().popPose();
 	}
 
 	private static float ease(float t) {

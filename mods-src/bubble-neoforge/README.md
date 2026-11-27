@@ -127,7 +127,8 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
 - **Bullet cam (1.32.0):** if what got you was shot from 10+ blocks away (a skeleton's arrow, a sniper's bullet, a
   ghast's fireball), the down cam and the kill cam ride right behind the shot until it hits ("Shot from 63 blocks
   away"), then go back to the normal view. It picks the shot up once it's within 48 blocks of a player.
-- **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
+- **Settings:** the Revive card in the Bubble menu's Settings tab shows everyone how it's set (1.40.0); ops get an Edit
+  button there that opens Admin > Rules (on/off, bleed-out time, revive time, cooldown, falls, ragdolling),
   `/bubble revive [on|off] [seconds]`, `/bubble revive cooldown <seconds>`, `/bubble revive fall <blocks>`, or
   `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` / `reviveCooldownSeconds` / `noReviveFallBlocks` in
   `config/bubble.json`.
@@ -172,6 +173,14 @@ A case drop is one of the server's cases at random. All of it is in `config/bubb
 `/bubble odds mob <mob> [kills]` shows what that many kills would give (simulated, nothing drops).
 
 ## Strange Matter and the shop
+
+**Tabs (1.40.0):** the shop has 9 tabs instead of 17: Essentials, Materials, Gear (with Gadgets), Backpacks (with
+the upgrades), Fun (with Lucky Blocks, Estrogen and Screens), Mods (Apotheosis, Mekanism, Applied Energistics,
+Cyclic), Video, Guns and Charging. In a merged tab, chips along the top (All · Mekanism · ...) filter it. The Gamble
+side is one page (cases and Apothic Rolls, with chips) with no tab column. Between shop windows, tabs you can't buy
+from show a 🔒 and their items stay visible but dimmed, with what opens the shop; the shop opens on a tab you can buy
+from. The Shop button above your inventory has a dot: green = open for you, amber = only the always-open tabs, red =
+closed by an admin.
 
 **Shop windows (1.32.0):** during a run, buying (the shop, the Gamble tab and charging) only opens for a while at key
 moments. Selling always works, and outside a run (lobby, post-game) it's open.
@@ -380,11 +389,20 @@ on. A soft chime plays when someone readies up, a bell when the countdown starts
 
 ## Admin tab (ops)
 
-The Bubble menu has an **Admin** tab: Start the run (during the lobby), Next world, Retry same seed, End the run (goes
-to the vote), Skip (kill cam / vote), Revive (everyone spectating comes back next to the group; at the end of a run it
-does Another life), Spin the wheel, and **Close shop / Open shop**: turns off buying from the shop tabs (and Oritech
-charging) for everyone, while the Gamble tab, case items and selling keep working. It stays that way (saved as
-`shopClosed` in `config/bubble-shop.json`) until an op opens it again. Red buttons need a second click within 3 seconds.
+The Bubble menu has an **Admin** tab (laid out in groups since 1.40.0):
+
+- **Status** at the top, updated every second: the run (number, lobby/playing, players, stages cleared), what the
+  director is doing (or when the next random event is), whether the shop is open for you, and who's down or on a
+  revive cooldown.
+- **Run:** Start (during the lobby), Skip (kill cam / vote), Revive (everyone spectating comes back next to the
+  group; at the end of a run it does Another life), Spin (the start-of-run wheel); and in red, needing a second click
+  within 3 seconds: End run (goes to the vote), New world, Retry seed. Hover any of them for what it does.
+- **Tuning**, a tile per page: **Shop** (the master "buying on/off" switch that used to be Close shop: off turns off
+  buying and charging for everyone while Gamble, case items and selling keep working, saved as `shopClosed`; plus
+  the shop windows, their timings and which tabs stay open), **Ragdolls**, **Events & director**, **Wheels** (with
+  Spin now), **Objectives**, and **Rules** (revive on/off, bleed-out time, time to get someone up, the revive
+  cooldown, falls that kill outright, and ragdolling when you're down).
+- **Players:** Currencies.
 At the end of a round, an op can **shift-click** a vote button (Next world / Retry seed / Another life) to decide it for
 everyone straight away.
 
@@ -772,8 +790,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.39.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.39.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.40.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.40.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

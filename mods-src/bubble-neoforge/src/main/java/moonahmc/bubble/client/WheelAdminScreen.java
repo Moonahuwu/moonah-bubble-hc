@@ -130,6 +130,11 @@ public final class WheelAdminScreen extends ScaledScreen {
 			b.selected = tab == i;
 		}
 		addRenderableWidget(new BubbleScreen.FlatButton(left + W - 14 - 64, top + H - 30, 64, 20, Component.literal("Back"), this::onClose)).ghost = true;
+		if (tab == 0) {
+			BubbleScreen.FlatButton spin = addRenderableWidget(new BubbleScreen.FlatButton(left + W - 16 - 84, top + 38, 84, 16, Component.literal("Spin now"),
+					() -> ClientPlayNetworking.send(new moonahmc.bubble.Lobby.Admin(moonahmc.bubble.BubbleServer.ADMIN_WHEEL))));
+			spin.setTooltip(Tooltip.create(Component.literal("Spins the start-of-run wheel for everyone now")));
+		}
 		if (data == null) {
 			return;
 		}

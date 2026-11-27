@@ -180,6 +180,8 @@ public final class BubbleClient {
 		}));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.PostStatus.ID, (payload, context) -> context.client().execute(
 				() -> ClientState.postStatus = payload));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.AdminStatus.Lines.ID, (payload, context) -> context.client().execute(() ->
+				ClientState.adminStatus = payload.lines()));
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.RagdollTuning.Settings.ID, (payload, context) -> context.client().execute(() -> {
 			RagdollAdminScreen.settings = payload;
 			if (context.client().screen instanceof RagdollAdminScreen s) {
@@ -256,6 +258,8 @@ public final class BubbleClient {
 			ReviveClient.settings = payload;
 			if (context.client().screen instanceof BubbleScreen bs) {
 				bs.syncFromServer();
+			} else if (context.client().screen instanceof RulesScreen rs) {
+				rs.refresh();
 			}
 		}));
 		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> ReviveClient.renderHud(e.getGuiGraphics()));

@@ -39,6 +39,7 @@ public final class Bubble {
 		MobDrops.init(); // cases, spins and Strange Matter from mobs
 		RagdollTuning.init(); // how fragile ragdolls are, live from Admin > Ragdolls
 		Director.init(); // random events come in the lulls
+		AdminStatus.init(); // the Admin tab's status card
 		ShopWindows.init(); // the shop only opens at key moments of a run
 		RunTally.init(); // downs and deaths this run in the tab list; everyone on one team
 		Bosses.init(); // bosses pay everyone who helped, boss cam, mini-boss elites, the wheel's "Summon a boss"

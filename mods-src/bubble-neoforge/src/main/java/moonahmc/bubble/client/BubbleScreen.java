@@ -35,8 +35,8 @@ public final class BubbleScreen extends ScaledScreen {
 	/** The full height this tab would like (header, everything in it, footer). */
 	private int contentHeight() {
 		return switch (tab) {
-			case 1 -> 62 + 13 * PRE_ROW + 16 + Math.max(1, pGroups.size()) * STRUCT_ROW + 40;
-			case 2 -> 62 + ADMIN.length * 36 + 36;
+			case 1 -> 62 + 2 * PRE_HEAD + 13 * PRE_ROW + 16 + Math.max(1, pGroups.size()) * STRUCT_ROW + 40;
+			case 2 -> adminHeight();
 			default -> 60 + 2 * (CARD_H + GAP) + 70 + GAP + 64 + GAP + 44 + 44;
 		};
 	}
@@ -106,9 +106,8 @@ public final class BubbleScreen extends ScaledScreen {
 
 	private static final int[] REVIVE_SECONDS = {10, 15, 20, 30, 45, 60, 90, 120, 180};
 	private static final int[] REVIVE_HOLD = {0, 1, 2, 3, 5, 8};
-	private Toggle reviveToggle;
-	private Choice reviveSecs;
-	private Choice reviveHold;
+	/** The revive settings had arrived when the widgets were made (so the card's Edit button is there). */
+	private boolean reviveShown;
 
 	private static int nearest(int[] options, int v) {
 		int best = 0;
@@ -258,23 +257,12 @@ public final class BubbleScreen extends ScaledScreen {
 			ClientSettings.downCam = v;
 			ClientSettings.save();
 		}));
-		reviveToggle = null;
-		moonahmc.bubble.Revive.Settings rs = ReviveClient.settings;
-		if (rs != null) {
-			// Revive: on/off, how long you have while down, how long someone has to stand next to you
-			reviveToggle = addRenderableWidget(new Toggle(left + 28, reviveY() + 22, () -> ReviveClient.settings != null && ReviveClient.settings.enabled(),
-					v -> ReviveClient.sendEdit(v, ReviveClient.settings.seconds(), ReviveClient.settings.holdSeconds()), DANGER));
-			reviveSecs = new Choice(left + 124, reviveY() + 23, 70, 16, labels(REVIVE_SECONDS, ""),
-					() -> nearest(REVIVE_SECONDS, ReviveClient.settings == null ? 30 : ReviveClient.settings.seconds()),
-					v -> ReviveClient.sendEdit(ReviveClient.settings.enabled(), REVIVE_SECONDS[v], ReviveClient.settings.holdSeconds()));
-			reviveHold = new Choice(left + 274, reviveY() + 23, 70, 16, labels(REVIVE_HOLD, "Instant"),
-					() -> nearest(REVIVE_HOLD, ReviveClient.settings == null ? 3 : ReviveClient.settings.holdSeconds()),
-					v -> ReviveClient.sendEdit(ReviveClient.settings.enabled(), ReviveClient.settings.seconds(), REVIVE_HOLD[v]));
-			addRenderableWidget(reviveSecs);
-			addRenderableWidget(reviveHold);
-			reviveToggle.active = rs.canEdit();
-			reviveSecs.active = rs.canEdit();
-			reviveHold.active = rs.canEdit();
+		// Revive: everyone sees how it works; ops get an Edit button (Admin > Rules has all of it)
+		reviveShown = ReviveClient.settings != null;
+		if (reviveShown && ReviveClient.settings.canEdit()) {
+			FlatButton edit = addRenderableWidget(new FlatButton(left + W - 28 - 48, reviveY() + 7, 48, 16, Component.literal("Edit"),
+					() -> minecraft.setScreen(new RulesScreen(this))));
+			edit.ghost = true;
 		}
 		fixedWidget(new FlatButton(left + W - 88, top + H - 30, 68, 20, Component.literal("Done"), this::onClose));
 		applyPermissions();
@@ -295,7 +283,7 @@ public final class BubbleScreen extends ScaledScreen {
 
 	/** Called when the server sends new settings (someone else changed them, or ours were accepted). */
 	void syncFromServer() {
-		if (tab == 0 && reviveToggle == null && ReviveClient.settings != null && bubbleToggle != null) {
+		if (tab == 0 && !reviveShown && ReviveClient.settings != null && bubbleToggle != null) {
 			rebuildWidgets(); // the revive settings just arrived: add the Revive card
 			return;
 		}
@@ -386,14 +374,12 @@ public final class BubbleScreen extends ScaledScreen {
 		// Revive (shared rule): go down instead of dying, a teammate next to you gets you up
 		cardAt(ctx, mouseX, mouseY, left + 14, reviveY(), W - 28, 44);
 		ctx.drawString(font, Component.literal("Revive"), left + 28, reviveY() + 8, TEXT, false);
-		String rdesc = ReviveClient.settings == null ? "Loading..." : ReviveClient.settings.enabled()
-				? "You go down instead of dying; stand next to someone to get them up" : "Off: dying is dying";
-		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(rdesc, W - 28 - 28 - font.width("Revive") - 8)),
-				left + 28 + font.width("Revive") + 8, reviveY() + 8, ReviveClient.settings != null && ReviveClient.settings.enabled() ? ACCENT : MUTED, false);
-		if (ReviveClient.settings != null) {
-			ctx.drawString(font, Component.literal("Bleed out"), left + 72, reviveY() + 27, MUTED, false);
-			ctx.drawString(font, Component.literal("Revive takes"), left + 206, reviveY() + 27, MUTED, false);
-		}
+		String rdesc = ReviveClient.settings == null ? "" : ReviveClient.settings.enabled()
+				? "Go down instead of dying; stand next to someone to get them up" : "";
+		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(rdesc, W - 28 - 28 - font.width("Revive") - 8 - 56)),
+				left + 28 + font.width("Revive") + 8, reviveY() + 8, MUTED, false);
+		ctx.drawString(font, Component.literal(font.plainSubstrByWidth(ReviveClient.summary(), W - 56)), left + 28, reviveY() + 26,
+				ReviveClient.settings != null && ReviveClient.settings.enabled() ? ACCENT : MUTED, false);
 
 		endClip(ctx);
 		// Footer
@@ -413,7 +399,7 @@ public final class BubbleScreen extends ScaledScreen {
 					: "Only operators can change these settings.";
 			ctx.drawString(font, Component.literal(note), left + 22, top + H - 24, MUTED, false);
 		} else if (tab == 2) {
-			ctx.drawString(font, Component.literal("Red buttons need a second click. Ops can also shift-click a vote at the end of a round."),
+			ctx.drawString(font, Component.literal("Red buttons need a second click. Hover a button to see what it does."),
 					left + 22, top + H - 24, MUTED, false);
 		}
 		int max = maxScroll();
@@ -472,40 +458,37 @@ public final class BubbleScreen extends ScaledScreen {
 
 	// ------------------------------------------------------------------ "Admin" tab (ops)
 
-	private static final String[][] ADMIN = {
-			// label, description, button, needs a second click
-			{"Start the run", "Ends the ready-up lobby and starts now", "Start", ""},
-			{"Next world", "Throws this world away and makes a new one", "New world", "!"},
-			{"Retry same seed", "A fresh copy of this world, same seed", "Retry", "!"},
-			{"End the run", "Goes to the post-game vote, like a death", "End run", "!"},
-			{"Skip", "Skips the kill cam, or ends the vote now", "Skip", ""},
-			{"Revive", "Brings back everyone spectating (Another life after a death)", "Revive", ""},
-			{"Spin the wheel", "Spins the start-of-run wheel now", "Spin", ""},
-			{"Shop", "Turns buying in the shop off/on. Gamble and selling still work", "Close shop", ""},
-			{"Shop windows", "When the shop opens in a run, for how long, which tabs stay open", "Edit", ""},
-			{"Ragdolls", "How fragile everyone is: what ragdolls you, how far you fly", "Edit", ""},
-			{"Objectives", "Add or remove objectives and stages in any game mode", "Edit", ""},
-			{"Wheel slices", "Switch slices on/off on both wheels, set weights, do one now", "Edit", ""},
-			{"Random events", "Hordes, watchers, supply drops: toggle them, or force one now", "Edit", ""},
-			{"Currencies", "Give, take or set anyone's Strange Matter and Eidolons", "Open", ""}};
-	private static final int[] ADMIN_ACTIONS = {moonahmc.bubble.BubbleServer.ADMIN_START, moonahmc.bubble.BubbleServer.ADMIN_NEXT_WORLD,
-			moonahmc.bubble.BubbleServer.ADMIN_RETRY_SEED, moonahmc.bubble.BubbleServer.ADMIN_END_RUN, moonahmc.bubble.BubbleServer.ADMIN_SKIP,
-			moonahmc.bubble.BubbleServer.ADMIN_REVIVE, moonahmc.bubble.BubbleServer.ADMIN_WHEEL, moonahmc.bubble.BubbleServer.ADMIN_SHOP, -5, -6, -1, -2, -3, -4};
-	private final long[] armed = new long[ADMIN.length];
+	/** Run buttons: label, what it does (tooltip), action, needs a second click. */
+	private static final Object[][] RUN = {
+			{"Start", "Ends the ready-up lobby and starts the run now", moonahmc.bubble.BubbleServer.ADMIN_START, false},
+			{"Skip", "Skips the kill cam, or ends the vote now", moonahmc.bubble.BubbleServer.ADMIN_SKIP, false},
+			{"Revive", "Brings back everyone spectating (Another life after a death)", moonahmc.bubble.BubbleServer.ADMIN_REVIVE, false},
+			{"Spin", "Spins the start-of-run wheel now", moonahmc.bubble.BubbleServer.ADMIN_WHEEL, false},
+			{"End run", "Goes to the post-game vote, like a death", moonahmc.bubble.BubbleServer.ADMIN_END_RUN, true},
+			{"New world", "Throws this world away and makes a new one", moonahmc.bubble.BubbleServer.ADMIN_NEXT_WORLD, true},
+			{"Retry seed", "A fresh copy of this world, same seed", moonahmc.bubble.BubbleServer.ADMIN_RETRY_SEED, true}};
+	/** Pages: title, one line, which. */
+	private static final String[][] TUNING = {
+			{"Shop", "Windows, timings, open tabs", "shop"},
+			{"Ragdolls", "How fragile everyone is", "ragdolls"},
+			{"Events & director", "What happens, how often", "events"},
+			{"Wheels", "Slices, weights, spin", "wheel"},
+			{"Objectives", "Goals and stages", "goals"},
+			{"Rules", "Revive, cooldown, falls", "rules"}};
+	private final long[] armed = new long[RUN.length];
+	private int statusAge;
 
-	private int adminY(int i) {
-		return top + 62 + i * 36 - contentScroll;
+	private int adminTop() {
+		return top + 62 - contentScroll;
+	}
+
+	/** The Admin tab's height: status card, Run, Tuning (3 rows of tiles) and Players. */
+	private static int adminHeight() {
+		return 62 + 62 + 16 + 48 + 16 + 3 * 44 + 16 + 40 + 36;
 	}
 
 	private static boolean shopClosed() {
 		return ClientState.catalog != null && ClientState.catalog.shopClosed();
-	}
-
-	private static String adminLabel(int i) {
-		if (ADMIN_ACTIONS[i] == moonahmc.bubble.BubbleServer.ADMIN_SHOP) {
-			return shopClosed() ? "Open shop" : "Close shop";
-		}
-		return ADMIN[i][2];
 	}
 
 	/** A new shop catalogue arrived (the shop was opened/closed). */
@@ -515,65 +498,128 @@ public final class BubbleScreen extends ScaledScreen {
 		}
 	}
 
+	@Override
+	public void tick() {
+		super.tick();
+		if (tab == 2 && ClientState.canEdit && statusAge-- <= 0) {
+			statusAge = 20;
+			ClientPlayNetworking.send(new moonahmc.bubble.AdminStatus.Request());
+		}
+	}
+
+	private void openPage(String which) {
+		switch (which) {
+			case "shop" -> minecraft.setScreen(new ShopWindowsScreen(this));
+			case "ragdolls" -> minecraft.setScreen(new RagdollAdminScreen(this));
+			case "events" -> minecraft.setScreen(new WheelAdminScreen(this, 2));
+			case "wheel" -> minecraft.setScreen(new WheelAdminScreen(this, 0));
+			case "goals" -> minecraft.setScreen(new GoalsEditorScreen(this));
+			case "rules" -> minecraft.setScreen(new RulesScreen(this));
+			case "currencies" -> minecraft.setScreen(new CurrencyAdminScreen(this));
+			default -> {
+			}
+		}
+	}
+
 	private void initAdmin() {
 		if (ClientState.catalog == null) {
 			ClientPlayNetworking.send(new moonahmc.bubble.ShopPayloads.Request());
 		}
-		for (int i = 0; i < ADMIN.length; i++) {
+		statusAge = 0;
+		int y0 = adminTop();
+		int inner = W - 28;
+		// Run: four everyday buttons, then the three that end things (red, click twice)
+		int rowA = y0 + 62 + 16;
+		int rowB = rowA + 24;
+		for (int i = 0; i < RUN.length; i++) {
 			int index = i;
-			FlatButton b = new FlatButton(left + W - 28 - 96, adminY(i) + 7, 96, 18, Component.literal(adminLabel(i)), null);
-			b.color = ADMIN[i][3].isEmpty() ? ACCENT : DANGER;
+			boolean danger = (Boolean) RUN[i][3];
+			int perRow = danger ? 3 : 4;
+			int slot = danger ? i - 4 : i;
+			int bw = (inner - (perRow - 1) * 6) / perRow;
+			FlatButton b = new FlatButton(left + 14 + slot * (bw + 6), danger ? rowB : rowA, bw, 20, Component.literal((String) RUN[i][0]), null);
+			b.color = danger ? DANGER : ACCENT;
+			b.ghost = !danger;
+			b.setTooltip(net.minecraft.client.gui.components.Tooltip.create(Component.literal((String) RUN[i][1])));
 			b.setAction(() -> {
 				long now = net.minecraft.Util.getMillis();
-				if (!ADMIN[index][3].isEmpty() && now - armed[index] > 3000) {
+				if ((Boolean) RUN[index][3] && now - armed[index] > 3000) {
 					armed[index] = now;
-					b.setMessage(Component.literal("Click to confirm"));
+					b.setMessage(Component.literal("Sure?"));
 					return;
 				}
 				armed[index] = 0;
-				b.setMessage(Component.literal(adminLabel(index)));
-				if (ADMIN_ACTIONS[index] == -1) {
-					minecraft.setScreen(new GoalsEditorScreen(this));
-					return;
-				}
-				if (ADMIN_ACTIONS[index] == -4) {
-					minecraft.setScreen(new CurrencyAdminScreen(this));
-					return;
-				}
-				if (ADMIN_ACTIONS[index] == -5) {
-					minecraft.setScreen(new ShopWindowsScreen(this));
-					return;
-				}
-				if (ADMIN_ACTIONS[index] == -6) {
-					minecraft.setScreen(new RagdollAdminScreen(this));
-					return;
-				}
-				if (ADMIN_ACTIONS[index] < -1 && ADMIN_ACTIONS[index] > -4) {
-					minecraft.setScreen(new WheelAdminScreen(this, ADMIN_ACTIONS[index] == -2 ? 0 : 2));
-					return;
-				}
-				ClientPlayNetworking.send(new moonahmc.bubble.Lobby.Admin(ADMIN_ACTIONS[index]));
+				b.setMessage(Component.literal((String) RUN[index][0]));
+				ClientPlayNetworking.send(new moonahmc.bubble.Lobby.Admin((Integer) RUN[index][2]));
 			});
-			if (index == 0) {
+			if ((Integer) RUN[i][2] == moonahmc.bubble.BubbleServer.ADMIN_START) {
 				b.active = ClientState.lobby != null && ClientState.lobby.active();
-			}
-			if (ADMIN_ACTIONS[index] == moonahmc.bubble.BubbleServer.ADMIN_SHOP) {
-				b.color = shopClosed() ? 0xFF6EE08A : DANGER;
-				b.active = ClientState.catalog != null;
 			}
 			addRenderableWidget(b);
 		}
+		// Tuning: a tile per page
+		int tilesTop = rowB + 24 + 16;
+		int tw = (inner - 8) / 2;
+		for (int i = 0; i < TUNING.length; i++) {
+			String which = TUNING[i][2];
+			addRenderableWidget(new Tile(left + 14 + (i % 2) * (tw + 8), tilesTop + (i / 2) * 44, tw, 40, TUNING[i][0], TUNING[i][1],
+					() -> openPage(which)));
+		}
+		// Players
+		int playersTop = tilesTop + 3 * 44 + 16;
+		addRenderableWidget(new Tile(left + 14, playersTop, tw, 40, "Currencies", "Strange Matter and Eidolons", () -> openPage("currencies")));
 	}
 
 	private void renderAdmin(GuiGraphics ctx, int mouseX, int mouseY) {
-		for (int i = 0; i < ADMIN.length; i++) {
-			cardAt(ctx, mouseX, mouseY, left + 14, adminY(i), W - 28, 32);
-			ctx.drawString(font, Component.literal(ADMIN[i][0]), left + 24, adminY(i) + 6, TEXT, false);
-			if (ADMIN_ACTIONS[i] == moonahmc.bubble.BubbleServer.ADMIN_SHOP && ClientState.catalog != null) {
-				String tag = shopClosed() ? "CLOSED" : "OPEN";
-				pill(ctx, font, left + 24 + font.width(ADMIN[i][0]) + 6 + font.width(tag) + 12, adminY(i) + 3, tag, shopClosed() ? DANGER : 0xFF6EE08A);
-			}
-			ctx.drawString(font, Component.literal(ADMIN[i][1]), left + 24, adminY(i) + 18, MUTED, false);
+		int y0 = adminTop();
+		// status card
+		roundRect(ctx, left + 14, y0, W - 28, 58, 6, CARD);
+		java.util.List<String> lines = ClientState.adminStatus;
+		if (lines.isEmpty()) {
+			ctx.drawString(font, Component.literal("Loading the status..."), left + 24, y0 + 8, MUTED, false);
+		}
+		for (int i = 0; i < lines.size() && i < 4; i++) {
+			ctx.drawString(font, Component.literal(font.plainSubstrByWidth(lines.get(i), W - 48)), left + 24, y0 + 7 + i * 12,
+					i == 0 ? TEXT : MUTED, false);
+		}
+		int rowA = y0 + 62 + 16;
+		ctx.drawString(font, Component.literal("RUN"), left + 16, rowA - 12, MUTED, false);
+		int tilesTop = rowA + 24 + 24 + 16;
+		ctx.drawString(font, Component.literal("TUNING"), left + 16, tilesTop - 12, MUTED, false);
+		ctx.drawString(font, Component.literal("PLAYERS"), left + 16, tilesTop + 3 * 44 + 4, MUTED, false);
+	}
+
+	/** A card you click to open one of the admin pages. */
+	static final class Tile extends AbstractWidget {
+		private final String title;
+		private final String line;
+		private final Runnable action;
+
+		Tile(int x, int y, int w, int h, String title, String line, Runnable action) {
+			super(x, y, w, h, Component.literal(title));
+			this.title = title;
+			this.line = line;
+			this.action = action;
+		}
+
+		@Override
+		protected void renderWidget(GuiGraphics ctx, int mouseX, int mouseY, float delta) {
+			var tr = MinecraftClientHolder.text();
+			roundRect(ctx, getX(), getY(), width, height, 6, isHovered() ? CARD_HOVER : CARD);
+			roundRect(ctx, getX(), getY() + 8, 2, height - 16, 1, isHovered() ? ACCENT : 0xFF3A414B);
+			ctx.drawString(tr, Component.literal(title), getX() + 10, getY() + 8, TEXT, false);
+			ctx.drawString(tr, Component.literal(tr.plainSubstrByWidth(line, width - 30)), getX() + 10, getY() + 22, MUTED, false);
+			ctx.drawString(tr, Component.literal("\u203A"), getX() + width - 12, getY() + 15, isHovered() ? ACCENT : MUTED, false);
+		}
+
+		@Override
+		public void onClick(double mouseX, double mouseY) {
+			action.run();
+		}
+
+		@Override
+		protected void updateWidgetNarration(NarrationElementOutput builder) {
+			defaultButtonNarrationText(builder);
 		}
 	}
 
@@ -637,12 +683,25 @@ public final class BubbleScreen extends ScaledScreen {
 		}
 	}
 
+	/**
+	 * The Next run rows in the order they're shown: what applies now (the mobs) under one heading, what waits for the
+	 * next world under another. Numbers are the rows' own indices (the order the widgets were always made in).
+	 */
+	private static final int[] PRE_ORDER = {1, 2, 3, 4, 5, 6, 7, 0, 12, 10, 11, 8, 9};
+	/** How many rows come before the "Next world" heading. */
+	private static final int PRE_NOW = 7;
+	private static final int PRE_HEAD = 16;
+
 	private int preY(int i) {
-		return top + 62 + i * PRE_ROW - contentScroll;
+		int pos = 0;
+		while (pos < PRE_ORDER.length && PRE_ORDER[pos] != i) {
+			pos++;
+		}
+		return top + 62 + PRE_HEAD + (pos >= PRE_NOW ? PRE_HEAD : 0) + pos * PRE_ROW - contentScroll;
 	}
 
 	private int structTop() {
-		return preY(13) + 16;
+		return top + 62 + 2 * PRE_HEAD + PRE_ORDER.length * PRE_ROW - contentScroll + 16;
 	}
 
 	/** Every structure group is listed now (the whole panel scrolls). */
@@ -731,27 +790,20 @@ public final class BubbleScreen extends ScaledScreen {
 	}
 
 	private void renderPregame(GuiGraphics ctx, int mouseX, int mouseY) {
-		String[][] rows = {
-				{"Lucky blocks in the world", "next world"},
-				{"Rainbow creepers", "now"},
-				{"Rainbow creeper speed", "now"},
-				{"Nuke creepers", "now"},
-				{"Gatling skeletons", "now"},
-				{"Watchers (don't look!)", "now"},
-				{"Jockey Jockeys (every debuff)", "now"},
-				{"Swarm zombies (100 tiny ones)", "now"},
-				{"Start-of-run wheel", "next world"},
-				{"Ready-up lobby", "next world"},
-				{"Difficulty", "next world"},
-				{"Seed", "next world"},
-				{"Game mode", "next world"}};
+		String[] rows = {"Lucky blocks in the world", "Rainbow creepers", "Rainbow creeper speed", "Nuke creepers", "Gatling skeletons",
+				"Watchers (don't look!)", "Jockey Jockeys (every debuff)", "Swarm zombies (100 tiny ones)", "Start-of-run wheel",
+				"Ready-up lobby", "Difficulty", "Seed", "Game mode"};
+		ctx.drawString(font, Component.literal("APPLIES NOW"), left + 16, preY(PRE_ORDER[0]) - 12, MUTED, false);
+		String later = "NEXT WORLD";
+		ctx.drawString(font, Component.literal(later), left + 16, preY(PRE_ORDER[PRE_NOW]) - 12, MUTED, false);
+		ctx.drawString(font, Component.literal("when the next world is made"), left + 16 + font.width(later) + 6, preY(PRE_ORDER[PRE_NOW]) - 12,
+				0xFF5A606B, false);
 		for (int i = 0; i < rows.length; i++) {
 			cardAt(ctx, mouseX, mouseY, left + 14, preY(i), W - 28, PRE_ROW - 4);
-			ctx.drawString(font, Component.literal(rows[i][0]), left + 24, preY(i) + 7, TEXT, false);
-			ctx.drawString(font, Component.literal(rows[i][1]), left + 24 + font.width(rows[i][0]) + 6, preY(i) + 7, MUTED, false);
+			ctx.drawString(font, Component.literal(rows[i]), left + 24, preY(i) + 7, TEXT, false);
 		}
-		ctx.drawString(font, Component.literal("Structures"), left + 22, structTop() - 12, TEXT, false);
-		ctx.drawString(font, Component.literal("next world, per mod"), left + 22 + font.width("Structures") + 6, structTop() - 12, MUTED, false);
+		ctx.drawString(font, Component.literal("STRUCTURES"), left + 16, structTop() - 12, MUTED, false);
+		ctx.drawString(font, Component.literal("next world, per mod"), left + 16 + font.width("STRUCTURES") + 6, structTop() - 12, 0xFF5A606B, false);
 		int rowsShown = structRows();
 		for (int i = 0; i < rowsShown && structScroll + i < pGroups.size(); i++) {
 			PregamePayloads.Group g = pGroups.get(structScroll + i);

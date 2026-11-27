@@ -239,7 +239,32 @@ final class ReviveClient {
 
 	/** For the Bubble menu's Revive card. */
 	static void sendEdit(boolean enabled, int seconds, int hold) {
-		moonahmc.bubble.client.net.ClientPlayNetworking.send(new Revive.Edit(enabled, seconds, hold));
+		send(enabled, seconds, hold, null, null, null);
+	}
+
+	/** Changes the given rules (null = leave as it is). */
+	static void send(Boolean enabled, Integer seconds, Integer hold, Integer cooldown, Integer fall, Boolean ragdoll) {
+		Revive.Settings s = settings;
+		if (s == null) {
+			return;
+		}
+		moonahmc.bubble.client.net.ClientPlayNetworking.send(new Revive.Edit(enabled != null ? enabled : s.enabled(),
+				seconds != null ? seconds : s.seconds(), hold != null ? hold : s.holdSeconds(), cooldown != null ? cooldown : s.cooldown(),
+				fall != null ? fall : s.fall(), ragdoll != null ? ragdoll : s.ragdoll()));
+	}
+
+	/** One line about how revive works right now (for everyone). */
+	static String summary() {
+		Revive.Settings s = settings;
+		if (s == null) {
+			return "Loading...";
+		}
+		if (!s.enabled()) {
+			return "Off: dying is dying";
+		}
+		return s.seconds() + " s to bleed out  ·  " + (s.holdSeconds() == 0 ? "instant" : s.holdSeconds() + " s") + " to get up  ·  "
+				+ (s.cooldown() > 0 ? (s.cooldown() % 60 == 0 ? s.cooldown() / 60 + " min" : s.cooldown() + " s") + " cooldown" : "no cooldown")
+				+ (s.fall() > 0 ? "  ·  falls of " + s.fall() + "+ kill" : "");
 	}
 
 	static Component describe() {

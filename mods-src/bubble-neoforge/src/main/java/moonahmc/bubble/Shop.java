@@ -40,6 +40,8 @@ public final class Shop {
 		int price;
 		/** Instead of giving the item: "apothic_roll", "apothic_roll:rare" or "apothic_roll:epic". */
 		String action;
+		/** Which filter chip it's under in a merged tab (the tab it came from), or null = the tab's own name. */
+		String group;
 	}
 
 	static final class Section {
@@ -112,6 +114,7 @@ public final class Shop {
 						e.itemJson = io.get("item");
 						e.price = io.get("price").getAsInt();
 						e.action = io.has("action") ? io.get("action").getAsString() : null;
+						e.group = io.has("group") ? io.get("group").getAsString() : null;
 						e.stack = ItemStack.CODEC.parse(ops(), e.itemJson).result().orElse(null);
 						if (e.stack == null) {
 							missing++;
@@ -249,6 +252,17 @@ public final class Shop {
 				Bubble.LOG.info("Shop: took out {} progression offers (pearls, blaze rods, netherite, elytras, the Progression Case)", gone);
 			}
 		}
+		// 1.40.0: 17 shop tabs down to 9; what was a tab is now a filter chip inside the merged one
+		if (defaultsSeen.add("-merge:tabs_v1")) {
+			int merged = mergeTabs(secs, "Gear", "Gear", "Gadgets")
+					+ mergeTabs(secs, "Backpacks", "Backpacks", "Backpack upgrades")
+					+ mergeTabs(secs, "Mods", null, "Apotheosis", "Mekanism", "Applied Energistics", "Cyclic")
+					+ mergeTabs(secs, "Fun", "Fun", "Lucky Blocks", "Estrogen", "Screens")
+					+ mergeTabs(secs, "Gamble", "Cases", "Apothic Rolls");
+			if (merged > 0) {
+				Bubble.LOG.info("Shop: merged {} tabs into Gear, Backpacks, Mods, Fun and Gamble (they're filter chips there now)", merged);
+			}
+		}
 		// 1.29.0: the Boss Case (Cataclysm boss gear)
 		if (defaultsSeen.add("+Gamble:case:boss")) {
 			addCaseOffer(secs, "case:boss", bossCase());
@@ -274,6 +288,59 @@ public final class Shop {
 	private static final Set<String> PROGRESSION = Set.of("minecraft:ender_pearl", "minecraft:ender_eye", "minecraft:blaze_rod",
 			"minecraft:blaze_powder", "minecraft:netherite_scrap", "minecraft:netherite_ingot", "minecraft:ancient_debris",
 			"minecraft:elytra", "mekanism:hdpe_elytra", "estrogen:moth_elytra");
+
+	/**
+	 * Moves the `from` tabs' items into the `into` tab (made where the first of them was, if there isn't one), each item
+	 * keeping the tab it came from as its group; the into tab's own items get `ownGroup`. Returns how many tabs moved.
+	 */
+	private static int mergeTabs(JsonArray secs, String into, String ownGroup, String... from) {
+		JsonObject target = null;
+		int targetAt = -1;
+		for (int i = 0; i < secs.size(); i++) {
+			if (into.equals(secs.get(i).getAsJsonObject().get("name").getAsString())) {
+				target = secs.get(i).getAsJsonObject();
+				targetAt = i;
+			}
+		}
+		int moved = 0;
+		for (String name : from) {
+			for (int i = 0; i < secs.size(); i++) {
+				JsonObject so = secs.get(i).getAsJsonObject();
+				if (!name.equals(so.get("name").getAsString()) || so == target) {
+					continue;
+				}
+				if (target == null) {
+					target = new JsonObject();
+					target.addProperty("name", into);
+					target.addProperty("icon", so.has("icon") ? so.get("icon").getAsString() : "");
+					target.add("items", new JsonArray());
+					secs.set(i, target); // takes this tab's place
+				} else {
+					secs.remove(i);
+				}
+				if (so.has("items")) {
+					for (JsonElement ie : so.getAsJsonArray("items")) {
+						JsonObject io = ie.getAsJsonObject();
+						if (!io.has("group")) {
+							io.addProperty("group", name);
+						}
+						target.getAsJsonArray("items").add(io);
+					}
+				}
+				moved++;
+				break;
+			}
+		}
+		if (moved > 0 && ownGroup != null && target != null && target.has("items")) {
+			for (JsonElement ie : target.getAsJsonArray("items")) {
+				JsonObject io = ie.getAsJsonObject();
+				if (!io.has("group")) {
+					io.addProperty("group", ownGroup);
+				}
+			}
+		}
+		return moved;
+	}
 
 	/** Adds a case offer to the Gamble tab unless it's already there. */
 	private static void addCaseOffer(JsonArray secs, String action, JsonObject offer) {
@@ -314,6 +381,9 @@ public final class Shop {
 				io.addProperty("price", e.price);
 				if (e.action != null) {
 					io.addProperty("action", e.action);
+				}
+				if (e.group != null) {
+					io.addProperty("group", e.group);
 				}
 				items.add(io);
 			}
@@ -629,7 +699,7 @@ public final class Shop {
 						net.minecraft.world.item.component.CustomData.update(net.minecraft.core.component.DataComponents.CUSTOM_DATA, shown,
 								t -> t.putString("bubble_case_style", style));
 					}
-					offers.add(new ShopPayloads.Offer(shown, effectivePrice(e), Matter.value(e.stack)));
+					offers.add(new ShopPayloads.Offer(shown, effectivePrice(e), Matter.value(e.stack), e.group != null ? e.group : sec.name));
 				}
 			}
 			if (hidden(sec)) {
