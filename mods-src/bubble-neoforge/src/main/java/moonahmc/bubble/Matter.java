@@ -493,7 +493,11 @@ public final class Matter {
 			"spawner", "trial_spawner", "vault", "end_portal_frame", "reinforced_deepslate", "budding_amethyst", "petrified_oak_slab",
 			"player_head", "written_book", "filled_map"};
 
-	/** Hand-picked values for things that come out of the world rather than a crafting table. */
+	/**
+	 * Hand-picked values for things that come out of the world rather than a crafting table. (1.38.1: quartz 1.2 -> 0.3 and
+	 * prismarine shards/crystals 1.0/1.5 -> 0.15/0.4, so a mined-out ocean monument or a Nether quartz run doesn't pay
+	 * out like a diamond mine.)
+	 */
 	private static Map<String, Double> baseTable() {
 		Map<String, Double> m = new HashMap<>();
 		for (String junk : new String[]{"dirt", "coarse_dirt", "rooted_dirt", "grass_block", "podzol", "mycelium", "mud", "cobblestone",
@@ -512,14 +516,14 @@ public final class Matter {
 		}
 		Object[][] table = {
 				{"coal", 1.0}, {"raw_copper", 0.5}, {"copper_ingot", 0.6}, {"raw_iron", 2.0}, {"iron_ingot", 2.0}, {"raw_gold", 4.0},
-				{"gold_ingot", 4.0}, {"redstone", 0.8}, {"lapis_lazuli", 1.2}, {"quartz", 1.2}, {"amethyst_shard", 1.0},
+				{"gold_ingot", 4.0}, {"redstone", 0.8}, {"lapis_lazuli", 1.2}, {"quartz", 0.3}, {"nether_quartz_ore", 0.6}, {"amethyst_shard", 1.0},
 				{"diamond", 16.0}, {"emerald", 12.0}, {"ancient_debris", 50.0}, {"netherite_scrap", 50.0}, {"ender_pearl", 6.0},
 				{"blaze_rod", 5.0}, {"breeze_rod", 6.0}, {"ghast_tear", 10.0}, {"nether_star", 600.0}, {"shulker_shell", 30.0},
 				{"elytra", 800.0}, {"totem_of_undying", 120.0}, {"heart_of_the_sea", 150.0}, {"nautilus_shell", 15.0},
 				{"echo_shard", 25.0}, {"trident", 150.0}, {"dragon_egg", 1500.0}, {"dragon_breath", 20.0}, {"dragon_head", 300.0},
 				{"wither_skeleton_skull", 80.0}, {"skeleton_skull", 10.0}, {"zombie_head", 10.0}, {"creeper_head", 20.0},
 				{"piglin_head", 15.0}, {"slime_ball", 1.5}, {"leather", 1.0}, {"gunpowder", 1.0}, {"glowstone_dust", 0.8},
-				{"prismarine_shard", 1.0}, {"prismarine_crystals", 1.5}, {"phantom_membrane", 4.0}, {"rabbit_foot", 4.0},
+				{"prismarine_shard", 0.15}, {"prismarine_crystals", 0.4}, {"phantom_membrane", 4.0}, {"rabbit_foot", 4.0},
 				{"glow_ink_sac", 1.5}, {"honeycomb", 1.0}, {"honey_bottle", 1.0}, {"apple", 0.5}, {"pumpkin", 0.3}, {"melon", 0.4},
 				{"nether_wart", 0.5}, {"chorus_fruit", 0.4}, {"beef", 0.4}, {"porkchop", 0.4}, {"mutton", 0.4}, {"chicken", 0.4},
 				{"rabbit", 0.4}, {"cod", 0.4}, {"salmon", 0.4}, {"tropical_fish", 0.5}, {"pufferfish", 0.6}, {"saddle", 20.0},

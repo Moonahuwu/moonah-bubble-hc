@@ -209,6 +209,8 @@ way through the run).
   different key under Controls > Bubble > Quick-sell.
 - **Report (1.38.0):** `/bubble matter report` (ops) writes every sellable item, blocks first, with what a full
   stack sells for, to `config/bubble-matter-report.txt`, to find what pays too much.
+- **Cheaper (1.38.1):** quartz and prismarine sell for about a quarter of what they did (quartz block 1.2, prismarine
+  bricks 1.35, dark prismarine about 1.4), so mining out an ocean monument or the Nether's quartz isn't a jackpot.
 - **Values:** raw materials have set values (diamond 16, emerald 12, ender pearl 6, iron 2, dirt/cobble about nothing).
   Everything else is worked out from its recipes, plus 8% for each crafting step that combines different things, so
   long crafting trees pay more. Enchantments add value, and damage takes it away. `/bubble matter worth <item>` shows a value.
@@ -753,8 +755,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.38.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.38.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.38.1.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.38.1.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
