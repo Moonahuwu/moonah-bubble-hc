@@ -52,6 +52,8 @@ public final class BubbleConfig {
 	public int shopChestSeconds = 60;
 	/** Lootr chests a player opens per shop window. */
 	public int shopChests = 10;
+	/** With Sable Ragdolls installed: going down turns you into a ragdoll until you're revived. */
+	public boolean ragdollDowns = true;
 	/** A fall from at least this many blocks kills you outright, no going down (0 = falls always let you go down). */
 	public int noReviveFallBlocks = 30;
 	/** How much of your armour bullets ignore (0 = none, 1 = all). Gun damage is TACZ's DamageBaseMultiplier (tacz-server.toml). */

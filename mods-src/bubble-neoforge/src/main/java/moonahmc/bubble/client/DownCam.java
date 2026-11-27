@@ -180,7 +180,13 @@ final class DownCam {
 		if (t == end && boss != null) {
 			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.8f, 1f, false);
 		} else if (t == end) {
-			// the hit that put you down: you drop to a crawl
+			// the hit that put you down: you drop to a crawl (or go limp: your real ragdoll is right there)
+			if (KillcamReplay.RAGDOLLS) {
+				mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_HURT, SoundSource.PLAYERS, 1f, 0.6f, false);
+				mc.level.removeEntity(ghost.getId(), Entity.RemovalReason.DISCARDED);
+				placeCamera(false);
+				return;
+			}
 			ghost.hurtTime = ghost.hurtDuration = 10;
 			ghost.setPose(Pose.SWIMMING);
 			ghost.setForcedPose(Pose.SWIMMING);

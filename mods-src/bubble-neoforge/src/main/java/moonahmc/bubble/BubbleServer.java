@@ -173,6 +173,10 @@ public final class BubbleServer {
 	private static Vec3 deathPos;
 	private static ArmorStand camera;
 	private static List<Payloads.Frame> killFrames = List.of();
+	/** Ragdolls: the victim's body drops when the kill cam reaches the moment of death (their outfit, who). */
+	private static Object killOutfit;
+	private static com.mojang.authlib.GameProfile killProfile;
+	private static boolean bodyDropped = true;
 	private static double camStartAngle;
 	private static Payloads.PostGame postGame;
 	private static final Map<UUID, Integer> votes = new HashMap<>();
@@ -869,6 +873,7 @@ public final class BubbleServer {
 		if (server == null || phase != Phase.PLAYING || !config.hardcoreReset || !server.isDedicatedServer() || p.isSpectator() || p.isCreative()) {
 			return;
 		}
+		Ragdolls.rememberOutfit(p); // the corpse gets their gear, even though the inventory is kept back
 		var inv = p.getInventory();
 		deathCaptures.put(p.getUUID(), new Capture(inv.save(new ListTag()), p.experienceLevel, p.experienceProgress,
 				p.totalExperience, p.getFoodData().getFoodLevel(), p.getFoodData().getSaturationLevel(),
@@ -881,6 +886,7 @@ public final class BubbleServer {
 
 	/** Called from ServerPlayerMixin once a player has finished dying (drops, death message and stats are done). */
 	public static void afterDeath(ServerPlayer player, DamageSource source) {
+		Ragdolls.dressCorpse(player);
 		RunTally.death(player); // ☠ in the tab list
 		onDeath(player, source);
 	}
@@ -964,6 +970,10 @@ public final class BubbleServer {
 			endCause = endCause.copy().append(Component.literal(" (this is where they went down)"));
 		}
 		downClips.clear();
+		killOutfit = Ragdolls.takeCorpse(victim);
+		killProfile = victim.getGameProfile();
+		bodyDropped = !Ragdolls.available();
+		Ragdolls.clear();
 		// Start behind the player, looking over their shoulder.
 		float yaw = killFrames.isEmpty() ? victim.getYRot() : killFrames.get(0).yaw();
 		camStartAngle = Math.toRadians(yaw) - Math.PI / 2;
@@ -1027,6 +1037,24 @@ public final class BubbleServer {
 					q.setCamera(camera);
 				}
 			}
+		}
+		if (!bodyDropped && phaseTicks >= Payloads.Killcam.replayTicks(killFrames.size())) {
+			bodyDropped = true;
+			// how they were moving at the end (m/s), a little up
+			Vec3 vel = Vec3.ZERO;
+			float yaw = 0;
+			if (killFrames.size() >= 3) {
+				Payloads.Frame a = killFrames.get(killFrames.size() - 3);
+				Payloads.Frame b = killFrames.get(killFrames.size() - 1);
+				vel = new Vec3((b.x() - a.x()) * 10, Math.max(0, (b.y() - a.y()) * 10), (b.z() - a.z()) * 10);
+				yaw = b.yaw();
+			}
+			vel = vel.add(0, 1.5, 0);
+			if (vel.length() > 12) {
+				vel = vel.normalize().scale(12);
+			}
+			Ragdolls.dropBody(deathWorld, deathPos, yaw, killProfile, vel, killOutfit);
+			killOutfit = null;
 		}
 		if (phaseTicks >= KILLCAM_TICKS) {
 			endKillcamCamera();

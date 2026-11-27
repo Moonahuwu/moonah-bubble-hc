@@ -409,8 +409,8 @@ public final class Payloads {
 	public record Killcam(java.util.UUID player, String name, String dimension, List<Frame> frames,
 						  List<net.minecraft.world.item.ItemStack> gear, Scene scene, int shot, int shotFrom) implements CustomPacketPayload {
 		public static final Type<Killcam> ID = id("killcam");
-		/** How far away a shot has to come from for the replay to ride it. */
-		public static final double SHOT_DISTANCE = 20;
+		/** How far away a shot has to come from for the replay to ride it (a skeleton shoots from up to ~15). */
+		public static final double SHOT_DISTANCE = 10;
 
 		public Killcam(java.util.UUID player, String name, String dimension, List<Frame> frames,
 					   List<net.minecraft.world.item.ItemStack> gear, Scene scene) {

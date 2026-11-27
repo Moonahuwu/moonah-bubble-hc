@@ -314,6 +314,7 @@ public final class Revive {
 		downed.put(p.getUUID(), new Down(source, c.reviveSeconds * 20));
 		hobble(p, true);
 		BubbleServer.rememberDown(p); // the kill cam clip, and their own down cam
+		Ragdolls.down(p, source); // limp until someone gets them up
 		RunTally.down(p); // ✚ in the tab list
 		server.getPlayerList().broadcastSystemMessage(Component.literal("✚ ").withStyle(ChatFormatting.YELLOW)
 				.append(p.getDisplayName()).append(Component.literal(" is down! Stand next to them to revive them (" + c.reviveSeconds + "s)")
@@ -356,8 +357,16 @@ public final class Revive {
 	}
 
 	private static void getUp(ServerPlayer p) {
+		getUp(p, true);
+	}
+
+	/** `ragdoll` false: leave them limp (they're about to die, and the ragdoll becomes their corpse). */
+	private static void getUp(ServerPlayer p, boolean ragdoll) {
 		p.setForcedPose(null);
 		hobble(p, false);
+		if (ragdoll) {
+			Ragdolls.up(p);
+		}
 	}
 
 	private static void tick(MinecraftServer s) {
@@ -393,8 +402,10 @@ public final class Revive {
 				bleedOut(p, d);
 				continue;
 			}
-			// keep them down: crawling, at 1 health, not burning, not sprinting
-			p.setForcedPose(Pose.SWIMMING);
+			// keep them down: crawling (unless they're a ragdoll), at 1 health, not burning, not sprinting
+			if (!Ragdolls.isRagdolled(p)) {
+				p.setForcedPose(Pose.SWIMMING);
+			}
 			p.setSprinting(false);
 			p.clearFire();
 			if (p.getHealth() < 1) {
@@ -513,7 +524,7 @@ public final class Revive {
 
 	private static void bleedOut(ServerPlayer p, Down d) {
 		downed.remove(p.getUUID());
-		getUp(p);
+		getUp(p, false);
 		p.sendSystemMessage(Component.literal("Nobody got to you in time.").withStyle(ChatFormatting.RED));
 		kill(p, d.source);
 		broadcast();

@@ -28,6 +28,8 @@ final class KillcamReplay {
 	private static final EquipmentSlot[] GEAR_SLOTS = {EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND, EquipmentSlot.HEAD,
 			EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
 
+	/** Sable Ragdolls: deaths end in a real ragdoll, not the stand-in falling over. */
+	static final boolean RAGDOLLS = net.neoforged.fml.ModList.get().isLoaded("sable_player_ragdoll");
 	private static Payloads.Killcam pending;
 	private static int pendingAge;
 	private static Payloads.Killcam active;
@@ -93,13 +95,17 @@ final class KillcamReplay {
 			lastFrame = Math.max(lastFrame, (int) idx);
 		}
 		BulletCam.update("kill", active, Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
-		if (t == end) {
+		if (t == end && RAGDOLLS) {
+			// the server drops their ragdoll right here now: the stand-in just goes (the rest plays on)
+			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_DEATH, SoundSource.PLAYERS, 1f, 0.9f, false);
+			mc.level.removeEntity(ghost.getId(), Entity.RemovalReason.DISCARDED);
+		} else if (t == end) {
 			ghost.setHealth(0);
 			ghost.hurtTime = ghost.hurtDuration = 10;
 			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_DEATH, SoundSource.PLAYERS, 1f, 0.9f, false);
 		}
 		if (t >= end + 22) {
-			for (int i = 0; i < 20; i++) {
+			for (int i = 0; i < (RAGDOLLS ? 0 : 20); i++) {
 				double dx = ghost.getRandom().nextGaussian() * 0.02;
 				double dy = ghost.getRandom().nextGaussian() * 0.02;
 				double dz = ghost.getRandom().nextGaussian() * 0.02;

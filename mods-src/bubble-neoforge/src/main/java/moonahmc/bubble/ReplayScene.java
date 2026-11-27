@@ -95,14 +95,15 @@ final class ReplayScene {
 	static void init() {
 		// bullet cam: remember long shots (arrows, bullets, fireballs...) so the replay can ride the one that did it
 		NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, (net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) -> {
-			if (e.getEntity() instanceof ServerPlayer p && e.getSource().getDirectEntity() instanceof Projectile proj
-					&& e.getSource().getEntity() != null && e.getSource().getEntity() != p) {
-				double from = e.getSource().getEntity().distanceTo(p);
-				if (from >= Payloads.Killcam.SHOT_DISTANCE) {
-					shots.put(p.getUUID(), new long[] {proj.getId(), Math.round(from), lastTick});
-				} else {
-					shots.remove(p.getUUID());
-				}
+			if (!(e.getEntity() instanceof ServerPlayer p)) {
+				return;
+			}
+			double from = e.getSource().getDirectEntity() instanceof Projectile && e.getSource().getEntity() != null
+					&& e.getSource().getEntity() != p ? e.getSource().getEntity().distanceTo(p) : 0;
+			if (from >= Payloads.Killcam.SHOT_DISTANCE) {
+				shots.put(p.getUUID(), new long[] {e.getSource().getDirectEntity().getId(), Math.round(from), lastTick});
+			} else {
+				shots.remove(p.getUUID()); // something else hit them since: that's what did it
 			}
 		});
 		NeoForge.EVENT_BUS.addListener((ExplosionEvent.Detonate e) -> {

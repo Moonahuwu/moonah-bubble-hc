@@ -1,0 +1,182 @@
+package moonahmc.bubble;
+
+import com.mojang.authlib.GameProfile;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.phys.Vec3;
+import net.neoforged.fml.ModList;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Bubble with Sable Ragdolls (and Ragdoll Corpse), when they're installed; without them every call does nothing.
+ * <ul>
+ * <li>Going down (revive) turns you into a ragdoll that stays down until someone gets you up. Teammates can grab and
+ * drag you meanwhile.</li>
+ * <li>A death that ends the run: the corpse keeps your gear (Bubble keeps your inventory for "Another life", which
+ * used to leave it bare), and the one in the kill cam drops at the moment of death in the replay rather than lying
+ * there all through it.</li>
+ * </ul>
+ * Off with ragdollDowns in config/bubble.json.
+ */
+final class Ragdolls {
+	private static Boolean ragdolls;
+	private static Boolean corpses;
+	private static boolean broken;
+	/** What run-ending deaths were wearing (a RagdollEquipmentSnapshot), taken before Bubble keeps the inventory. */
+	private static final Map<UUID, Object> outfits = new HashMap<>();
+
+	private Ragdolls() {
+	}
+
+	static boolean available() {
+		if (ragdolls == null) {
+			ragdolls = ModList.get().isLoaded("sable_player_ragdoll");
+			corpses = ModList.get().isLoaded("ragdoll_corpse");
+		}
+		return ragdolls && !broken;
+	}
+
+	private static boolean corpses() {
+		return available() && corpses;
+	}
+
+	private static void failed(Throwable t) {
+		if (!broken) {
+			broken = true;
+			Bubble.LOG.error("Ragdolls: a call into Sable Ragdolls failed, so Bubble stops using it until a restart", t);
+		}
+	}
+
+	/** Revive: `p` just went down from `source`. */
+	static void down(ServerPlayer p, DamageSource source) {
+		if (!available() || !BubbleServer.config.ragdollDowns) {
+			return;
+		}
+		// thrown a little away from whatever did it, on top of how they were moving (m/s)
+		Vec3 push = Vec3.ZERO;
+		Vec3 from = source.getSourcePosition();
+		if (from != null) {
+			Vec3 d = p.position().subtract(from);
+			d = new Vec3(d.x, 0, d.z);
+			if (d.lengthSqr() > 1e-4) {
+				push = d.normalize().scale(4);
+			}
+		}
+		Vec3 vel = p.getDeltaMovement().scale(20).add(push).add(0, 3, 0);
+		if (vel.length() > 20) {
+			vel = vel.normalize().scale(20);
+		}
+		try {
+			RagdollCompat.down(p, vel);
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	/** Revive: `p` got up (revived, left, or the run ended). */
+	static void up(ServerPlayer p) {
+		if (!available()) {
+			return;
+		}
+		try {
+			RagdollCompat.up(p);
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	static boolean isRagdolled(ServerPlayer p) {
+		if (!available()) {
+			return false;
+		}
+		try {
+			return RagdollCompat.isRagdolled(p);
+		} catch (Throwable t) {
+			failed(t);
+			return false;
+		}
+	}
+
+	/** Just before a run-ending death empties `p`'s inventory: remember their gear for the corpse. */
+	static void rememberOutfit(ServerPlayer p) {
+		if (!corpses()) {
+			return;
+		}
+		try {
+			outfits.put(p.getUUID(), RagdollCompat.outfit(p));
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	/** Once `p` has died: their corpse gets the gear they had on. */
+	static void dressCorpse(ServerPlayer p) {
+		Object outfit = outfits.get(p.getUUID());
+		if (outfit == null || !corpses()) {
+			return;
+		}
+		try {
+			UUID corpse = RagdollCompat.corpse(p);
+			if (corpse != null) {
+				RagdollCompat.dress(p.serverLevel(), corpse, outfit);
+			}
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	/**
+	 * The kill cam is about to replay `p`'s death: their corpse goes (so it isn't lying there before they've died in
+	 * the replay) and comes back at the moment of death ({@link #dropBody}). Returns their outfit for that.
+	 */
+	static Object takeCorpse(ServerPlayer p) {
+		Object outfit = outfits.remove(p.getUUID());
+		if (!corpses()) {
+			return outfit;
+		}
+		try {
+			UUID corpse = RagdollCompat.corpse(p);
+			if (corpse != null) {
+				RagdollCompat.remove(p.serverLevel(), corpse, p);
+			}
+		} catch (Throwable t) {
+			failed(t);
+		}
+		return outfit;
+	}
+
+	/** The kill cam reached the moment of death: the body drops there. */
+	static void dropBody(ServerLevel level, Vec3 pos, float yaw, GameProfile profile, Vec3 velocity, Object outfit) {
+		if (!available()) {
+			return;
+		}
+		try {
+			RagdollCompat.body(level, pos, yaw, profile, velocity, outfit);
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	static void clear() {
+		outfits.clear();
+	}
+
+	/** /bubble ragdolltest: drops a body where the command runs (checks Bubble can talk to Sable Ragdolls). */
+	static com.mojang.brigadier.builder.LiteralArgumentBuilder<net.minecraft.commands.CommandSourceStack> command() {
+		return net.minecraft.commands.Commands.literal("ragdolltest").requires(s -> s.hasPermission(2)).executes(c -> {
+			var src = c.getSource();
+			if (!available()) {
+				src.sendFailure(net.minecraft.network.chat.Component.literal("Sable Ragdolls isn't installed (or failed earlier)"));
+				return 0;
+			}
+			dropBody(src.getLevel(), src.getPosition(), 0, new GameProfile(UUID.randomUUID(), "RagdollTest"), new Vec3(2, 3, 0), null);
+			boolean ok = !broken;
+			src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("ragdolltest: " + (ok ? "body dropped" : "failed, see the log")), false);
+			return ok ? 1 : 0;
+		});
+	}
+}
