@@ -74,6 +74,8 @@ import java.util.Set;
  *   {"type":"loot", "tables":["minecraft:chests/simple_dungeon"], "rolls":2}  a burst of loot round each player
  *   {"type":"ammo", "magazines":5}                                     ammo for every gun each player carries (TACZ)
  *   {"type":"boss", "bosses":["cataclysm:ignis"], "warning":10}        a boss turns up near one of you after a warning
+ *   {"type":"cases", "count":5}                                        that many random cases each
+ *   {"type":"ragdoll", "seconds":10}                                   tossed about as ragdolls (Sable Ragdolls; off the wheel without it)
  *   summon also takes "count", "radius", "leave_after" (seconds, then it vanishes) and "spawn_type" ("triggered")
  */
 public final class Wheel {
@@ -87,7 +89,11 @@ public final class Wheel {
 
 	/** The slices that actually go on the wheel. */
 	private static List<Slice> pool(List<Slice> all) {
-		return all.stream().filter(s -> s.enabled() && s.weight() > 0).toList();
+		return all.stream().filter(s -> s.enabled() && s.weight() > 0 && (Ragdolls.available() || !needsRagdolls(s))).toList();
+	}
+
+	private static boolean needsRagdolls(Slice s) {
+		return s.actions().stream().anyMatch(a -> a.has("type") && "ragdoll".equals(a.get("type").getAsString()));
 	}
 
 	/** Server to client: spin the wheel, landing on `result` after `ticks`. */
@@ -392,6 +398,10 @@ public final class Wheel {
 			if (type.equals("ammo")) {
 				w.add("Only gives ammo to players carrying a gun.");
 			}
+			if (type.equals("ragdoll")) {
+				w.add("Everyone goes limp and gets thrown about for " + (a.has("seconds") ? a.get("seconds").getAsInt() : 10)
+						+ " seconds; hard landings hurt. Needs Sable Ragdolls (left off the wheel without it).");
+			}
 			if (type.equals("boss")) {
 				w.add("A Cataclysm boss turns up near one random player after a " + (a.has("warning") ? a.get("warning").getAsInt() : 10)
 						+ " second warning. Early in a run this can end it.");
@@ -687,12 +697,27 @@ public final class Wheel {
 					case "ammo" -> who.forEach(p -> ammo(p, a));
 					case "gun", "apoth_loot" -> who.forEach(p -> givePlayer(p, a));
 					case "boss" -> Bosses.wheelBoss(players, a);
+					case "cases" -> who.stream().filter(BubbleServer::counts).forEach(p -> cases(p, a.has("count") ? a.get("count").getAsInt() : 5));
+					case "ragdoll" -> who.stream().filter(BubbleServer::counts)
+							.forEach(p -> Ragdolls.toss(p, (a.has("seconds") ? a.get("seconds").getAsInt() : 10) * 20));
 					default -> Bubble.LOG.warn("Wheel: unknown action type '{}' in slice '{}'", type, slice.name());
 				}
 			} catch (Exception ex) {
 				Bubble.LOG.error("Wheel: action {} in slice '{}' failed", a, slice.name(), ex);
 			}
 		}
+	}
+
+	/** `count` random cases (each one picked on its own). */
+	private static void cases(ServerPlayer p, int count) {
+		List<String> ids = new ArrayList<>(Gamble.ids());
+		if (ids.isEmpty()) {
+			return;
+		}
+		for (int i = 0; i < Math.max(1, Math.min(64, count)); i++) {
+			p.getInventory().placeItemBackInInventory(CaseItem.of(ids.get(p.getRandom().nextInt(ids.size())), 1));
+		}
+		p.containerMenu.broadcastChanges();
 	}
 
 	private static void effect(ServerPlayer p, JsonObject a) {
@@ -1170,7 +1195,10 @@ public final class Wheel {
 				    {"name": "Summon a boss", "color": "#6A1B9A", "actions": [{"type": "boss", "warning": 10, "distance": 20,
 				      "bosses": ["cataclysm:ender_guardian", "cataclysm:netherite_monstrosity", "cataclysm:ignis", "cataclysm:maledictus", "cataclysm:ancient_remnant", "cataclysm:the_harbinger{Is_Act:1b}"]}]},
 				    {"name": "Chickens everywhere", "color": "#FFF3C4", "actions": [
-				      {"type": "summon", "entity": "minecraft:chicken", "count": 30, "radius": 14, "leave_after": 120}]}
+				      {"type": "summon", "entity": "minecraft:chicken", "count": 30, "radius": 14, "leave_after": 120}]},
+				    {"name": "Case party", "color": "#FFB74D", "actions": [{"type": "cases", "count": 5}]},
+				    {"name": "Bonus spins", "color": "#CE93D8", "actions": [{"type": "give", "item": "bubble:wheel_spin", "count": 2}]},
+				    {"name": "Ragdoll everyone", "color": "#90A4AE", "actions": [{"type": "ragdoll", "seconds": 10}]}
 				  ]
 				}""").getAsJsonObject();
 	}

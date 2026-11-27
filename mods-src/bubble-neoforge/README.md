@@ -451,6 +451,10 @@ Blocks. Right-click one to spin the mid-run wheel; everyone sees it. Default sli
 - **Sky drop (everyone):** the same, for everyone. (Not in the Nether: the roof's in the way.)
 - **Girl Power:** Estrogen's Girl Power for 5 minutes (you can dash).
 - **Jackpot:** 150 Strange Matter each.
+- **Case party (1.34.0):** 5 random cases each.
+- **Bonus spins (1.34.0):** 2 more Wheel Spins each.
+- **Ragdoll everyone (1.34.0):** everyone goes limp and gets tossed into the air for 10 seconds, then gets back up
+  (hard landings hurt; anyone already down stays down). Only on the wheel with Sable Ragdolls installed.
 
 Challenges (each timed one shows a countdown bar at the top of the screen and switches itself off):
 - **Hotbar shuffle:** everyone's hotbar is mixed up.
@@ -719,8 +723,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.33.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.33.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.34.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.34.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

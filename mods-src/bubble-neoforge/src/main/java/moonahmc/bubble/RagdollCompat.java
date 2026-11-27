@@ -40,6 +40,18 @@ final class RagdollCompat {
 				.build());
 	}
 
+	/** Limp for `ticks`, then back up by themselves. */
+	static void toss(ServerPlayer p, Vec3 velocity, int ticks) {
+		if (RagdollAPI.isRagdolled(p)) {
+			return;
+		}
+		RagdollAPI.launch(p, velocity, RagdollLaunchOptions.builder()
+				.autoSeat(true)
+				.lockDismount(true)
+				.despawnConditions(List.of(DespawnCondition.afterTicks(ticks)))
+				.build());
+	}
+
 	/** Revived (or the run ended): back on their feet. */
 	static void up(ServerPlayer p) {
 		RagdollSession s = RagdollAPI.activeSession(p);

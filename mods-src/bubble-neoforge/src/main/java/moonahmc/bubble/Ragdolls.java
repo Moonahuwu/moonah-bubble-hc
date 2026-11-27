@@ -77,6 +77,21 @@ final class Ragdolls {
 		}
 	}
 
+	/** The wheel: `p` goes limp and gets thrown about for `ticks`, then gets up (not if they're down already). */
+	static void toss(ServerPlayer p, int ticks) {
+		if (!available() || Revive.isDown(p.getUUID()) || p.isSpectator()) {
+			return;
+		}
+		var r = p.getRandom();
+		double a = r.nextDouble() * Math.PI * 2;
+		Vec3 vel = new Vec3(Math.cos(a) * 3, 5 + r.nextDouble() * 2, Math.sin(a) * 3);
+		try {
+			RagdollCompat.toss(p, vel, Math.max(20, ticks));
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
 	/** Revive: `p` got up (revived, left, or the run ended). */
 	static void up(ServerPlayer p) {
 		if (!available()) {
