@@ -85,8 +85,8 @@ hash = "68d6016fa3707c434b3aca5db041c7518c70feb53d0183faa2502cc6efd4c827"
 metafile = true
 
 [[files]]
-file = "mods/bubble-neoforge-1.32.0.jar"
-hash = "5d0faa13987b4f7a0ddb8419ac7dfad76964939a77a32510a62f5d78d8488d60"
+file = "mods/bubble-neoforge-1.36.0.jar"
+hash = "2cc8500f544ee7abb555c3ad29d54628d06150c5ec25e952a8a4899b9958421d"
 
 [[files]]
 file = "mods/cataclysm-dimension.pw.toml"
@@ -201,11 +201,6 @@ metafile = true
 [[files]]
 file = "mods/geckolib.pw.toml"
 hash = "35779b39ddc06059ec483b33de2ecfdc3adb95c0a49e69b6701fb0024827e2f5"
-metafile = true
-
-[[files]]
-file = "mods/gravestone-mod.pw.toml"
-hash = "d18f1ea4c6c1c2f99f18a8725d11e14c93abd29988df24c967794fc52e9c969c"
 metafile = true
 
 [[files]]
