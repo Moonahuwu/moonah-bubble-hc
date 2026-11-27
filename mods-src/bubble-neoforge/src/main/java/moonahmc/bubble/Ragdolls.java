@@ -36,6 +36,49 @@ final class Ragdolls {
 	 */
 	private static final Map<UUID, UUID> corpseIds = new HashMap<>();
 
+	/** The last hit each player took (amount before armour), for how hard it should throw them. */
+	private static final Map<UUID, Float> lastHit = new HashMap<>();
+	/** How the hit that killed (or downed) each player should throw their body (m/s): {death, down}. */
+	private static final Map<UUID, Vec3> deathFling = new HashMap<>();
+	private static final Map<UUID, Vec3> downFling = new HashMap<>();
+
+	/** From LivingIncomingDamageEvent: remember how big the hit was. */
+	static void noteHit(ServerPlayer p, float amount) {
+		lastHit.put(p.getUUID(), amount);
+	}
+
+	/**
+	 * How a hit should throw a body: explosions blow you away from the blast (harder the more it hurt), and big hits
+	 * (5 hearts or more) knock you away from whatever did it. Zero for anything else.
+	 */
+	static Vec3 fling(ServerPlayer p, DamageSource source) {
+		Vec3 from = source.getSourcePosition();
+		if (from == null) {
+			return Vec3.ZERO;
+		}
+		float amount = lastHit.getOrDefault(p.getUUID(), 0f);
+		boolean blast = source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION);
+		double speed = blast ? net.minecraft.util.Mth.clamp(8 + amount * 0.8, 10, 35)
+				: amount >= 10 ? net.minecraft.util.Mth.clamp(amount * 0.5, 5, 18) : 0;
+		if (speed <= 0) {
+			return Vec3.ZERO;
+		}
+		Vec3 d = p.position().add(0, 1, 0).subtract(from);
+		d = d.lengthSqr() < 1e-4 ? new Vec3(0, 1, 0) : d.normalize();
+		// always some lift, so it flies rather than slides
+		return new Vec3(d.x * speed, Math.max(d.y * speed, speed * 0.45), d.z * speed);
+	}
+
+	/** For the kill cam's body: how the death (or the down, if they bled out) should throw it. */
+	static Vec3 flingFor(UUID id, boolean fromDown) {
+		return (fromDown ? downFling : deathFling).getOrDefault(id, Vec3.ZERO);
+	}
+
+	/** From LivingDeathEvent (LOW): how this death should throw the body. */
+	static void noteDeath(ServerPlayer p, DamageSource source) {
+		deathFling.put(p.getUUID(), fling(p, source));
+	}
+
 	/** From LivingDeathEvent (LOW, so after Ragdoll Corpse's HIGH): remember the body it just made. */
 	static void noteCorpse(ServerPlayer p) {
 		if (!corpses()) {
@@ -144,6 +187,12 @@ final class Ragdolls {
 		Vec3 vel = p.getDeltaMovement().scale(20).add(push).add(0, 3, 0);
 		if (vel.length() > 20) {
 			vel = vel.normalize().scale(20);
+		}
+		// an explosion or a big hit throws you properly
+		Vec3 thrown = fling(p, source);
+		downFling.put(p.getUUID(), thrown);
+		if (thrown.length() > vel.length()) {
+			vel = thrown;
 		}
 		try {
 			RagdollCompat.down(p, vel);
@@ -273,6 +322,8 @@ final class Ragdolls {
 	static void clear() {
 		outfits.clear();
 		corpseIds.clear();
+		deathFling.clear();
+		downFling.clear();
 	}
 
 	/** /bubble ragdolltest: drops a body where the command runs (checks Bubble can talk to Sable Ragdolls). */

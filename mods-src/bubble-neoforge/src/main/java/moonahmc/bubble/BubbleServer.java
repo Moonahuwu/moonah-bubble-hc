@@ -177,6 +177,8 @@ public final class BubbleServer {
 	private static Object killOutfit;
 	private static com.mojang.authlib.GameProfile killProfile;
 	private static boolean bodyDropped = true;
+	/** How the hit that did it throws the body (explosions, big hits), m/s. */
+	private static Vec3 killFling = Vec3.ZERO;
 	private static double camStartAngle;
 	private static Payloads.PostGame postGame;
 	private static final Map<UUID, Integer> votes = new HashMap<>();
@@ -259,6 +261,12 @@ public final class BubbleServer {
 		bus.addListener(EventPriority.LOW, (LivingDeathEvent e) -> {
 			if (e.getEntity() instanceof ServerPlayer player) {
 				Ragdolls.noteCorpse(player);
+				Ragdolls.noteDeath(player, e.getSource());
+			}
+		});
+		bus.addListener(EventPriority.LOWEST, (net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) -> {
+			if (e.getEntity() instanceof ServerPlayer player) {
+				Ragdolls.noteHit(player, e.getAmount());
 			}
 		});
 		bus.addListener((PlayerEvent.PlayerRespawnEvent e) -> {
@@ -976,6 +984,7 @@ public final class BubbleServer {
 			endCause = endCause.copy().append(Component.literal(" (this is where they went down)"));
 		}
 		downClips.clear();
+		killFling = Ragdolls.flingFor(victim.getUUID(), clip != null && clip.frames.size() >= 2);
 		killOutfit = Ragdolls.takeCorpse(victim);
 		killProfile = victim.getGameProfile();
 		bodyDropped = !Ragdolls.available();
@@ -1059,6 +1068,10 @@ public final class BubbleServer {
 			vel = vel.add(0, 1.5, 0);
 			if (vel.length() > 12) {
 				vel = vel.normalize().scale(12);
+			}
+			// blown up or sent flying: the body goes the way the hit threw it
+			if (killFling.length() > vel.length()) {
+				vel = killFling;
 			}
 			if (Ragdolls.dropBody(deathWorld, deathPos, yaw, killProfile, vel, killOutfit)) {
 				for (ServerPlayer q : players()) {
