@@ -336,6 +336,7 @@ public final class Revive {
 		BubbleServer.rememberDown(p); // the kill cam clip, and their own down cam
 		Ragdolls.down(p, source); // limp until someone gets them up
 		RunTally.down(p); // ✚ in the tab list
+		Director.down();
 		server.getPlayerList().broadcastSystemMessage(Component.literal("✚ ").withStyle(ChatFormatting.YELLOW)
 				.append(p.getDisplayName()).append(Component.literal(" is down! Stand next to them to revive them (" + c.reviveSeconds + "s)")
 						.withStyle(ChatFormatting.YELLOW)), false);

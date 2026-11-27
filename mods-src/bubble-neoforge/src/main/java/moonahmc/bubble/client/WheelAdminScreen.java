@@ -225,6 +225,13 @@ public final class WheelAdminScreen extends ScaledScreen {
 		ghost(bx + 44, y + 1, "+", () -> send("events_min", 0, Math.min(max, min + 1)));
 		ghost(bx + 90, y + 1, "-", () -> send("events_max", 0, Math.max(min, max - 1)));
 		ghost(bx + 134, y + 1, "+", () -> send("events_max", 0, max + 1));
+		boolean dir = ev.has("director") && ev.get("director").getAsBoolean();
+		BubbleScreen.FlatButton director = addRenderableWidget(new BubbleScreen.FlatButton(left + W - 16 - 46 - 4 - 110 - 4 - 92, y + 24, 92, 16,
+				Component.literal(dir ? "Director: on" : "Director: off"), () -> send("events_director", 0, dir ? 0 : 1)));
+		director.ghost = !dir;
+		director.setTooltip(Tooltip.create(Component.literal(
+				"On: events come when the group has been quiet for a while (3-6 min of calm), not during fights, with a gift after a "
+						+ "big fight now and then. Off: on the timer (the minutes above).")));
 		BubbleScreen.FlatButton any = addRenderableWidget(new BubbleScreen.FlatButton(left + W - 16 - 46 - 4 - 110, y + 24, 110, 16,
 				Component.literal("Random one now"), () -> send("event_force", -1, 1)));
 		any.color = DANGER;
@@ -272,8 +279,12 @@ public final class WheelAdminScreen extends ScaledScreen {
 			ctx.drawString(font, Component.literal(String.valueOf(ev.get("max").getAsInt())), bx + 112, y + 5, ACCENT, false);
 			ctx.drawString(font, Component.literal("min"), bx + 156, y + 5, MUTED, false);
 			int next = ev.get("next").getAsInt();
-			String when = !ev.get("enabled").getAsBoolean() ? "Random events are off" : next < 0 ? "Next one: once the run starts"
+			boolean dir = ev.has("director") && ev.get("director").getAsBoolean();
+			String when = !ev.get("enabled").getAsBoolean() ? "Random events are off"
+					: dir ? (ev.has("directorStatus") ? ev.get("directorStatus").getAsString() : "Director on")
+					: next < 0 ? "Next one: once the run starts"
 					: "Next one in about " + RunClock.fmt(Math.max(0, next - (int) ((Util.getMillis() - dataAt) / 1000)));
+			when = font.plainSubstrByWidth(when, W - 16 - 46 - 4 - 110 - 4 - 92 - 24 - 8);
 			ctx.drawString(font, Component.literal(when), left + 24, y + 29, MUTED, false);
 		} else {
 			long on = 0;

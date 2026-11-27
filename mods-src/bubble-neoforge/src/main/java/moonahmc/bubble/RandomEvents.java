@@ -52,6 +52,10 @@ import java.util.List;
  *   {"type":"status", "kind":"meteor_rain", "seconds":20}      a timed wheel status (see WheelStatus)
  *   {"type":"supply_drop", "min":20, "max":40, "tables":[...]}  a loot chest lands nearby, with a beam of particles
  *   {"type":"wheel"}                                            a free spin of the mid-run wheel
+ *   {"type":"shop_window", "seconds":60}                        the shop opens for everyone for a while
+ * Each event can also say "kind": "threat" or "gift" (supply drops, free spins, ammo and shop windows are gifts by
+ * default) and "danger": 1-3 (how likely it is to end a run). With the director on (see Director), events come when
+ * the group has been calm for a while instead of on the timer, and dangerous ones are rarer early in the run.
  */
 public final class RandomEvents {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -63,6 +67,10 @@ public final class RandomEvents {
 	private static boolean announce = true;
 	private static int minMinutes = 10;
 	private static int maxMinutes = 20;
+	/** The director decides when (see Director); calm minutes it waits for. */
+	private static boolean director = true;
+	private static int calmMin = 3;
+	private static int calmMax = 6;
 	private static List<Event> events = new ArrayList<>();
 	private static MinecraftServer server;
 	/** Overworld game time of the next random event (-1 = not scheduled yet). */
@@ -122,6 +130,11 @@ public final class RandomEvents {
 			}
 			return;
 		}
+		if (director) {
+			nextAt = -1;
+			Director.tick(s, calmMin, calmMax);
+			return;
+		}
 		if (nextAt < 0) {
 			schedule();
 			return;
@@ -136,24 +149,103 @@ public final class RandomEvents {
 	}
 
 	private static Event pickRandom() {
-		List<Event> on = events.stream().filter(e -> e.enabled() && e.weight() > 0 && possible(e)).toList();
-		int total = on.stream().mapToInt(Event::weight).sum();
+		return pick(null);
+	}
+
+	static boolean director() {
+		return director;
+	}
+
+	/** The director: a threat (gift false) or a gift now. True if something happened. */
+	static boolean fire(boolean gift) {
+		Event ev = pick(gift);
+		return ev != null && trigger(ev, announce, null);
+	}
+
+	static boolean isGift(Event e) {
+		if (e.def().has("kind")) {
+			return "gift".equals(e.def().get("kind").getAsString());
+		}
+		String type = e.def().has("type") ? e.def().get("type").getAsString() : "";
+		return switch (type) {
+			case "supply_drop", "wheel", "ammo_drop", "shop_window" -> true;
+			default -> false;
+		};
+	}
+
+	/** 1 = a nuisance, 2 = a proper fight, 3 = can end a run. */
+	static int danger(Event e) {
+		if (e.def().has("danger")) {
+			return Math.max(1, Math.min(3, e.def().get("danger").getAsInt()));
+		}
+		return switch (e.id()) {
+			case "rainbow_horde", "evil_watcher", "nuke_creeper" -> 3;
+			case "jockeys", "phantoms", "lightning_storm", "enderman_horde" -> 1;
+			default -> isGift(e) ? 0 : 2;
+		};
+	}
+
+	/**
+	 * Picks by weight, of one kind (null = any). Dangerous events are rarer early in the run (by stages cleared), the
+	 * small stuff thins out later, and an enderman pack is likelier while the team is short on pearls.
+	 */
+	private static Event pick(Boolean gift) {
+		List<Event> on = events.stream().filter(e -> e.enabled() && e.weight() > 0 && possible(e) && (gift == null || isGift(e) == gift)).toList();
+		int stage = Goals.stagesCleared();
+		boolean shortOnPearls = teamPearls() < 12;
+		double[] w = new double[on.size()];
+		double total = 0;
+		for (int i = 0; i < on.size(); i++) {
+			Event e = on.get(i);
+			double f = 1;
+			int d = danger(e);
+			if (d == 3) {
+				f = stage == 0 ? 0.2 : stage == 1 ? 0.6 : 1.2;
+			} else if (d == 1 && stage >= 2) {
+				f = 0.6;
+			}
+			if (e.id().equals("enderman_horde") && shortOnPearls) {
+				f *= 3;
+			}
+			w[i] = e.weight() * f;
+			total += w[i];
+		}
 		if (total <= 0) {
 			return null;
 		}
-		int r = server.overworld().random.nextInt(total);
-		for (Event e : on) {
-			r -= e.weight();
+		double r = server.overworld().random.nextDouble() * total;
+		for (int i = 0; i < on.size(); i++) {
+			r -= w[i];
 			if (r < 0) {
-				return e;
+				return on.get(i);
 			}
 		}
-		return on.get(0);
+		return on.get(on.size() - 1);
 	}
 
-	/** An ammo drop only comes up when someone playing has a gun. */
+	/** Ender pearls and eyes of ender the people playing are carrying. */
+	private static int teamPearls() {
+		int n = 0;
+		for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+			if (!BubbleServer.counts(p)) {
+				continue;
+			}
+			for (net.minecraft.world.item.ItemStack st : p.getInventory().items) {
+				if (st.is(net.minecraft.world.item.Items.ENDER_PEARL) || st.is(net.minecraft.world.item.Items.ENDER_EYE)) {
+					n += st.getCount();
+				}
+			}
+		}
+		return n;
+	}
+
+	/** An ammo drop only comes up when someone playing has a gun; a shop window only while the shop has windows. */
 	private static boolean possible(Event e) {
-		if (!"ammo_drop".equals(e.def().has("type") ? e.def().get("type").getAsString() : "")) {
+		String type = e.def().has("type") ? e.def().get("type").getAsString() : "";
+		if (type.equals("shop_window")) {
+			return BubbleServer.config.shopWindows;
+		}
+		if (!"ammo_drop".equals(type)) {
 			return true;
 		}
 		return Guns.available() && server.getPlayerList().getPlayers().stream().filter(BubbleServer::counts).anyMatch(GunSupply::armed);
@@ -187,6 +279,13 @@ public final class RandomEvents {
 				case "supply_drop" -> supplyDrop(target, d, loud);
 				case "ammo_drop" -> ammoDrop(playing, d, loud);
 				case "wheel" -> Wheel.spinMidRun(target) == null ? 1 : 0;
+				case "shop_window" -> {
+					if (!BubbleServer.config.shopWindows) {
+						yield 0;
+					}
+					ShopWindows.openAll(d.has("seconds") ? d.get("seconds").getAsInt() : 60, ev.name());
+					yield 1;
+				}
 				default -> {
 					Bubble.LOG.warn("Random event '{}': unknown type '{}'", ev.id(), type);
 					yield 0;
@@ -392,6 +491,8 @@ public final class RandomEvents {
 		o.addProperty("min", minMinutes);
 		o.addProperty("max", maxMinutes);
 		o.addProperty("next", secondsToNext());
+		o.addProperty("director", director);
+		o.addProperty("directorStatus", Director.status());
 		JsonArray arr = new JsonArray();
 		for (Event e : events) {
 			JsonObject eo = new JsonObject();
@@ -414,6 +515,7 @@ public final class RandomEvents {
 				case "announce" -> root.addProperty("announce", value != 0);
 				case "min" -> root.addProperty("minMinutes", Math.max(1, Math.min(240, value)));
 				case "max" -> root.addProperty("maxMinutes", Math.max(1, Math.min(240, value)));
+				case "director" -> root.addProperty("director", value != 0);
 				case "event_enabled", "event_weight" -> {
 					JsonArray arr = root.getAsJsonArray("events");
 					if (index < 0 || index >= arr.size()) {
@@ -494,6 +596,9 @@ public final class RandomEvents {
 			announce = !root.has("announce") || root.get("announce").getAsBoolean();
 			minMinutes = root.has("minMinutes") ? root.get("minMinutes").getAsInt() : 10;
 			maxMinutes = root.has("maxMinutes") ? root.get("maxMinutes").getAsInt() : 20;
+			director = !root.has("director") || root.get("director").getAsBoolean();
+			calmMin = root.has("calmMin") ? Math.max(1, root.get("calmMin").getAsInt()) : 3;
+			calmMax = root.has("calmMax") ? Math.max(calmMin, root.get("calmMax").getAsInt()) : 6;
 			List<Event> out = new ArrayList<>();
 			for (JsonElement el : root.getAsJsonArray("events")) {
 				JsonObject eo = el.getAsJsonObject();
@@ -511,6 +616,13 @@ public final class RandomEvents {
 		if (!root.has("events")) {
 			root.add("events", new JsonArray());
 		}
+		boolean added = false;
+		if (!root.has("director")) {
+			root.addProperty("director", true);
+			root.addProperty("calmMin", 3);
+			root.addProperty("calmMax", 6);
+			added = true;
+		}
 		JsonArray seen = root.has("defaultsSeen") ? root.getAsJsonArray("defaultsSeen") : new JsonArray();
 		if (!root.has("defaultsSeen")) {
 			root.getAsJsonArray("events").forEach(e -> seen.add(e.getAsJsonObject().get("id").getAsString()));
@@ -525,7 +637,7 @@ public final class RandomEvents {
 				changed = true;
 			}
 		}
-		return changed;
+		return changed || added;
 	}
 
 	private static JsonObject defaults() {
@@ -535,6 +647,9 @@ public final class RandomEvents {
 				  "announce": true,
 				  "minMinutes": 10,
 				  "maxMinutes": 20,
+				  "director": true,
+				  "calmMin": 3,
+				  "calmMax": 6,
 				  "events": [
 				    {"id": "rainbow_horde", "name": "Rainbow creeper horde", "weight": 2, "type": "horde", "entity": "bubble:rainbow_creeper",
 				     "count": 100, "min": 40, "max": 64, "leave_after": 300, "message": "Something colourful is coming. Lots of it."},
@@ -563,7 +678,11 @@ public final class RandomEvents {
 				     "tables": ["minecraft:chests/simple_dungeon", "minecraft:chests/buried_treasure", "minecraft:chests/bastion_treasure", "minecraft:chests/end_city_treasure", "minecraft:chests/ancient_city"]},
 				    {"id": "free_spin", "name": "Free Wheel Spin", "weight": 2, "type": "wheel", "message": "The wheel spins itself."},
 				    {"id": "ammo_drop", "name": "Ammo drop", "weight": 3, "type": "ammo_drop", "magazines": 4, "min": 6, "max": 14,
-				     "message": "Crates of ammo for everyone with a gun. Follow the beams."}
+				     "message": "Crates of ammo for everyone with a gun. Follow the beams."},
+				    {"id": "enderman_horde", "name": "Enderman pack", "weight": 2, "type": "horde", "entity": "minecraft:enderman", "count": 6,
+				     "min": 14, "max": 24, "leave_after": 300, "danger": 1, "message": "Pearls, delivered. Mind your eyes."},
+				    {"id": "shop_window", "name": "The shop's open", "weight": 2, "type": "shop_window", "seconds": 60, "kind": "gift",
+				     "message": "Everyone can shop for a minute."}
 				  ]
 				}""").getAsJsonObject();
 		return root;

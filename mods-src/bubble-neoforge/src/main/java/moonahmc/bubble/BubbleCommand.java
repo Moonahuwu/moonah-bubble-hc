@@ -85,7 +85,8 @@ final class BubbleCommand {
 		d.register(literal("bubble").then(Revive.command()));
 		d.register(literal("bubble").then(ShopWindows.command()));
 		d.register(literal("bubble").then(Ragdolls.command())); // /bubble ragdolltest
-		d.register(literal("bubble").then(RagdollTuning.command())); // /bubble ragdolls [preset] // /bubble shopwindow on|off|open <players> [seconds] // /bubble revive [on|off] [seconds]
+		d.register(literal("bubble").then(RagdollTuning.command())); // /bubble ragdolls [preset]
+		d.register(literal("bubble").then(Director.command())); // /bubble director [on|off] // /bubble shopwindow on|off|open <players> [seconds] // /bubble revive [on|off] [seconds]
 		d.register(literal("bubble").then(CurrencyAdmin.command())); // /bubble currency matter|eidolons give|take|set <players> <amount>
 		d.register(literal("bubble").then(Lobby.command())); // /bubble start
 		d.register(literal("bubble").then(literal("eidolons").requires(src -> src.hasPermission(2))

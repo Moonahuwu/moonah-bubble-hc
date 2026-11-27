@@ -83,6 +83,11 @@ final class Bosses {
 	}
 
 	/** The "mobDrops" entry for this mob if it's a boss (shared rewards), or null. */
+	/** Someone is in a boss fight right now (the director keeps quiet). */
+	static boolean fighting() {
+		return !fights.isEmpty();
+	}
+
 	static JsonObject entry(Entity e) {
 		JsonObject cfg = Gamble.mobDrops();
 		if (cfg == null || !cfg.has("mobs")) {

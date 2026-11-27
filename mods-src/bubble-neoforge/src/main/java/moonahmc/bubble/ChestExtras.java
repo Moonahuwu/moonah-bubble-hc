@@ -11,7 +11,7 @@ import net.neoforged.neoforge.common.loot.LootModifier;
 
 /**
  * Extra loot in every chest loot table (vanilla, structure mods, and Lootr chests, which roll the same tables): now and
- * then a Wheel Spin, and very rarely a gun with ammo. The chances are in config/bubble-cases.json under "extras".
+ * then a Wheel Spin, sometimes an ender pearl or two (1.39.0, 10%), and very rarely a gun with ammo. The chances are in config/bubble-cases.json under "extras".
  */
 public final class ChestExtras extends LootModifier {
 	public static final MapCodec<ChestExtras> CODEC = RecordCodecBuilder.mapCodec(inst -> codecStart(inst).apply(inst, ChestExtras::new));
@@ -29,6 +29,9 @@ public final class ChestExtras extends LootModifier {
 		var r = ctx.getRandom();
 		if (r.nextDouble() < Gamble.extra("chestWheelSpin", 0.03)) {
 			loot.add(new ItemStack(ModContent.WHEEL_SPIN.get()));
+		}
+		if (r.nextDouble() < Gamble.extra("chestPearls", 0.10)) {
+			loot.add(new ItemStack(net.minecraft.world.item.Items.ENDER_PEARL, 1 + r.nextInt(2)));
 		}
 		if (Guns.available() && r.nextDouble() < Gamble.extra("chestGun", 0.006)) {
 			Guns.Gun g = Guns.random(r);

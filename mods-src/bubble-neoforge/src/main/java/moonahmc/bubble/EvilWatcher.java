@@ -28,6 +28,11 @@ public class EvilWatcher extends Watcher {
 		return STARE;
 	}
 
+	@Override
+	protected int pearls() {
+		return 4 + random.nextInt(3);
+	}
+
 	/** The whole body, padded. */
 	@Override
 	protected AABB lookBox() {

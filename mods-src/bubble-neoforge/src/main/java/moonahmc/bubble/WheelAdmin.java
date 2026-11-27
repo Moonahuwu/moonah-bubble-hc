@@ -109,6 +109,7 @@ public final class WheelAdmin {
 			case "events_announce" -> RandomEvents.edit("announce", 0, e.value());
 			case "events_min" -> RandomEvents.edit("min", 0, e.value());
 			case "events_max" -> RandomEvents.edit("max", 0, e.value());
+			case "events_director" -> RandomEvents.edit("director", 0, e.value());
 			case "event_enabled" -> RandomEvents.edit("event_enabled", e.index(), e.value());
 			case "event_weight" -> RandomEvents.edit("event_weight", e.index(), e.value());
 			case "event_force" -> {

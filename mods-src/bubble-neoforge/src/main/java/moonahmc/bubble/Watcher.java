@@ -40,6 +40,19 @@ public class Watcher extends EnderMan {
 	static final int STARE_GRACE = 30;
 	private int graceUntil;
 
+	/** Pearls it drops when a player kills it (it is an enderman): the risky shortcut to the End. */
+	protected int pearls() {
+		return 2 + random.nextInt(3);
+	}
+
+	@Override
+	protected void dropCustomDeathLoot(net.minecraft.server.level.ServerLevel level, net.minecraft.world.damagesource.DamageSource source, boolean recentlyHit) {
+		super.dropCustomDeathLoot(level, source, recentlyHit);
+		if (recentlyHit) {
+			spawnAtLocation(new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.ENDER_PEARL, pearls()));
+		}
+	}
+
 	@Override
 	public boolean randomTeleport(double x, double y, double z, boolean broadcast) {
 		boolean moved = super.randomTeleport(x, y, z, broadcast);

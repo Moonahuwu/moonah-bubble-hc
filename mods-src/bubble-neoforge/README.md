@@ -406,10 +406,25 @@ saved to `config/bubble-wheel.json` / `config/bubble-events.json` straight away 
 
 ## Random events
 
-Every 10 to 20 minutes of a run (not in the lobby) something happens near a random player. Default events:
+**The director (1.39.0, on by default):** events come when the run is quiet, not on a timer. Bubble keeps a "heat"
+level that goes up when players take damage, go down, have hostile mobs after them or are fighting a boss, and fades
+over about half a minute. While it's low, calm builds up; after 3 to 6 minutes of calm (`calmMin` / `calmMax` in
+`config/bubble-events.json`) something happens: usually a threat, about 1 in 3 times a gift (supply drop, free spin,
+ammo, or the shop opening for a minute). Nothing random is added while a fight is on, and when a real fight ends there's
+a good chance of a gift once things settle. Dangerous events (rainbow horde, Evil Watcher, nuke creeper) are rarer
+before the first stage is cleared, and an **Enderman pack** is three times as likely while the team has under 12 pearls
+and eyes between them. Admin > Random events has a Director on/off button and shows what it's doing; `/bubble director`
+does too. Off = the old timer (every 10 to 20 minutes).
+
+**Pearls (1.39.0):** Watchers drop 2-4 ender pearls when a player kills them (Evil Watchers 4-6), and about 1 chest in
+10 has a pearl or two (`chestPearls` in the cases file's extras).
+
+With the director off, every 10 to 20 minutes of a run (not in the lobby) something happens near a random player. Default events:
 
 - **Rainbow creeper horde:** 100 rainbow creepers spawn 40-64 blocks out (a few chunks away) and come for you.
 - **The Watcher** (16-28 blocks away) and, rarer, **the Evil Watcher**.
+- **Enderman pack (1.39.0):** 6 endermen come for you. Pearls, delivered.
+- **The shop's open (1.39.0, a gift):** everyone can shop for a minute.
 - **Zombie siege:** 30 zombies and husks, all from one direction.
 - **Gatling squad** (4 gatling skeletons), **The swarm** (a swarm zombie), **Jockey jockeys**, a **Nuke creeper**.
 - **Pillager raid party:** pillagers, vindicators and a ravager from one side.
@@ -755,8 +770,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.38.1.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.38.1.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.39.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.39.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 
