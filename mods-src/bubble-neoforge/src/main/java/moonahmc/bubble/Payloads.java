@@ -402,9 +402,20 @@ public final class Payloads {
 	 * Server to client: replay the last few seconds of a player's life, ending in their death.
 	 * The server's orbit camera and the client's replay both follow {@link #frameAt}, so they stay in step.
 	 */
+	/**
+	 * shot: the entity id of the projectile that did it, fired from at least {@link #SHOT_DISTANCE} blocks away (the
+	 * replay rides along with it), or 0; shotFrom: how far away it was fired from (blocks).
+	 */
 	public record Killcam(java.util.UUID player, String name, String dimension, List<Frame> frames,
-						  List<net.minecraft.world.item.ItemStack> gear, Scene scene) implements CustomPacketPayload {
+						  List<net.minecraft.world.item.ItemStack> gear, Scene scene, int shot, int shotFrom) implements CustomPacketPayload {
 		public static final Type<Killcam> ID = id("killcam");
+		/** How far away a shot has to come from for the replay to ride it. */
+		public static final double SHOT_DISTANCE = 20;
+
+		public Killcam(java.util.UUID player, String name, String dimension, List<Frame> frames,
+					   List<net.minecraft.world.item.ItemStack> gear, Scene scene) {
+			this(player, name, dimension, frames, gear, scene, 0, 0);
+		}
 		/** The last second plays at half speed. */
 		static final int SLOW_FRAMES = 20;
 		public static final StreamCodec<RegistryFriendlyByteBuf, Killcam> CODEC = StreamCodec.ofMember((k, buf) -> {
@@ -426,6 +437,8 @@ public final class Payloads {
 				net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.encode(buf, s);
 			}
 			Scene.write(buf, k.scene == null ? Scene.EMPTY : k.scene);
+			buf.writeVarInt(Math.max(0, k.shot));
+			buf.writeVarInt(Math.max(0, k.shotFrom));
 		}, buf -> {
 			java.util.UUID uuid = buf.readUUID();
 			String name = buf.readUtf();
@@ -441,7 +454,8 @@ public final class Payloads {
 			for (int i = 0; i < g; i++) {
 				gear.add(net.minecraft.world.item.ItemStack.OPTIONAL_STREAM_CODEC.decode(buf));
 			}
-			return new Killcam(uuid, name, dim, frames, gear, Scene.read(buf));
+			Scene scene = Scene.read(buf);
+			return new Killcam(uuid, name, dim, frames, gear, scene, buf.readVarInt(), buf.readVarInt());
 		});
 
 		/** Which (fractional) frame to show `tick` ticks into the replay. */

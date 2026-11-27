@@ -83,6 +83,11 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
 - A teammate **standing right next to you** (2.5 blocks) for `reviveHoldSeconds` (3) gets you up with 3 hearts,
   Regeneration and a few seconds of Resistance. Your clock stops while they do.
 - If your `reviveSeconds` (30) run out you die for real, and that counts like any other death (hardcore reset, kill cam).
+- **Revive cooldown (1.32.0):** once you've been revived, you can't go down again for `reviveCooldownSeconds` (300,
+  5 minutes). Go down before then and you just die. Your name in the tab list shows "⌛4m" meanwhile, chat says when
+  it's back, and the clock stops while you're offline.
+- **No getting revived from** (1.32.0): lava, the Watcher's stare (its hits still only knock you down), and a fall of
+  `noReviveFallBlocks` (30) or more blocks. Lava also finishes you off while you're down.
 - You don't go down (you just die) when you're the only one up, when soul link is on, from the void or `/kill`,
   or outside a run. If everyone ends up down, it's over straight away. Leaving while down means bleeding out when you
   come back.
@@ -103,8 +108,13 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   replay doesn't cover (further off, or not there then) stays where it is instead of vanishing. Up to 64 things within
   44 blocks of the player, whatever hurt them first, then nearest; a busy clip is about 10-20 KB. Ops can check the recording
   with `/bubble replaytest` (records 3 seconds where you stand and reports what it caught).
+- **Bullet cam (1.32.0):** if what got you was shot from 20+ blocks away (a skeleton's arrow, a sniper's bullet, a
+  ghast's fireball), the down cam and the kill cam ride right behind the shot until it hits ("Shot from 63 blocks
+  away"), then go back to the normal view. It picks the shot up once it's within 48 blocks of a player.
 - **Settings:** the Revive card in the Bubble menu's Settings tab (ops: on/off, bleed-out time, revive time),
-  `/bubble revive [on|off] [seconds]`, or `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` in `config/bubble.json`.
+  `/bubble revive [on|off] [seconds]`, `/bubble revive cooldown <seconds>`, `/bubble revive fall <blocks>`, or
+  `reviveEnabled` / `reviveSeconds` / `reviveHoldSeconds` / `reviveCooldownSeconds` / `noReviveFallBlocks` in
+  `config/bubble.json`.
 
 ## Drops from mobs (cases, spins, Strange Matter)
 
@@ -146,6 +156,23 @@ A case drop is one of the server's cases at random. All of it is in `config/bubb
 `/bubble odds mob <mob> [kills]` shows what that many kills would give (simulated, nothing drops).
 
 ## Strange Matter and the shop
+
+**Shop windows (1.32.0):** during a run, buying (the shop, the Gamble tab and charging) only opens for a while at key
+moments. Selling always works, and outside a run (lobby, post-game) it's open.
+
+| What | Open for | Who |
+|---|---|---|
+| The run starting | 2 min (`shopStartSeconds`) | everyone |
+| Someone reaching a new dimension (first time this run) | 90 s (`shopDimensionSeconds`) | everyone |
+| A Cataclysm boss going down | 2 min (`shopBossSeconds`) | everyone who helped |
+| Killing an elite or a mini-boss | 60 s (`shopEliteSeconds`) | that player |
+| Every 10 looter (Lootr) chests you open | 60 s (`shopChestSeconds`, `shopChests`) | that player |
+
+Chat says when it opens and closes, the shop shows the time left ("OPEN 1:23"), and while it's closed it says what
+opens it and how many chests you've got towards the next one. Settings in `config/bubble.json` (0 seconds = that one
+doesn't open it); `/bubble shopwindow on|off` and `/bubble shopwindow open <players> [seconds]` for ops. Also in 1.32.0:
+ender pearls, blaze rods, netherite scrap, the elytras and the Progression Case aren't sold any more (no buying your
+way through the run).
 
 - **Selling:** in your inventory there's a Strange Matter slot above the inventory's top-left corner (or right above the
   trash slot, if the TrashSlot mod is installed). Drop an item in to sell it. **Shift-click** sells every matching item, and **right-click** buys back
@@ -233,7 +260,8 @@ A case drop is one of the server's cases at random. All of it is in `config/bubb
 - How often each of these appears is set in the *Next run* tab (Off / Rare / Normal / Lots).
 - **Watcher:** an enderman with a red outline (visible through walls). Look it in the eyes and you die instantly. A
   carved pumpkin on your head protects you, like with normal endermen. Spawns in the dark. The kill goes straight through
-  armour (your armour isn't damaged); a Totem of Undying still saves you.
+  armour (your armour isn't damaged); a Totem of Undying still saves you. You can't be revived from the stare, but for
+  1.5 seconds after it teleports its stare can't kill (its hits can).
 - **Evil Watcher:** rarer (a seventh as often as Watchers, same setting), with a rainbow outline and a rainbow aura.
   Looking anywhere at it kills you instantly, even through blocks. Only a carved pumpkin protects you.
 - They all spawn near players in survival/adventure (18-36 blocks away, never within 16 of anyone, not in Peaceful).
@@ -667,6 +695,7 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 - `/bubble` opens the settings screen; `/bubble status` prints them.
 - Ops: `/bubble revive [on|off] [seconds]` shows or changes revive (see Revive).
+- Ops: `/bubble revive cooldown|fall [n]`, and `/bubble shopwindow on|off|open <players> [seconds]` (see the shop).
 - Ops: `/bubble currency matter|eidolons give|take|set <players> <amount>` and `/bubble currency list`: anyone's
   Strange Matter (this world) or Eidolons (forever), online or offline. The same is in the Bubble menu > Admin >
   **Currencies** (type an amount, then + gives, - takes, = sets on any row). Changes are told to ops and the player and
@@ -683,8 +712,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.31.2.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.31.2.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.32.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.32.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

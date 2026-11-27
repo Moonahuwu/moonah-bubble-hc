@@ -81,6 +81,8 @@ public final class Revive {
 	private static final Set<UUID> bypass = new HashSet<>();
 	/** Left the game while down: they bleed out when they come back. */
 	private static final Set<UUID> leftWhileDown = new HashSet<>();
+	/** Revived recently: ticks until they can go down again. Going down before then is a real death. */
+	private static final Map<UUID, Integer> cooldown = new java.util.HashMap<>();
 	private static MinecraftServer server;
 	private static boolean sentEmpty = true;
 
@@ -167,11 +169,12 @@ public final class Revive {
 			downed.clear();
 			bypass.clear();
 			leftWhileDown.clear();
+			cooldown.clear();
 		});
 		bus.addListener((ServerTickEvent.Post e) -> tick(e.getServer()));
 		// Nothing hurts you while you're down (except the void or a kill command, which end it)
 		bus.addListener(EventPriority.HIGHEST, (LivingIncomingDamageEvent e) -> {
-			if (e.getEntity() instanceof ServerPlayer p && downed.containsKey(p.getUUID()) && !skipsDown(e.getSource())) {
+			if (e.getEntity() instanceof ServerPlayer p && downed.containsKey(p.getUUID()) && !endsDown(e.getSource())) {
 				e.setCanceled(true);
 			}
 		});
@@ -241,8 +244,35 @@ public final class Revive {
 		return downed.containsKey(id);
 	}
 
-	private static boolean skipsDown(DamageSource source) {
-		return source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL);
+	/** What still gets through while you're down (and finishes you): the void, a kill command, lava. */
+	private static boolean endsDown(DamageSource source) {
+		return source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL) || source.is(DamageTypes.LAVA);
+	}
+
+	/**
+	 * Deaths you can't be revived from: those above, the Watcher's stare (not its hits), and a big fall. Null if this
+	 * one lets you go down, otherwise why not (for the chat).
+	 */
+	static String noRevive(ServerPlayer p, DamageSource source) {
+		if (source.is(DamageTypes.FELL_OUT_OF_WORLD) || source.is(DamageTypes.GENERIC_KILL)) {
+			return "";
+		}
+		if (source.is(DamageTypes.LAVA)) {
+			return "lava";
+		}
+		if (source.is(Watcher.STARE) || source.is(EvilWatcher.STARE)) {
+			return "the Watcher's stare";
+		}
+		int fall = BubbleServer.config.noReviveFallBlocks;
+		if (fall > 0 && source.is(DamageTypes.FALL) && p.fallDistance >= fall) {
+			return "a " + (int) p.fallDistance + " block fall";
+		}
+		return null;
+	}
+
+	/** Ticks left on `p`'s revive cooldown (0 = none). */
+	static int cooldownLeft(UUID id) {
+		return cooldown.getOrDefault(id, 0);
 	}
 
 	// ------------------------------------------------------------------ going down
@@ -254,13 +284,25 @@ public final class Revive {
 		}
 		BubbleConfig c = BubbleServer.config;
 		if (server == null || c == null || !c.reviveEnabled || c.soulLink || !BubbleServer.playing() || Lobby.active()
-				|| p.isSpectator() || p.isCreative() || downed.containsKey(p.getUUID()) || skipsDown(source)) {
+				|| p.isSpectator() || p.isCreative() || downed.containsKey(p.getUUID())) {
+			return false;
+		}
+		String why = noRevive(p, source);
+		if (why != null) {
+			if (!why.isEmpty()) {
+				p.sendSystemMessage(Component.literal("No getting revived from " + why + ".").withStyle(ChatFormatting.RED));
+			}
 			return false;
 		}
 		boolean someoneUp = server.getPlayerList().getPlayers().stream()
 				.anyMatch(q -> q != p && BubbleServer.counts(q) && !downed.containsKey(q.getUUID()));
 		if (!someoneUp) {
 			return false; // nobody to revive you
+		}
+		int wait = cooldown.getOrDefault(p.getUUID(), 0);
+		if (wait > 0) {
+			p.sendSystemMessage(Component.literal("Your revive was still on cooldown (" + clock(wait) + " left).").withStyle(ChatFormatting.RED));
+			return false;
 		}
 		p.setHealth(1);
 		p.stopRiding();
@@ -319,6 +361,7 @@ public final class Revive {
 	}
 
 	private static void tick(MinecraftServer s) {
+		tickCooldowns(s);
 		if (downed.isEmpty()) {
 			if (!sentEmpty) {
 				broadcast();
@@ -385,6 +428,46 @@ public final class Revive {
 		}
 	}
 
+	private static void tickCooldowns(MinecraftServer s) {
+		if (cooldown.isEmpty()) {
+			return;
+		}
+		if (!BubbleServer.playing() || Lobby.active()) {
+			// a new run starts everyone fresh
+			for (UUID id : new ArrayList<>(cooldown.keySet())) {
+				cooldown.remove(id);
+				ServerPlayer p = s.getPlayerList().getPlayer(id);
+				if (p != null) {
+					p.refreshTabListName();
+				}
+			}
+			return;
+		}
+		for (Map.Entry<UUID, Integer> e : new ArrayList<>(cooldown.entrySet())) {
+			ServerPlayer p = s.getPlayerList().getPlayer(e.getKey());
+			if (p == null) {
+				continue; // the clock stops while you're offline
+			}
+			int left = e.getValue() - 1;
+			if (left <= 0) {
+				cooldown.remove(e.getKey());
+				p.sendSystemMessage(Component.literal("✚ Your revive is back.").withStyle(ChatFormatting.GREEN));
+				p.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.8f, 1.2f);
+				p.refreshTabListName();
+			} else {
+				cooldown.put(e.getKey(), left);
+				if (left % 1200 == 0) {
+					p.refreshTabListName(); // the minutes in the tab list
+				}
+			}
+		}
+	}
+
+	static String clock(int ticks) {
+		int secs = (ticks + 19) / 20;
+		return secs / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", secs % 60);
+	}
+
 	/** The nearest teammate who's up, alive and close enough to revive this player, or null. */
 	private static ServerPlayer helperFor(ServerPlayer p) {
 		ServerPlayer best = null;
@@ -412,6 +495,13 @@ public final class Revive {
 		p.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 100, 0));
 		p.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 60, 3));
 		p.invulnerableTime = 40;
+		int cd = BubbleServer.config.reviveCooldownSeconds * 20;
+		if (cd > 0) {
+			cooldown.put(p.getUUID(), cd);
+			p.sendSystemMessage(Component.literal("Revive cooldown: " + clock(cd) + ". Go down again before it's over and you die for real.")
+					.withStyle(ChatFormatting.GOLD));
+			p.refreshTabListName();
+		}
 		server.getPlayerList().broadcastSystemMessage(Component.literal("✚ ").withStyle(ChatFormatting.GREEN)
 				.append(helper.getDisplayName()).append(Component.literal(" revived ").withStyle(ChatFormatting.GREEN))
 				.append(p.getDisplayName()).append(Component.literal("!").withStyle(ChatFormatting.GREEN)), false);
@@ -501,7 +591,33 @@ public final class Revive {
 				.then(net.minecraft.commands.Commands.literal("on").executes(c -> setFrom(c.getSource(), true, BubbleServer.config.reviveSeconds))
 						.then(net.minecraft.commands.Commands.argument("seconds", seconds)
 								.executes(c -> setFrom(c.getSource(), true, com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "seconds")))))
-				.then(net.minecraft.commands.Commands.literal("off").executes(c -> setFrom(c.getSource(), false, BubbleServer.config.reviveSeconds)));
+				.then(net.minecraft.commands.Commands.literal("off").executes(c -> setFrom(c.getSource(), false, BubbleServer.config.reviveSeconds)))
+				.then(net.minecraft.commands.Commands.literal("cooldown")
+						.executes(c -> {
+							c.getSource().sendSuccess(() -> Component.literal("Revive cooldown: " + BubbleServer.config.reviveCooldownSeconds
+									+ "s after being revived (0 = none)."), false);
+							return 1;
+						})
+						.then(net.minecraft.commands.Commands.argument("seconds", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 3600))
+								.executes(c -> {
+									BubbleServer.config.reviveCooldownSeconds = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "seconds");
+									BubbleServer.saveConfig();
+									c.getSource().sendSuccess(() -> Component.literal("Revive cooldown set to " + BubbleServer.config.reviveCooldownSeconds + "s."), true);
+									return 1;
+								})))
+				.then(net.minecraft.commands.Commands.literal("fall")
+						.executes(c -> {
+							c.getSource().sendSuccess(() -> Component.literal("Falls of " + BubbleServer.config.noReviveFallBlocks
+									+ "+ blocks kill outright (0 = never)."), false);
+							return 1;
+						})
+						.then(net.minecraft.commands.Commands.argument("blocks", com.mojang.brigadier.arguments.IntegerArgumentType.integer(0, 400))
+								.executes(c -> {
+									BubbleServer.config.noReviveFallBlocks = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "blocks");
+									BubbleServer.saveConfig();
+									c.getSource().sendSuccess(() -> Component.literal("Falls of " + BubbleServer.config.noReviveFallBlocks + "+ blocks now kill outright."), true);
+									return 1;
+								})));
 	}
 
 	private static int setFrom(CommandSourceStack src, boolean on, int secs) {

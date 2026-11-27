@@ -176,6 +176,7 @@ final class DownCam {
 			}
 			lastFrame = Math.max(lastFrame, (int) idx);
 		}
+		BulletCam.update("down", clip, Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
 		if (t == end && boss != null) {
 			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 0.8f, 1f, false);
 		} else if (t == end) {
@@ -192,6 +193,7 @@ final class DownCam {
 	}
 
 	static void stop() {
+		BulletCam.release("down");
 		Minecraft mc = Minecraft.getInstance();
 		if (cam != null && mc.getCameraEntity() == cam && mc.player != null) {
 			mc.setCameraEntity(mc.player);

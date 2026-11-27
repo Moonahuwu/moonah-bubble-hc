@@ -259,6 +259,7 @@ public final class Lobby {
 		broadcast();
 		Wheel.roundStarted();
 		Eidolons.runStarted();
+		ShopWindows.runStarted();
 		Bubble.LOG.info("Lobby: run started");
 		return true;
 	}

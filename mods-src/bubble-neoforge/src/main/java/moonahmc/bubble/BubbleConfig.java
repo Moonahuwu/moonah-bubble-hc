@@ -41,6 +41,19 @@ public final class BubbleConfig {
 	public int reviveSeconds = 30;
 	/** Seconds a teammate has to stand next to you to get you up (0 = straight away). */
 	public int reviveHoldSeconds = 3;
+	/** After you're revived, seconds before you can go down again (0 = no wait). Go down in that time and you just die. */
+	public int reviveCooldownSeconds = 300;
+	/** The shop only opens for a while at key moments of a run (ShopWindows). Seconds for each (0 = that one doesn't open it). */
+	public boolean shopWindows = true;
+	public int shopStartSeconds = 120;
+	public int shopDimensionSeconds = 90;
+	public int shopBossSeconds = 120;
+	public int shopEliteSeconds = 60;
+	public int shopChestSeconds = 60;
+	/** Lootr chests a player opens per shop window. */
+	public int shopChests = 10;
+	/** A fall from at least this many blocks kills you outright, no going down (0 = falls always let you go down). */
+	public int noReviveFallBlocks = 30;
 	/** How much of your armour bullets ignore (0 = none, 1 = all). Gun damage is TACZ's DamageBaseMultiplier (tacz-server.toml). */
 	public double gunArmorPen = 0.8;
 	/** Seed for the next new world (set with /bubble seed). Empty = random. */
@@ -72,6 +85,14 @@ public final class BubbleConfig {
 		}
 		reviveSeconds = Math.max(MIN_REVIVE_SECONDS, Math.min(MAX_REVIVE_SECONDS, reviveSeconds));
 		reviveHoldSeconds = Math.max(0, Math.min(30, reviveHoldSeconds));
+		reviveCooldownSeconds = Math.max(0, Math.min(3600, reviveCooldownSeconds));
+		noReviveFallBlocks = Math.max(0, Math.min(400, noReviveFallBlocks));
+		shopStartSeconds = Math.max(0, Math.min(3600, shopStartSeconds));
+		shopDimensionSeconds = Math.max(0, Math.min(3600, shopDimensionSeconds));
+		shopBossSeconds = Math.max(0, Math.min(3600, shopBossSeconds));
+		shopEliteSeconds = Math.max(0, Math.min(3600, shopEliteSeconds));
+		shopChestSeconds = Math.max(0, Math.min(3600, shopChestSeconds));
+		shopChests = Math.max(1, Math.min(500, shopChests));
 		gunArmorPen = Double.isNaN(gunArmorPen) ? 0.8 : Math.max(0, Math.min(1, gunArmorPen));
 		if (nextSeed == null) {
 			nextSeed = "";

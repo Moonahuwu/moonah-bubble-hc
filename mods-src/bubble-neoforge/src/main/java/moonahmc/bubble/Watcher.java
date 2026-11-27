@@ -36,10 +36,23 @@ public class Watcher extends EnderMan {
 		return STARE;
 	}
 
+	/** Ticks after a teleport when its stare can't kill (it can still hit you), so it can't blink in front of you and stare you dead. */
+	static final int STARE_GRACE = 30;
+	private int graceUntil;
+
+	@Override
+	public boolean randomTeleport(double x, double y, double z, boolean broadcast) {
+		boolean moved = super.randomTeleport(x, y, z, broadcast);
+		if (moved) {
+			graceUntil = tickCount + STARE_GRACE;
+		}
+		return moved;
+	}
+
 	@Override
 	public void aiStep() {
 		super.aiStep();
-		if (level().isClientSide || !isAlive()) {
+		if (level().isClientSide || !isAlive() || tickCount < graceUntil) {
 			return;
 		}
 		for (Player p : level().players()) {

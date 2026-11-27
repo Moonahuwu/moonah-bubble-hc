@@ -225,6 +225,30 @@ public final class Shop {
 				Bubble.LOG.info("Shop: removed {} Traveler's Backpack / My Lucky Block rows (those mods aren't in the pack)", gone);
 			}
 		}
+		// 1.32.0: no buying your way through the run: pearls, blaze rods, netherite, elytras and the Progression Case
+		if (defaultsSeen.add("-retired:progression_v1")) {
+			int gone = 0;
+			for (JsonElement e : secs) {
+				JsonObject so = e.getAsJsonObject();
+				if (!so.has("items")) {
+					continue;
+				}
+				JsonArray items = so.getAsJsonArray("items");
+				for (int i = items.size() - 1; i >= 0; i--) {
+					JsonObject io = items.get(i).getAsJsonObject();
+					String id = io.has("item") && io.get("item").isJsonObject() && io.getAsJsonObject("item").has("id")
+							? io.getAsJsonObject("item").get("id").getAsString() : "";
+					String action = io.has("action") ? io.get("action").getAsString() : "";
+					if (PROGRESSION.contains(id) && action.isEmpty() || "case:progression".equals(action)) {
+						items.remove(i);
+						gone++;
+					}
+				}
+			}
+			if (gone > 0) {
+				Bubble.LOG.info("Shop: took out {} progression offers (pearls, blaze rods, netherite, elytras, the Progression Case)", gone);
+			}
+		}
 		// 1.29.0: the Boss Case (Cataclysm boss gear)
 		if (defaultsSeen.add("+Gamble:case:boss")) {
 			addCaseOffer(secs, "case:boss", bossCase());
@@ -245,6 +269,11 @@ public final class Shop {
 		}
 		return secs;
 	}
+
+	/** Things that skip the run's progression; not sold (1.32.0). */
+	private static final Set<String> PROGRESSION = Set.of("minecraft:ender_pearl", "minecraft:ender_eye", "minecraft:blaze_rod",
+			"minecraft:blaze_powder", "minecraft:netherite_scrap", "minecraft:netherite_ingot", "minecraft:ancient_debris",
+			"minecraft:elytra", "mekanism:hdpe_elytra", "estrogen:moth_elytra");
 
 	/** Adds a case offer to the Gamble tab unless it's already there. */
 	private static void addCaseOffer(JsonArray secs, String action, JsonObject offer) {
@@ -308,17 +337,17 @@ public final class Shop {
 						{"minecraft:bread", 8, 6}, {"minecraft:cooked_beef", 8, 10}, {"minecraft:golden_carrot", 8, 24},
 						{"minecraft:torch", 32, 4}, {"minecraft:oak_log", 32, 30}, {"minecraft:white_bed", 1, 6},
 						{"minecraft:water_bucket", 1, 8}, {"minecraft:arrow", 32, 10}, {"minecraft:shield", 1, 12},
-						{"minecraft:firework_rocket", 16, 20}, {"minecraft:ender_pearl", 4, 60}, {"minecraft:experience_bottle", 8, 60},
+						{"minecraft:firework_rocket", 16, 20}, {"minecraft:experience_bottle", 8, 60},
 						{"minecraft:name_tag", 1, 40}, {"minecraft:saddle", 1, 50}},
 				{{"Materials", "minecraft:diamond"},
 						{"minecraft:iron_ingot", 8, 40}, {"minecraft:gold_ingot", 8, 80}, {"minecraft:diamond", 1, 40},
 						{"minecraft:emerald", 1, 30}, {"minecraft:lapis_lazuli", 16, 45}, {"minecraft:redstone", 16, 32},
-						{"minecraft:quartz", 16, 45}, {"minecraft:obsidian", 8, 30}, {"minecraft:blaze_rod", 4, 50},
-						{"minecraft:slime_ball", 8, 30}, {"minecraft:leather", 8, 20}, {"minecraft:netherite_scrap", 1, 140}},
+						{"minecraft:quartz", 16, 45}, {"minecraft:obsidian", 8, 30},
+						{"minecraft:slime_ball", 8, 30}, {"minecraft:leather", 8, 20}},
 				{{"Gear", "minecraft:diamond_pickaxe"},
 						{"minecraft:diamond_pickaxe", 1, 120}, {"minecraft:diamond_sword", 1, 90}, {"minecraft:diamond_chestplate", 1, 180},
 						{"minecraft:bow", 1, 15}, {"minecraft:crossbow", 1, 25}, {"minecraft:golden_apple", 1, 50},
-						{"minecraft:totem_of_undying", 1, 300}, {"minecraft:trident", 1, 400}, {"minecraft:elytra", 1, 1500},
+						{"minecraft:totem_of_undying", 1, 300}, {"minecraft:trident", 1, 400},
 						{"minecraft:enchanted_golden_apple", 1, 700}},
 				// Sophisticated Backpacks
 				{{"Backpacks", "sophisticatedbackpacks:backpack"},
@@ -357,7 +386,7 @@ public final class Shop {
 				{{"Estrogen", "estrogen:estrogen_pill"},
 						{"estrogen:estrogen_pill", 3, 40}, {"estrogen:crystal_estrogen_pill", 1, 60}, {"estrogen:estrogen_chip_cookie", 8, 30},
 						{"estrogen:estrogen_patch", 1, 120}, {"estrogen:liquid_estrogen_bucket", 1, 60}, {"estrogen:thigh_highs", 1, 80},
-						{"estrogen:gender_change_potion", 1, 50}, {"estrogen:moth_elytra", 1, 1200}, {"estrogen:dreamcatcher", 1, 30},
+						{"estrogen:gender_change_potion", 1, 50}, {"estrogen:dreamcatcher", 1, 30},
 						{"estrogen:moth_wool", 16, 20}, {"estrogen:cookie_jar", 1, 15}, {"estrogen:colon_three", 1, 5}},
 				// WaterFrames: frames and TVs that show a picture or video from a link
 				{{"Screens", "waterframes:tv"},
@@ -369,7 +398,7 @@ public final class Shop {
 						{"mekanism:basic_control_circuit", 4, 40}, {"mekanism:alloy_reinforced", 2, 80}, {"mekanism:steel_casing", 1, 60},
 						{"mekanism:metallurgic_infuser", 1, 120}, {"mekanism:enrichment_chamber", 1, 150}, {"mekanism:configurator", 1, 30},
 						{"mekanism:energy_tablet", 1, 50}, {"mekanism:jetpack", 1, 200}, {"mekanism:free_runners", 1, 150},
-						{"mekanism:hdpe_elytra", 1, 1200}, {"mekanism:atomic_disassembler", 1, 400}, {"mekanism:meka_tool", 1, 1500},
+						{"mekanism:atomic_disassembler", 1, 400}, {"mekanism:meka_tool", 1, 1500},
 						{"mekanism:mekasuit_bodyarmor", 1, 2500}},
 				{{"Applied Energistics", "ae2:fluix_crystal"},
 						{"ae2:certus_quartz_crystal", 8, 40}, {"ae2:fluix_crystal", 8, 80}, {"ae2:silicon", 8, 40},
@@ -413,7 +442,6 @@ public final class Shop {
 		gamble.addProperty("icon", "minecraft:chest");
 		JsonArray caseItems = new JsonArray();
 		caseItems.add(caseOffer("mod", "minecraft:chest", "Mod Case", "gold", "Items from every mod in the pack", 80));
-		caseItems.add(caseOffer("progression", "minecraft:ender_chest", "Progression Case", "dark_purple", "Pearls, eyes of ender, blaze rods, netherite...", 150));
 		caseItems.add(caseOffer("weapons", "minecraft:trapped_chest", "Weapon Case", "red", "Swords, bows and Apotheosis gear", 150));
 		caseItems.add(twilightCase());
 		caseItems.add(attachmentCase());
@@ -609,7 +637,8 @@ public final class Shop {
 			}
 			out.add(new ShopPayloads.Section(sec.name, icon(sec), sec.charging, offers, isGamble(sec), sec.video));
 		}
-		ServerPlayNetworking.send(p, new ShopPayloads.Catalog(p.hasPermissions(2), chargeRate, emcRate, out, closed));
+		ServerPlayNetworking.send(p, new ShopPayloads.Catalog(p.hasPermissions(2), chargeRate, emcRate, out, closed,
+				ShopWindows.windowFor(p), ShopWindows.info(p)));
 		Matter.sendBalance(p);
 	}
 
@@ -696,6 +725,11 @@ public final class Shop {
 		}
 		if (closed && !isGamble(sec)) {
 			refuseClosed(p);
+			return;
+		}
+		if (!ShopWindows.isOpen(p) && !sec.video) {
+			ShopWindows.refuse(p);
+			sendCatalog(p);
 			return;
 		}
 		if (sec.video) {
@@ -810,6 +844,10 @@ public final class Shop {
 		}
 		if (closed) {
 			refuseClosed(p);
+			return;
+		}
+		if (!ShopWindows.isOpen(p)) {
+			ShopWindows.refuse(p);
 			return;
 		}
 		long energy = 0;

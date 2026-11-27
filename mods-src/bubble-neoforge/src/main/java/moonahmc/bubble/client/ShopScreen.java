@@ -250,7 +250,21 @@ public final class ShopScreen extends ScaledScreen {
 
 	/** Looking at the Shop side while an admin has it closed (ops in edit mode still see it). */
 	private boolean closedHere() {
-		return ClientState.catalog != null && ClientState.catalog.shopClosed() && !gambleMode && !editing;
+		return ClientState.catalog != null && !editing && ((ClientState.catalog.shopClosed() && !gambleMode) || windowShut());
+	}
+
+	/** Between shop windows: buying, gambling and charging wait for the next one. */
+	private static boolean windowShut() {
+		return ClientState.catalog != null && (ClientState.catalog.window() == 0 || windowLeft() == 0);
+	}
+
+	/** Ticks left in the current shop window (-1 = no windows, always open). */
+	private static int windowLeft() {
+		ShopPayloads.Catalog c = ClientState.catalog;
+		if (c == null || c.window() < 0) {
+			return -1;
+		}
+		return (int) Math.max(0, c.window() - (System.currentTimeMillis() - ClientState.catalogAt) / 50);
 	}
 
 	private boolean canEdit() {
@@ -767,6 +781,10 @@ public final class ShopScreen extends ScaledScreen {
 		MatterPopups.render(ctx, font, left + W - 22, top + 34);
 		if (editing) {
 			BubbleScreen.pill(ctx, font, left + W - 14 - 60, top + 39, "EDITING", 0xFFF2C14E);
+		} else if (windowLeft() > 0) {
+			int secs = (windowLeft() + 19) / 20;
+			String open = "OPEN " + secs / 60 + ":" + String.format(java.util.Locale.ROOT, "%02d", secs % 60);
+			BubbleScreen.pill(ctx, font, left + W - 14 - 60, top + 39, open, secs <= 10 ? 0xFFE06C5A : 0xFF6CC5A0);
 		}
 
 		ShopPayloads.Catalog c = ClientState.catalog;
@@ -826,10 +844,23 @@ public final class ShopScreen extends ScaledScreen {
 		ctx.pose().pushPose();
 		ctx.pose().translate(slide * 14f, 0, 0);
 		if (closedHere()) {
-			roundRect(ctx, gridX(), gridY(), gridW() - 14, 58, 6, CARD);
-			BubbleScreen.bigText(ctx, font, "The shop is closed", gridX() + 12, gridY() + 10);
-			ctx.drawString(font, Component.literal("An admin turned buying off. You can still sell items,"), gridX() + 12, gridY() + 30, MUTED, false);
-			ctx.drawString(font, Component.literal("and the Gamble tab is open."), gridX() + 12, gridY() + 42, MUTED, false);
+			if (windowShut() && !(ClientState.catalog.shopClosed() && !gambleMode)) {
+				String info = ClientState.catalog.windowInfo();
+				var lines = font.split(Component.literal(info.isEmpty() ? "It opens for a while at key moments of the run." : info), gridW() - 40);
+				roundRect(ctx, gridX(), gridY(), gridW() - 14, 58 + lines.size() * 11, 6, CARD);
+				BubbleScreen.bigText(ctx, font, "The shop is closed for now", gridX() + 12, gridY() + 10);
+				int y = gridY() + 30;
+				for (var line : lines) {
+					ctx.drawString(font, line, gridX() + 12, y, MUTED, false);
+					y += 11;
+				}
+				ctx.drawString(font, Component.literal("You can still sell items."), gridX() + 12, y + 2, MUTED, false);
+			} else {
+				roundRect(ctx, gridX(), gridY(), gridW() - 14, 58, 6, CARD);
+				BubbleScreen.bigText(ctx, font, "The shop is closed", gridX() + 12, gridY() + 10);
+				ctx.drawString(font, Component.literal("An admin turned buying off. You can still sell items,"), gridX() + 12, gridY() + 30, MUTED, false);
+				ctx.drawString(font, Component.literal("and the Gamble tab is open."), gridX() + 12, gridY() + 42, MUTED, false);
+			}
 		} else if (listMode()) {
 			drawGrid(ctx, mouseX, mouseY);
 		} else if (sec.charging()) {

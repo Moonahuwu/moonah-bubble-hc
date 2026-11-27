@@ -46,6 +46,8 @@ public final class ClientState {
 	static boolean hasBalance;
 	static double balance;
 	static ShopPayloads.Catalog catalog;
+	/** When the catalog arrived (System.currentTimeMillis), to count the shop window down. */
+	static long catalogAt;
 	static ShopPayloads.ChargeList charges;
 	static ShopPayloads.QuoteResult quote;
 

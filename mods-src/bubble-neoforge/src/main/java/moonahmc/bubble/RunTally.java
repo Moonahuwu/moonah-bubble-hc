@@ -76,11 +76,16 @@ final class RunTally {
 	}
 
 	private static Component suffix(UUID id) {
-		int[] c = counts.get(id);
-		if (c == null || (c[0] == 0 && c[1] == 0)) {
+		int[] c = counts.getOrDefault(id, new int[2]);
+		int wait = Revive.cooldownLeft(id);
+		if (c[0] == 0 && c[1] == 0 && wait <= 0) {
 			return null;
 		}
 		MutableComponent s = Component.literal(" ");
+		if (wait > 0) {
+			// revived recently: can't go down again yet
+			s.append(Component.literal(" ⌛" + ((wait / 20 + 59) / 60) + "m").withStyle(ChatFormatting.GRAY));
+		}
 		if (c[0] > 0) {
 			s.append(Component.literal(" ✚" + c[0]).withStyle(ChatFormatting.YELLOW));
 		}

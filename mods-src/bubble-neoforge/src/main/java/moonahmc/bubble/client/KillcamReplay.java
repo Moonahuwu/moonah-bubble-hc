@@ -92,6 +92,7 @@ final class KillcamReplay {
 			}
 			lastFrame = Math.max(lastFrame, (int) idx);
 		}
+		BulletCam.update("kill", active, Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
 		if (t == end) {
 			ghost.setHealth(0);
 			ghost.hurtTime = ghost.hurtDuration = 10;
@@ -129,6 +130,7 @@ final class KillcamReplay {
 	}
 
 	static void stop() {
+		BulletCam.release("kill");
 		pending = null;
 		Minecraft mc = Minecraft.getInstance();
 		if (ghost != null && mc.level != null && ghost.level() == mc.level) {

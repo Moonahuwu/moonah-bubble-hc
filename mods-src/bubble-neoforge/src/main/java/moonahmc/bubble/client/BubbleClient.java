@@ -188,7 +188,10 @@ public final class BubbleClient {
 		}));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.DownCam.ID, (payload, context) -> context.client().execute(() -> DownCam.start(payload.clip())));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.BossCam.ID, (payload, context) -> context.client().execute(() -> DownCam.start(payload.clip(), payload.boss())));
-		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> DownCam.renderHud(e.getGuiGraphics()));
+		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> {
+			DownCam.renderHud(e.getGuiGraphics());
+			BulletCam.renderHud(e.getGuiGraphics());
+		});
 		// While your down cam plays, your own body is hidden (the replay stands in for it)
 		bus.addListener((net.neoforged.neoforge.client.event.RenderPlayerEvent.Pre e) -> {
 			if (DownCam.active() && e.getEntity().getUUID().equals(DownCam.subject())) {
@@ -219,6 +222,7 @@ public final class BubbleClient {
 		}));
 		ClientPlayNetworking.registerGlobalReceiver(ShopPayloads.Catalog.ID, (payload, context) -> context.client().execute(() -> {
 			ClientState.catalog = payload;
+			ClientState.catalogAt = System.currentTimeMillis();
 			if (context.client().screen instanceof ShopScreen shop) {
 				shop.refresh();
 			} else if (context.client().screen instanceof BubbleScreen bs) {

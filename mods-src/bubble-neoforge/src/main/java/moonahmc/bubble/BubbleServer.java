@@ -107,7 +107,12 @@ public final class BubbleServer {
 	 * Revive: the few seconds before each player who is down went down (and what they wore), kept until they get up.
 	 * If they bleed out and that ends the run, the kill cam shows this instead of them crawling about.
 	 */
-	private record DownClip(List<Payloads.Frame> frames, List<ItemStack> gear, Vec3 pos, Payloads.Scene scene) {
+	private record DownClip(List<Payloads.Frame> frames, List<ItemStack> gear, Vec3 pos, Payloads.Scene scene, int[] shot) {
+	}
+
+	/** Clip `subject`'s last few seconds, keeping the long shot that just hit them (if any) for the bullet cam. */
+	private static Payloads.Scene clipWithShot(ServerPlayer subject, List<Payloads.Frame> frames, int[] shot) {
+		return ReplayScene.clip(subject, frames, shot == null ? Set.of() : Set.of(shot[0]));
 	}
 
 	private static final Map<UUID, DownClip> downClips = new HashMap<>();
@@ -120,12 +125,14 @@ public final class BubbleServer {
 		for (EquipmentSlot slot : GEAR_SLOTS) {
 			worn.add(p.getItemBySlot(slot).copy());
 		}
-		Payloads.Scene scene = ReplayScene.clip(p, frames);
-		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position(), scene));
+		int[] shot = ReplayScene.shotAt(p);
+		Payloads.Scene scene = clipWithShot(p, frames, shot);
+		downClips.put(p.getUUID(), new DownClip(frames, worn, p.position(), scene, shot));
 		if (frames.size() >= 2) {
 			// everyone gets it; their own setting says whether it plays (yours, everyone's, or none)
 			Payloads.DownCam cam = new Payloads.DownCam(new Payloads.Killcam(p.getUUID(), p.getName().getString(),
-					p.serverLevel().dimension().location().toString(), frames, worn, scene));
+					p.serverLevel().dimension().location().toString(), frames, worn, scene,
+					shot == null ? 0 : shot[0], shot == null ? 0 : shot[1]));
 			for (ServerPlayer q : p.server.getPlayerList().getPlayers()) {
 				if (q.serverLevel() == p.serverLevel() && ServerPlayNetworking.canSend(q, Payloads.DownCam.ID)) {
 					ServerPlayNetworking.send(q, cam);
@@ -944,13 +951,15 @@ public final class BubbleServer {
 		ArrayDeque<Payloads.Frame> track = tracks.get(victim.getUUID());
 		killFrames = track == null ? List.of() : List.copyOf(track);
 		List<ItemStack> victimGear = gear.getOrDefault(victim.getUUID(), List.of());
-		Payloads.Scene scene = ReplayScene.clip(victim, killFrames);
+		int[] shot = ReplayScene.shotAt(victim);
+		Payloads.Scene scene = clipWithShot(victim, killFrames, shot);
 		// They went down earlier and bled out: show how they went down, not them crawling about.
 		DownClip clip = downClips.get(victim.getUUID());
 		if (clip != null && clip.frames.size() >= 2) {
 			killFrames = clip.frames;
 			victimGear = clip.gear;
 			scene = clip.scene;
+			shot = clip.shot;
 			deathPos = clip.pos;
 			endCause = endCause.copy().append(Component.literal(" (this is where they went down)"));
 		}
@@ -969,7 +978,8 @@ public final class BubbleServer {
 			bringToKillcam(q);
 		}
 		Payloads.Killcam replay = new Payloads.Killcam(victim.getUUID(), victim.getName().getString(),
-				deathWorld.dimension().location().toString(), killFrames, victimGear, scene);
+				deathWorld.dimension().location().toString(), killFrames, victimGear, scene,
+				shot == null ? 0 : shot[0], shot == null ? 0 : shot[1]);
 		for (ServerPlayer q : players()) {
 			if (ServerPlayNetworking.canSend(q, Payloads.Killcam.ID)) {
 				ServerPlayNetworking.send(q, replay);

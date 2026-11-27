@@ -59,7 +59,12 @@ public final class ShopPayloads {
 	}
 
 	/** Server to client: the whole catalogue (sent when the shop opens, and again whenever an op edits it). */
-	public record Catalog(boolean canEdit, int chargeRate, int emcRate, List<Section> sections, boolean shopClosed) implements CustomPacketPayload {
+	/**
+	 * window: -1 = the shop is open (no shop windows right now), 0 = closed until the next window, otherwise ticks left in
+	 * this one. windowInfo: what opens it.
+	 */
+	public record Catalog(boolean canEdit, int chargeRate, int emcRate, List<Section> sections, boolean shopClosed, int window,
+			String windowInfo) implements CustomPacketPayload {
 		public static final Type<Catalog> ID = id("shop_catalog");
 		public static final StreamCodec<RegistryFriendlyByteBuf, Catalog> CODEC = StreamCodec.ofMember((c, buf) -> {
 			buf.writeBoolean(c.canEdit);
@@ -80,6 +85,8 @@ public final class ShopPayloads {
 				buf.writeBoolean(s.video);
 			}
 			buf.writeBoolean(c.shopClosed);
+			buf.writeVarInt(c.window + 1);
+			buf.writeUtf(c.windowInfo, 512);
 		}, buf -> {
 			boolean canEdit = buf.readBoolean();
 			int rate = buf.readVarInt();
@@ -98,7 +105,9 @@ public final class ShopPayloads {
 				boolean gamble = buf.readBoolean();
 				sections.add(new Section(name, icon, charging, offers, gamble, buf.readBoolean()));
 			}
-			return new Catalog(canEdit, rate, emcRate, sections, buf.readBoolean());
+			boolean shut = buf.readBoolean();
+			int window = buf.readVarInt() - 1;
+			return new Catalog(canEdit, rate, emcRate, sections, shut, window, buf.readUtf(512));
 		});
 
 		@Override

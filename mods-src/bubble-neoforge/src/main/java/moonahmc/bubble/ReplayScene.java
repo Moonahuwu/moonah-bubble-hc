@@ -89,7 +89,22 @@ final class ReplayScene {
 	private ReplayScene() {
 	}
 
+	/** A player's last hit by a projectile fired from far off: {projectile id, blocks away, lastTick when}. */
+	private static final Map<java.util.UUID, long[]> shots = new HashMap<>();
+
 	static void init() {
+		// bullet cam: remember long shots (arrows, bullets, fireballs...) so the replay can ride the one that did it
+		NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, (net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent e) -> {
+			if (e.getEntity() instanceof ServerPlayer p && e.getSource().getDirectEntity() instanceof Projectile proj
+					&& e.getSource().getEntity() != null && e.getSource().getEntity() != p) {
+				double from = e.getSource().getEntity().distanceTo(p);
+				if (from >= Payloads.Killcam.SHOT_DISTANCE) {
+					shots.put(p.getUUID(), new long[] {proj.getId(), Math.round(from), lastTick});
+				} else {
+					shots.remove(p.getUUID());
+				}
+			}
+		});
 		NeoForge.EVENT_BUS.addListener((ExplosionEvent.Detonate e) -> {
 			if (e.getLevel() instanceof ServerLevel level) {
 				// fires while the world ticks, before this tick's recording
@@ -98,7 +113,14 @@ final class ReplayScene {
 		});
 	}
 
+	/** The long shot that just hit `p` (within the last second): {projectile id, blocks away}, or null. */
+	static int[] shotAt(ServerPlayer p) {
+		long[] s = shots.get(p.getUUID());
+		return s == null || lastTick - s[2] > 20 ? null : new int[] {(int) s[0], (int) s[1]};
+	}
+
 	static void clear() {
+		shots.clear();
 		snaps.clear();
 		infos.clear();
 		blasts.clear();
