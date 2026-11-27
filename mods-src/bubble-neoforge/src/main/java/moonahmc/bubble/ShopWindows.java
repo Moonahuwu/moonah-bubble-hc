@@ -181,7 +181,7 @@ public final class ShopWindows {
 
 	/** Server to client: the shop windows settings and every tab with whether it stays open. */
 	public record Settings(boolean enabled, int start, int dimension, int boss, int elite, int chest, int chests,
-						   List<String> tabs, List<Boolean> open) implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
+						   List<String> tabs, List<Boolean> open, int goal) implements net.minecraft.network.protocol.common.custom.CustomPacketPayload {
 		public static final Type<Settings> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "shop_windows"));
 		public static final net.minecraft.network.codec.StreamCodec<net.minecraft.network.RegistryFriendlyByteBuf, Settings> CODEC =
 				net.minecraft.network.codec.StreamCodec.ofMember((s, buf) -> {
@@ -194,6 +194,7 @@ public final class ShopWindows {
 						buf.writeUtf(s.tabs.get(i), 64);
 						buf.writeBoolean(s.open.get(i));
 					}
+					buf.writeVarInt(s.goal);
 				}, buf -> {
 					boolean on = buf.readBoolean();
 					int[] v = new int[6];
@@ -207,7 +208,7 @@ public final class ShopWindows {
 						tabs.add(buf.readUtf(64));
 						open.add(buf.readBoolean());
 					}
-					return new Settings(on, v[0], v[1], v[2], v[3], v[4], v[5], tabs, open);
+					return new Settings(on, v[0], v[1], v[2], v[3], v[4], v[5], tabs, open, buf.readVarInt());
 				});
 
 		@Override
@@ -242,7 +243,7 @@ public final class ShopWindows {
 		List<String> tabs = Shop.tabNames();
 		List<Boolean> open = tabs.stream().map(ShopWindows::alwaysOpen).toList();
 		return new Settings(c.shopWindows, c.shopStartSeconds, c.shopDimensionSeconds, c.shopBossSeconds, c.shopEliteSeconds,
-				c.shopChestSeconds, c.shopChests, tabs, open);
+				c.shopChestSeconds, c.shopChests, tabs, open, c.shopGoalSeconds);
 	}
 
 	private static void sendSettings(ServerPlayer p) {
@@ -266,6 +267,7 @@ public final class ShopWindows {
 			c.shopEliteSeconds = s.elite();
 			c.shopChestSeconds = s.chest();
 			c.shopChests = s.chests();
+			c.shopGoalSeconds = s.goal();
 			// tabs this screen knows about are set from it; any others in the list (hidden tabs) are kept
 			List<String> known = Shop.tabNames();
 			List<String> keep = new ArrayList<>(c.shopAlwaysOpen.stream().filter(t -> !known.contains(t)).toList());
@@ -317,6 +319,9 @@ public final class ShopWindows {
 		if (c.shopDimensionSeconds > 0) {
 			ways.add("someone reaching a new dimension");
 		}
+		if (c.shopGoalSeconds > 0) {
+			ways.add("a stage of the goals being cleared");
+		}
 		if (c.shopBossSeconds > 0) {
 			ways.add("a boss going down");
 		}
@@ -328,7 +333,19 @@ public final class ShopWindows {
 			int have = chests.getOrDefault(p.getUUID(), Set.of()).size() % need;
 			ways.add("every " + need + " looter chests (you: " + have + "/" + need + ")");
 		}
-		return ways.isEmpty() ? "" : "Opens for a while after " + String.join(", ", ways) + ".";
+		return (ways.isEmpty() ? "" : "Opens for a while after " + String.join(", ", ways) + ". ") + "A Shop Key opens it just for you.";
+	}
+
+	/** A Shop Key was used: null if it opened the shop (use one up), otherwise why not (keep it). */
+	static String useKey(ServerPlayer p) {
+		if (!BubbleServer.config.shopWindows || !running()) {
+			return "The shop is open anyway right now.";
+		}
+		if (left(p) > 0) {
+			return "The shop is already open for you.";
+		}
+		open(p, BubbleServer.config.shopKeySeconds, "Shop Key");
+		return null;
 	}
 
 	static void refuse(ServerPlayer p) {

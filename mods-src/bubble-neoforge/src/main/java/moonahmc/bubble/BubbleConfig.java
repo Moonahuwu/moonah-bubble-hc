@@ -50,6 +50,10 @@ public final class BubbleConfig {
 	public int shopBossSeconds = 120;
 	public int shopEliteSeconds = 60;
 	public int shopChestSeconds = 60;
+	/** A stage of the run's goals being cleared opens the shop for everyone for this long (0 = it doesn't). */
+	public int shopGoalSeconds = 90;
+	/** How long a Shop Key opens the shop for whoever uses it. */
+	public int shopKeySeconds = 60;
 	/** Lootr chests a player opens per shop window. */
 	public int shopChests = 10;
 	/** Shop tabs that stay open between shop windows (by tab name). Charging is the Charging tab. */
@@ -99,6 +103,8 @@ public final class BubbleConfig {
 		shopEliteSeconds = Math.max(0, Math.min(3600, shopEliteSeconds));
 		shopChestSeconds = Math.max(0, Math.min(3600, shopChestSeconds));
 		shopChests = Math.max(1, Math.min(500, shopChests));
+		shopGoalSeconds = Math.max(0, Math.min(3600, shopGoalSeconds));
+		shopKeySeconds = Math.max(5, Math.min(3600, shopKeySeconds));
 		if (ragdolls == null) {
 			ragdolls = new RagdollTuning.Tune();
 		}

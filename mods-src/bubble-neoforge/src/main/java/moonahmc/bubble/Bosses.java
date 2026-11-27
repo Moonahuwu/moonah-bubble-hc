@@ -279,6 +279,11 @@ final class Bosses {
 		s.getPlayerList().broadcastSystemMessage(line, false);
 		RunLog.add(RunLog.EVENT, name.getString() + " was defeated");
 		ShopWindows.bossDown(helpers, name.getString());
+		for (ServerPlayer p : helpers) {
+			if (p.getRandom().nextInt(3) == 0) { // 1 in 3 also get a Shop Key
+				p.getInventory().placeItemBackInInventory(new ItemStack(ModContent.SHOP_KEY.get()));
+			}
+		}
 		ServerPlayer camOf = killer != null && helpers.contains(killer) ? killer : helpers.iterator().next();
 		cams.add(new Cam(camOf.getUUID(), boss.getId(), name.getString(), now() + CAM_DELAY));
 	}

@@ -84,8 +84,8 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   Regeneration and a few seconds of Resistance. Your clock stops while they do.
 - If your `reviveSeconds` (30) run out you die for real, and that counts like any other death (hardcore reset, kill cam).
 - **Revive cooldown (1.32.0):** once you've been revived, you can't go down again for `reviveCooldownSeconds` (300,
-  5 minutes). Go down before then and you just die. Your name in the tab list shows "⌛4m" meanwhile, chat says when
-  it's back, and the clock stops while you're offline.
+  5 minutes). Go down before then and you just die. Your name in the tab list shows "⌛4m" meanwhile, you see your own
+  "⌛ 4:12" just right of the hotbar (1.38.0), chat says when it's back, and the clock stops while you're offline.
 - **No getting revived from** (1.32.0): lava, the Watcher's stare (its hits still only knock you down), and a fall of
   `noReviveFallBlocks` (30) or more blocks. Lava also finishes you off while you're down.
 - You don't go down (you just die) when you're the only one up, when soul link is on, from the void or `/kill`,
@@ -183,6 +183,12 @@ moments. Selling always works, and outside a run (lobby, post-game) it's open.
 | A Cataclysm boss going down | 2 min (`shopBossSeconds`) | everyone who helped |
 | Killing an elite or a mini-boss | 60 s (`shopEliteSeconds`) | that player |
 | Every 10 looter (Lootr) chests you open | 60 s (`shopChestSeconds`, `shopChests`) | that player |
+| A stage of the run's goals being cleared (1.38.0) | 90 s (`shopGoalSeconds`) | everyone |
+| Using a **Shop Key** (1.38.0) | 60 s (`shopKeySeconds`) | whoever used it |
+
+**Shop Key (1.38.0):** a rare item (Mod Case rare, Boss Case uncommon/epic, and 1 in 3 players who help kill a
+Cataclysm boss). Right-click while the shop is closed to open it just for you; it isn't used up if the shop is open
+anyway. **On screen (1.38.0):** while the shop is open for you, a "🛒 1:23" timer sits just right of the hotbar.
 
 Chat says when it opens and closes, the shop shows the time left ("OPEN 1:23"), and while it's closed it says what
 opens it and how many chests you've got towards the next one.
@@ -201,6 +207,8 @@ way through the run).
   your last sale (9 deep).
 - **Quick sell:** Ctrl+click any item in your own inventory (in any container screen) to sell it instantly. You can pick a
   different key under Controls > Bubble > Quick-sell.
+- **Report (1.38.0):** `/bubble matter report` (ops) writes every sellable item, blocks first, with what a full
+  stack sells for, to `config/bubble-matter-report.txt`, to find what pays too much.
 - **Values:** raw materials have set values (diamond 16, emerald 12, ender pearl 6, iron 2, dirt/cobble about nothing).
   Everything else is worked out from its recipes, plus 8% for each crafting step that combines different things, so
   long crafting trees pay more. Enchantments add value, and damage takes it away. `/bubble matter worth <item>` shows a value.
@@ -274,7 +282,8 @@ way through the run).
   invulnerability after each one, but that adds up fast; shields help. Spawns in the dark and burns in daylight.
   **Gatling Bow (1.35.0):** one killed by a player drops its bow 8% of the time. Hold right-click and it sprays arrows
   the same way (8 a tick, the same light arrows). It needs no arrows, but every tick of firing costs a point of
-  durability: about 19 seconds of fire from new, longer with Unbreaking, and Mending repairs it.
+  durability: about 19 seconds of fire from new, longer with Unbreaking, and Mending repairs it. Also in the Weapon
+  Case (Legendary) since 1.38.0.
 - **The Jockey Jockey:** a spider with a cave spider riding it. One bite from the spider gives you every harmful effect
   in the game (every mod's too, but not instant ones like Instant Damage) for 10 seconds. Spawns in the dark.
 - **Swarm zombie:** looks, sounds and acts exactly like a zombie (it's even called "Zombie"). Kill it and it bursts into
@@ -471,6 +480,9 @@ Blocks. Right-click one to spin the mid-run wheel; everyone sees it. Default sli
 - **Jackpot:** 150 Strange Matter each.
 - **Case party (1.34.0):** 5 random cases each.
 - **Bonus spins (1.34.0):** 2 more Wheel Spins each.
+- **Yeet (1.38.0):** one random player is launched high into the air as a ragdoll (back up after 6 seconds). The
+  landing can hurt. **Ragdoll roulette (1.38.0):** for 2 minutes, every 20 seconds one random player goes limp for 5
+  seconds. Both only with Sable Ragdolls. **Fragile mode (1.37.0):** see Revive.
 - **Ragdoll everyone (1.34.0):** everyone goes limp and gets tossed into the air for 10 seconds, then gets back up
   (hard landings hurt; anyone already down stays down). Only on the wheel with Sable Ragdolls installed.
 
@@ -741,8 +753,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.37.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.37.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.38.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.38.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

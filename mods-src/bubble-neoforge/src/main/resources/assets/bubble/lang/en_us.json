@@ -27,5 +27,6 @@
   "death.attack.bubble.evil_watcher": "%1$s caught a glimpse of an %2$s",
   "death.attack.bubble.evil_watcher.player": "%1$s caught a glimpse of an %2$s",
   "key.bubble.video": "Hide/show the shared video",
-  "item.bubble.gatling_bow": "Gatling Bow"
+  "item.bubble.gatling_bow": "Gatling Bow",
+  "item.bubble.shop_key": "Shop Key"
 }

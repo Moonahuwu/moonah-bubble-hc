@@ -687,6 +687,9 @@ public final class Goals {
 				p.playNotifySound(SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundSource.PLAYERS, 1f, 1f);
 			}
 			server.getPlayerList().broadcastSystemMessage(Component.literal("★ Stage cleared: " + st.name).withStyle(ChatFormatting.GOLD), false);
+			if (BubbleServer.config.shopGoalSeconds > 0) {
+				ShopWindows.openAll(BubbleServer.config.shopGoalSeconds, "stage cleared: " + st.name);
+			}
 			if (facts.stage >= m.stages.size()) {
 				facts.victory = true;
 				for (ServerPlayer p : server.getPlayerList().getPlayers()) {

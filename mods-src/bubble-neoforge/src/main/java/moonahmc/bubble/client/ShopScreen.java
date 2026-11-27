@@ -266,7 +266,7 @@ public final class ShopScreen extends ScaledScreen {
 	}
 
 	/** Ticks left in the current shop window (-1 = no windows, always open). */
-	private static int windowLeft() {
+	static int windowLeft() {
 		ShopPayloads.Catalog c = ClientState.catalog;
 		if (c == null || c.window() < 0) {
 			return -1;

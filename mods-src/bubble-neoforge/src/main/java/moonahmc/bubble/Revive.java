@@ -153,8 +153,27 @@ public final class Revive {
 		}
 	}
 
+	/** Server to client: your revive cooldown has this many ticks left (0 = none). */
+	public record Cooldown(int ticks) implements CustomPacketPayload {
+		public static final Type<Cooldown> ID = new Type<>(ResourceLocation.fromNamespaceAndPath(Bubble.MOD_ID, "revive_cooldown"));
+		public static final StreamCodec<RegistryFriendlyByteBuf, Cooldown> CODEC = StreamCodec.ofMember((c, buf) -> buf.writeVarInt(c.ticks),
+				buf -> new Cooldown(buf.readVarInt()));
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
+	private static void sendCooldown(ServerPlayer p) {
+		if (ServerPlayNetworking.canSend(p, Cooldown.ID)) {
+			ServerPlayNetworking.send(p, new Cooldown(cooldown.getOrDefault(p.getUUID(), 0)));
+		}
+	}
+
 	static void register(PayloadTypeRegistry<RegistryFriendlyByteBuf> s2c, PayloadTypeRegistry<RegistryFriendlyByteBuf> c2s) {
 		s2c.register(Downed.ID, Downed.CODEC);
+		s2c.register(Cooldown.ID, Cooldown.CODEC);
 		s2c.register(Settings.ID, Settings.CODEC);
 		c2s.register(Edit.ID, Edit.CODEC);
 	}
@@ -218,6 +237,7 @@ public final class Revive {
 			if (e.getEntity() instanceof ServerPlayer p) {
 				p.server.execute(() -> {
 					sendSettings(p);
+					sendCooldown(p);
 					if (leftWhileDown.remove(p.getUUID())) {
 						p.sendSystemMessage(Component.literal("You left while you were down, so you bled out.").withStyle(ChatFormatting.RED));
 						kill(p, p.damageSources().generic());
@@ -450,6 +470,7 @@ public final class Revive {
 				ServerPlayer p = s.getPlayerList().getPlayer(id);
 				if (p != null) {
 					p.refreshTabListName();
+					sendCooldown(p);
 				}
 			}
 			return;
@@ -463,6 +484,7 @@ public final class Revive {
 			if (left <= 0) {
 				cooldown.remove(e.getKey());
 				p.sendSystemMessage(Component.literal("✚ Your revive is back.").withStyle(ChatFormatting.GREEN));
+				sendCooldown(p);
 				p.playNotifySound(SoundEvents.NOTE_BLOCK_CHIME.value(), SoundSource.PLAYERS, 0.8f, 1.2f);
 				p.refreshTabListName();
 			} else {
@@ -509,6 +531,7 @@ public final class Revive {
 		int cd = BubbleServer.config.reviveCooldownSeconds * 20;
 		if (cd > 0) {
 			cooldown.put(p.getUUID(), cd);
+			sendCooldown(p);
 			p.sendSystemMessage(Component.literal("Revive cooldown: " + clock(cd) + ". Go down again before it's over and you die for real.")
 					.withStyle(ChatFormatting.GOLD));
 			p.refreshTabListName();

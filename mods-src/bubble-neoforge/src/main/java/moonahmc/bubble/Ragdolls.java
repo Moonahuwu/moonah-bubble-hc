@@ -92,6 +92,21 @@ final class Ragdolls {
 		}
 	}
 
+	/** The wheel's Yeet: launched up and away at `speed` m/s as a ragdoll, back up 6 seconds later. */
+	static void yeet(ServerPlayer p, double speed) {
+		if (!available() || Revive.isDown(p.getUUID()) || p.isSpectator()) {
+			return;
+		}
+		double a = p.getRandom().nextDouble() * Math.PI * 2;
+		double s = Math.max(5, Math.min(80, speed));
+		Vec3 vel = new Vec3(Math.cos(a) * s * 0.45, s, Math.sin(a) * s * 0.45);
+		try {
+			RagdollCompat.toss(p, vel, 120);
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
 	/** Revive: `p` got up (revived, left, or the run ended). */
 	static void up(ServerPlayer p) {
 		if (!available()) {

@@ -332,6 +332,46 @@ public final class Matter {
 	// ------------------------------------------------------------------ values
 
 	/** What a whole stack sells for. */
+	/**
+	 * /bubble matter report: every item that sells, most valuable first, split into blocks (what people mine and farm
+	 * in bulk) and everything else, with what a full stack sells for. Written to config/bubble-matter-report.txt.
+	 */
+	static String report(net.minecraft.server.MinecraftServer server) {
+		record Row(String id, double each, int stack, boolean block) {
+		}
+		List<Row> rows = new ArrayList<>();
+		for (var item : net.minecraft.core.registries.BuiltInRegistries.ITEM) {
+			ItemStack st = new ItemStack(item);
+			if (st.isEmpty()) {
+				continue;
+			}
+			double v = value(st);
+			if (v <= 0) {
+				continue;
+			}
+			rows.add(new Row(net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item).toString(), v, st.getMaxStackSize(),
+					item instanceof net.minecraft.world.item.BlockItem));
+		}
+		rows.sort((a, b) -> Double.compare(b.each * b.stack, a.each * a.stack));
+		StringBuilder out = new StringBuilder("Strange Matter sell values, by what a full stack sells for\n\n");
+		for (boolean blocks : new boolean[] {true, false}) {
+			out.append(blocks ? "== BLOCKS ==\n" : "\n== EVERYTHING ELSE ==\n");
+			out.append(String.format(java.util.Locale.ROOT, "%-60s %12s %14s%n", "item", "each", "full stack"));
+			for (Row r : rows) {
+				if (r.block == blocks) {
+					out.append(String.format(java.util.Locale.ROOT, "%-60s %12.2f %14.1f%n", r.id, r.each, r.each * r.stack));
+				}
+			}
+		}
+		java.nio.file.Path file = net.neoforged.fml.loading.FMLPaths.CONFIGDIR.get().resolve("bubble-matter-report.txt");
+		try {
+			java.nio.file.Files.writeString(file, out.toString());
+		} catch (Exception ex) {
+			Bubble.LOG.warn("Could not write {}", file, ex);
+		}
+		return "config/bubble-matter-report.txt (" + rows.size() + " items)";
+	}
+
 	public static double value(ItemStack stack) {
 		if (stack.isEmpty() || UNSELLABLE.contains(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString())) {
 			return 0;

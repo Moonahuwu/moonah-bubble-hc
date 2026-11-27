@@ -258,6 +258,11 @@ final class BubbleCommand {
 									.withStyle(ChatFormatting.AQUA), false);
 							return 1;
 						})
+						.then(literal("report").requires(s -> s.hasPermission(2)).executes(c -> {
+							String where = Matter.report(c.getSource().getServer());
+							c.getSource().sendSuccess(() -> Component.literal("Sell-value report written to " + where), false);
+							return 1;
+						}))
 						.then(literal("worth").then(argument("item", ItemArgument.item(registries)).executes(c -> {
 							var stack = ItemArgument.getItem(c, "item").createItemStack(1, false);
 							c.getSource().sendSuccess(() -> Component.literal("Worth: ").append(stack.getHoverName())

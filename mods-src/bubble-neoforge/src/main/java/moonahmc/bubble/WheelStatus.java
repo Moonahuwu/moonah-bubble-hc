@@ -78,6 +78,7 @@ public final class WheelStatus {
 		DEFS.put("upside_down", new Def("🙃 Upside down", BossEvent.BossBarColor.PURPLE));
 		DEFS.put("ice", new Def("🧊 Ice ground", BossEvent.BossBarColor.BLUE));
 		DEFS.put("fragile", new Def("🦴 Fragile mode", BossEvent.BossBarColor.WHITE));
+		DEFS.put("ragdoll_roulette", new Def("🎲 Ragdoll roulette", BossEvent.BossBarColor.PINK));
 	}
 
 	private static final int MAX_LAVA_BLOCKS = 6000;
@@ -282,10 +283,26 @@ public final class WheelStatus {
 		}
 	}
 
+	/** Ragdoll roulette: the last age someone was picked (so it's once per round, not once per player). */
+	private static long roulettePicked = -1;
+
 	private static void tick(String kind, ServerPlayer p, long age) {
 		ServerLevel level = p.serverLevel();
 		RandomSource r = p.getRandom();
 		switch (kind) {
+			case "ragdoll_roulette" -> {
+				// every 20 seconds (from 5 s in) one random player goes limp for 5 seconds
+				if (age % 400 == 100 && roulettePicked != age) {
+					roulettePicked = age;
+					List<ServerPlayer> pool = server.getPlayerList().getPlayers().stream().filter(BubbleServer::counts).toList();
+					if (!pool.isEmpty()) {
+						ServerPlayer pick = pool.get(r.nextInt(pool.size()));
+						server.getPlayerList().broadcastSystemMessage(Component.literal("🎲 ").withStyle(ChatFormatting.LIGHT_PURPLE)
+								.append(pick.getDisplayName()).append(Component.literal(" goes limp!").withStyle(ChatFormatting.LIGHT_PURPLE)), false);
+						Ragdolls.toss(pick, 100);
+					}
+				}
+			}
 			case "meteor_rain" -> {
 				if (age % 25 == 0 && !level.dimensionType().hasCeiling()) {
 					Vec3 at = around(p, 4, 22);

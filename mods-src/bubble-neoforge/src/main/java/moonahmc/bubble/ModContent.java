@@ -24,6 +24,9 @@ public final class ModContent {
 	/** Spins the mid-run wheel (found in cases and chests). */
 	public static final DeferredHolder<Item, WheelSpinItem> WHEEL_SPIN = ITEMS.register("wheel_spin",
 			() -> new WheelSpinItem(new Item.Properties().stacksTo(16).rarity(net.minecraft.world.item.Rarity.EPIC)));
+	/** Opens the shop for whoever uses it, for a while (cases and bosses). */
+	public static final DeferredHolder<Item, ShopKeyItem> SHOP_KEY = ITEMS.register("shop_key",
+			() -> new ShopKeyItem(new Item.Properties().stacksTo(16).rarity(net.minecraft.world.item.Rarity.RARE)));
 	/** The gatling skeleton's bow: hold right-click to spray arrows (dropped by gatling skeletons now and then). */
 	public static final DeferredHolder<Item, GatlingBowItem> GATLING_BOW = ITEMS.register("gatling_bow",
 			() -> new GatlingBowItem(new Item.Properties().durability(384).rarity(net.minecraft.world.item.Rarity.EPIC)));
@@ -88,6 +91,7 @@ public final class ModContent {
 		modBus.addListener((BuildCreativeModeTabContentsEvent e) -> {
 			if (e.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
 				e.accept(WHEEL_SPIN.get());
+				e.accept(SHOP_KEY.get());
 			}
 			if (e.getTabKey() == CreativeModeTabs.COMBAT) {
 				e.accept(GATLING_BOW.get());

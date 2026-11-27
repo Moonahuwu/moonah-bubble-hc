@@ -259,6 +259,9 @@ public final class BubbleClient {
 			}
 		}));
 		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> ReviveClient.renderHud(e.getGuiGraphics()));
+		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> CornerHud.render(e.getGuiGraphics()));
+		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Revive.Cooldown.ID, (payload, context) -> context.client().execute(() ->
+				CornerHud.reviveCooldownUntil = payload.ticks() <= 0 ? 0 : System.currentTimeMillis() + payload.ticks() * 50L));
 		ClientPlayNetworking.registerGlobalReceiver(moonahmc.bubble.Eidolons.Ribbons.ID, (payload, context) -> context.client().execute(() -> {
 			RibbonTrails.setWorn(payload.worn());
 			if (context.client().screen instanceof EidolonScreen es) {

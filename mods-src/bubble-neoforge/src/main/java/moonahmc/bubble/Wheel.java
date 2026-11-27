@@ -75,6 +75,7 @@ import java.util.Set;
  *   {"type":"ammo", "magazines":5}                                     ammo for every gun each player carries (TACZ)
  *   {"type":"boss", "bosses":["cataclysm:ignis"], "warning":10}        a boss turns up near one of you after a warning
  *   {"type":"cases", "count":5}                                        that many random cases each
+ *   {"type":"yeet", "speed":30}                                        launched as a ragdoll (use "who":"random" for one player)
  *   {"type":"ragdoll", "seconds":10}                                   tossed about as ragdolls (Sable Ragdolls; off the wheel without it)
  *   summon also takes "count", "radius", "leave_after" (seconds, then it vanishes) and "spawn_type" ("triggered")
  */
@@ -93,8 +94,9 @@ public final class Wheel {
 	}
 
 	private static boolean needsRagdolls(Slice s) {
-		return s.actions().stream().anyMatch(a -> a.has("type") && ("ragdoll".equals(a.get("type").getAsString())
-				|| ("status".equals(a.get("type").getAsString()) && a.has("kind") && "fragile".equals(a.get("kind").getAsString()))));
+		return s.actions().stream().anyMatch(a -> a.has("type") && ("ragdoll".equals(a.get("type").getAsString()) || "yeet".equals(a.get("type").getAsString())
+				|| ("status".equals(a.get("type").getAsString()) && a.has("kind")
+						&& Set.of("fragile", "ragdoll_roulette").contains(a.get("kind").getAsString()))));
 	}
 
 	/** Server to client: spin the wheel, landing on `result` after `ticks`. */
@@ -399,6 +401,10 @@ public final class Wheel {
 			if (type.equals("ammo")) {
 				w.add("Only gives ammo to players carrying a gun.");
 			}
+			if (type.equals("yeet")) {
+				w.add("Launches " + ("random".equals(a.has("who") ? a.get("who").getAsString() : "") ? "one random player" : "everyone")
+						+ " high into the air as a ragdoll. The landing can hurt or kill.");
+			}
 			if (type.equals("ragdoll")) {
 				w.add("Everyone goes limp and gets thrown about for " + (a.has("seconds") ? a.get("seconds").getAsInt() : 10)
 						+ " seconds; hard landings hurt. Needs Sable Ragdolls (left off the wheel without it).");
@@ -699,6 +705,8 @@ public final class Wheel {
 					case "gun", "apoth_loot" -> who.forEach(p -> givePlayer(p, a));
 					case "boss" -> Bosses.wheelBoss(players, a);
 					case "cases" -> who.stream().filter(BubbleServer::counts).forEach(p -> cases(p, a.has("count") ? a.get("count").getAsInt() : 5));
+					case "yeet" -> who.stream().filter(BubbleServer::counts)
+							.forEach(p -> Ragdolls.yeet(p, a.has("speed") ? a.get("speed").getAsDouble() : 30));
 					case "ragdoll" -> who.stream().filter(BubbleServer::counts)
 							.forEach(p -> Ragdolls.toss(p, (a.has("seconds") ? a.get("seconds").getAsInt() : 10) * 20));
 					default -> Bubble.LOG.warn("Wheel: unknown action type '{}' in slice '{}'", type, slice.name());
@@ -1200,7 +1208,9 @@ public final class Wheel {
 				    {"name": "Case party", "color": "#FFB74D", "actions": [{"type": "cases", "count": 5}]},
 				    {"name": "Bonus spins", "color": "#CE93D8", "actions": [{"type": "give", "item": "bubble:wheel_spin", "count": 2}]},
 				    {"name": "Ragdoll everyone", "color": "#90A4AE", "actions": [{"type": "ragdoll", "seconds": 10}]},
-				    {"name": "Fragile mode", "color": "#ECEFF1", "actions": [{"type": "status", "kind": "fragile", "seconds": 180}]}
+				    {"name": "Fragile mode", "color": "#ECEFF1", "actions": [{"type": "status", "kind": "fragile", "seconds": 180}]},
+				    {"name": "Yeet", "color": "#FF8A65", "actions": [{"type": "yeet", "who": "random", "speed": 30}]},
+				    {"name": "Ragdoll roulette", "color": "#A1887F", "actions": [{"type": "status", "kind": "ragdoll_roulette", "seconds": 120}]}
 				  ]
 				}""").getAsJsonObject();
 	}

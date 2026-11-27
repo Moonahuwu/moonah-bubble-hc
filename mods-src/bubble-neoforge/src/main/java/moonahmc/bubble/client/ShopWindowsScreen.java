@@ -21,13 +21,13 @@ import static moonahmc.bubble.client.BubbleScreen.roundRect;
  */
 final class ShopWindowsScreen extends ScaledScreen {
 	private static final int W = 520;
-	private static final int H = 372;
+	private static final int H = 404;
 	private static final int[] SECONDS = {0, 30, 60, 90, 120, 180, 300, 600};
 	private static final String[] SECONDS_NAMES = {"Off", "30 s", "1 min", "90 s", "2 min", "3 min", "5 min", "10 min"};
 	private static final int[] CHESTS = {3, 5, 10, 15, 20, 30, 50};
 	private static final String[] CHESTS_NAMES = {"3", "5", "10", "15", "20", "30", "50"};
-	private static final String[] TRIGGERS = {"Run start", "New dimension", "Boss killed", "Elite / mini-boss", "Looter chests"};
-	private static final String[] TRIGGER_WHO = {"everyone", "everyone", "everyone who helped", "the killer", "that player"};
+	private static final String[] TRIGGERS = {"Run start", "New dimension", "Boss killed", "Elite / mini-boss", "Looter chests", "Stage cleared"};
+	private static final String[] TRIGGER_WHO = {"everyone", "everyone", "everyone who helped", "the killer", "that player", "everyone (run goals)"};
 	static ShopWindows.Settings settings;
 
 	private final Screen parent;
@@ -38,7 +38,7 @@ final class ShopWindowsScreen extends ScaledScreen {
 	ShopWindowsScreen(Screen parent) {
 		super(Component.literal("Shop windows"));
 		this.parent = parent;
-		ClientPlayNetworking.send(new ShopWindows.Edit(true, new ShopWindows.Settings(false, 0, 0, 0, 0, 0, 0, List.of(), List.of())));
+		ClientPlayNetworking.send(new ShopWindows.Edit(true, new ShopWindows.Settings(false, 0, 0, 0, 0, 0, 0, List.of(), List.of(), 0)));
 	}
 
 	@Override
@@ -71,7 +71,8 @@ final class ShopWindowsScreen extends ScaledScreen {
 			case 1 -> s.dimension();
 			case 2 -> s.boss();
 			case 3 -> s.elite();
-			default -> s.chest();
+			case 4 -> s.chest();
+			default -> s.goal();
 		};
 	}
 
@@ -83,7 +84,7 @@ final class ShopWindowsScreen extends ScaledScreen {
 
 	private static ShopWindows.Settings withTrigger(ShopWindows.Settings s, int i, int secs) {
 		return new ShopWindows.Settings(s.enabled(), i == 0 ? secs : s.start(), i == 1 ? secs : s.dimension(), i == 2 ? secs : s.boss(),
-				i == 3 ? secs : s.elite(), i == 4 ? secs : s.chest(), s.chests(), s.tabs(), s.open());
+				i == 3 ? secs : s.elite(), i == 4 ? secs : s.chest(), s.chests(), s.tabs(), s.open(), i == 5 ? secs : s.goal());
 	}
 
 	private int tabRows() {
@@ -107,7 +108,7 @@ final class ShopWindowsScreen extends ScaledScreen {
 		// left: on/off and the timings
 		addRenderableWidget(new BubbleScreen.Toggle(left + 214, top + 46, () -> settings != null && settings.enabled(), v -> {
 			ShopWindows.Settings c = settings;
-			send(new ShopWindows.Settings(v, c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), c.chests(), c.tabs(), c.open()));
+			send(new ShopWindows.Settings(v, c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), c.chests(), c.tabs(), c.open(), c.goal()));
 		}));
 		for (int i = 0; i < TRIGGERS.length; i++) {
 			int index = i;
@@ -120,7 +121,7 @@ final class ShopWindowsScreen extends ScaledScreen {
 				() -> settings == null ? 2 : nearest(CHESTS, settings.chests()),
 				v -> {
 					ShopWindows.Settings c = settings;
-					send(new ShopWindows.Settings(c.enabled(), c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), CHESTS[v], c.tabs(), c.open()));
+					send(new ShopWindows.Settings(c.enabled(), c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), CHESTS[v], c.tabs(), c.open(), c.goal()));
 				}));
 		chests.active = s.enabled();
 		// right: every tab, on = stays open between windows
@@ -132,7 +133,7 @@ final class ShopWindowsScreen extends ScaledScreen {
 				ShopWindows.Settings c = settings;
 				List<Boolean> open = new ArrayList<>(c.open());
 				open.set(index, v);
-				send(new ShopWindows.Settings(c.enabled(), c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), c.chests(), c.tabs(), open));
+				send(new ShopWindows.Settings(c.enabled(), c.start(), c.dimension(), c.boss(), c.elite(), c.chest(), c.chests(), c.tabs(), open, c.goal()));
 			}));
 		}
 	}

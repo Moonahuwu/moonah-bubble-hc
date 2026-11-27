@@ -1252,6 +1252,15 @@ public final class Gamble {
 			Bubble.LOG.info("Cases: added more weapons, guns, Mod Case and Progression Case items");
 			changed = true;
 		}
+		// 1.38.0: the Gatling Bow in the Weapon Case; Shop Keys in the Mod and Boss Cases
+		if (!done.contains(new com.google.gson.JsonPrimitive("gatling_bow_shop_key_v1"))) {
+			done.add("gatling_bow_shop_key_v1");
+			addTo(cs, "weapons", "legendary", item("bubble:gatling_bow", 1));
+			addTo(cs, "mod", "rare", item("bubble:shop_key", 1));
+			addTo(cs, "boss", "uncommon", item("bubble:shop_key", 1));
+			addTo(cs, "boss", "epic", item("bubble:shop_key", 2));
+			changed = true;
+		}
 		// 1.22.0: gear prizes can come enchanted, Apothic or Factory New (both)
 		if (!done.contains(new com.google.gson.JsonPrimitive("conditions_v1"))) {
 			done.add("conditions_v1");
