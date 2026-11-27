@@ -54,6 +54,8 @@ public final class BubbleConfig {
 	public int shopChests = 10;
 	/** Shop tabs that stay open between shop windows (by tab name). Charging is the Charging tab. */
 	public java.util.List<String> shopAlwaysOpen = new java.util.ArrayList<>(java.util.List.of("Essentials", "Video", "Charging", "Guns"));
+	/** How fragile everyone is (Ragdoll Reactions / Sable Ragdolls), set from Admin > Ragdolls. */
+	public RagdollTuning.Tune ragdolls = new RagdollTuning.Tune();
 	/** With Sable Ragdolls installed: going down turns you into a ragdoll until you're revived. */
 	public boolean ragdollDowns = true;
 	/** A fall from at least this many blocks kills you outright, no going down (0 = falls always let you go down). */
@@ -97,6 +99,10 @@ public final class BubbleConfig {
 		shopEliteSeconds = Math.max(0, Math.min(3600, shopEliteSeconds));
 		shopChestSeconds = Math.max(0, Math.min(3600, shopChestSeconds));
 		shopChests = Math.max(1, Math.min(500, shopChests));
+		if (ragdolls == null) {
+			ragdolls = new RagdollTuning.Tune();
+		}
+		ragdolls.clamp();
 		if (shopAlwaysOpen == null) {
 			shopAlwaysOpen = new java.util.ArrayList<>();
 		}

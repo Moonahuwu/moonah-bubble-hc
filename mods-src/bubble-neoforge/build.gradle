@@ -42,7 +42,8 @@ dependencies {
 	// ProjectE: only used when it's installed, for charging EMC items in the shop (EmcCompat)
 	compileOnly files('libs/ProjectE-1.21.1-PE1.1.0.jar')
 	// Sable Ragdolls and Ragdoll Corpse: only used when they're installed (Ragdolls / RagdollCompat)
-	compileOnly files('libs/sable_player_ragdoll-1.21.1-0.8.1.jar', 'libs/ragdoll_corpse-1.21.1-0.4.0.jar', 'libs/sable-neoforge-1.21.1-2.0.6.jar')
+	compileOnly files('libs/sable_player_ragdoll-1.21.1-0.8.1.jar', 'libs/ragdoll_corpse-1.21.1-0.4.0.jar', 'libs/sable-neoforge-1.21.1-2.0.6.jar',
+			'libs/ragdoll_reactions-1.21.1-0.8.0.jar')
 }
 
 processResources {

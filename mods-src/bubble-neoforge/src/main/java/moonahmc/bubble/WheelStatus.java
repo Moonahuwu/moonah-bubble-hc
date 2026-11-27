@@ -77,6 +77,7 @@ public final class WheelStatus {
 		DEFS.put("size", new Def("📏 Tiny or giant", BossEvent.BossBarColor.GREEN));
 		DEFS.put("upside_down", new Def("🙃 Upside down", BossEvent.BossBarColor.PURPLE));
 		DEFS.put("ice", new Def("🧊 Ice ground", BossEvent.BossBarColor.BLUE));
+		DEFS.put("fragile", new Def("🦴 Fragile mode", BossEvent.BossBarColor.WHITE));
 	}
 
 	private static final int MAX_LAVA_BLOCKS = 6000;
@@ -192,6 +193,10 @@ public final class WheelStatus {
 		switch (kind) {
 			case "random_gravity" -> gravityMode = -1;
 			case "size" -> giant.clear();
+			case "fragile" -> {
+				RagdollTuning.fragile(true);
+				RagdollTuning.announce(true);
+			}
 			default -> {
 			}
 		}
@@ -201,6 +206,7 @@ public final class WheelStatus {
 		List<ServerPlayer> players = server.getPlayerList().getPlayers();
 		switch (kind) {
 			case "floor_is_lava" -> restoreLava();
+			case "fragile" -> RagdollTuning.fragile(false); // "wore off" is said by tick()
 			case "random_gravity" -> players.forEach(p -> gravity(p, -1));
 			case "flight" -> players.forEach(p -> {
 				boolean wasFlying = p.getAbilities().flying && !p.isCreative() && !p.isSpectator();

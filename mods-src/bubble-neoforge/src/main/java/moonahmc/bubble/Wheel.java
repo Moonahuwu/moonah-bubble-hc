@@ -93,7 +93,8 @@ public final class Wheel {
 	}
 
 	private static boolean needsRagdolls(Slice s) {
-		return s.actions().stream().anyMatch(a -> a.has("type") && "ragdoll".equals(a.get("type").getAsString()));
+		return s.actions().stream().anyMatch(a -> a.has("type") && ("ragdoll".equals(a.get("type").getAsString())
+				|| ("status".equals(a.get("type").getAsString()) && a.has("kind") && "fragile".equals(a.get("kind").getAsString()))));
 	}
 
 	/** Server to client: spin the wheel, landing on `result` after `ticks`. */
@@ -1198,7 +1199,8 @@ public final class Wheel {
 				      {"type": "summon", "entity": "minecraft:chicken", "count": 30, "radius": 14, "leave_after": 120}]},
 				    {"name": "Case party", "color": "#FFB74D", "actions": [{"type": "cases", "count": 5}]},
 				    {"name": "Bonus spins", "color": "#CE93D8", "actions": [{"type": "give", "item": "bubble:wheel_spin", "count": 2}]},
-				    {"name": "Ragdoll everyone", "color": "#90A4AE", "actions": [{"type": "ragdoll", "seconds": 10}]}
+				    {"name": "Ragdoll everyone", "color": "#90A4AE", "actions": [{"type": "ragdoll", "seconds": 10}]},
+				    {"name": "Fragile mode", "color": "#ECEFF1", "actions": [{"type": "status", "kind": "fragile", "seconds": 180}]}
 				  ]
 				}""").getAsJsonObject();
 	}

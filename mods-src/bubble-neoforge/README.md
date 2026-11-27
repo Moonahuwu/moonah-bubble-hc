@@ -115,6 +115,15 @@ under it and a green bar while someone revives you. You see "YOU'RE DOWN" with r
   that moment). The down cam ends on your real ragdoll too. (With the Ragdoll Corpse mod installed, its corpses get
   your gear and the kill cam's one only appears at that moment; the pack doesn't use it.) Off with `ragdollDowns` in `config/bubble.json`;
   `/bubble ragdolltest` (ops) drops a test body where you stand.
+- **How fragile (1.37.0):** Bubble menu > Admin > **Ragdolls** sets, live, what turns players into ragdolls and what
+  ragdolls do: presets (**Sturdy**, **Normal** = the mods' own, **Fragile**, **Glass**), then each on its own: the speed
+  change that ragdolls you (a sudden stop), the hit damage and fall/crash damage that do, how far hits and blasts throw
+  you, the cooldown, whether mobs react too, whether hard landings hurt (and how much), grabbing bodies, and the
+  ragdoll key. Saved as `ragdolls` in `config/bubble.json` and put into Ragdoll Reactions / Sable Ragdolls at startup
+  (their own toml files are just the starting point). `/bubble ragdolls [sturdy|normal|fragile|glass]` shows what the
+  mods are using, or sets a preset. Bubble also turns off Sable Ragdolls' debug logging, which floods the server log.
+- **Fragile mode (wheel, 1.37.0):** a mid-run slice that switches everyone to Glass for 3 minutes (countdown bar), then
+  puts the settings back. Only on the wheel with the ragdoll mods installed.
 - **Bullet cam (1.32.0):** if what got you was shot from 10+ blocks away (a skeleton's arrow, a sniper's bullet, a
   ghast's fireball), the down cam and the kill cam ride right behind the shot until it hits ("Shot from 63 blocks
   away"), then go back to the normal view. It picks the shot up once it's within 48 blocks of a player.
@@ -732,8 +741,8 @@ your GUI scale, so they never get cut off. At sizes where they fit, nothing chan
 
 ## Installing
 
-- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.36.0.jar` in `mods/`.
-- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.36.0.jar` in its
+- **Server:** a NeoForge 21.1.267 server with `bubble-neoforge-1.37.0.jar` in `mods/`.
+- **Players:** the MoonahBubbleHC instance (Minecraft 1.21.1, NeoForge 21.1.267) with `bubble-neoforge-1.37.0.jar` in its
   mods folder (also in `MoonahMC2026/client-extras/`). Players without the mod can still join, but they get no screens,
   forcefield, replay, shop or sell slot. They can still vote with `/bubble vote`.
 

@@ -37,6 +37,7 @@ public final class Bubble {
 		Goals.init(); // game modes, stages and the goals HUD
 		Guns.init(); // TACZ guns on rare mobs
 		MobDrops.init(); // cases, spins and Strange Matter from mobs
+		RagdollTuning.init(); // how fragile ragdolls are, live from Admin > Ragdolls
 		ShopWindows.init(); // the shop only opens at key moments of a run
 		RunTally.init(); // downs and deaths this run in the tab list; everyone on one team
 		Bosses.init(); // bosses pay everyone who helped, boss cam, mini-boss elites, the wheel's "Summon a boss"
