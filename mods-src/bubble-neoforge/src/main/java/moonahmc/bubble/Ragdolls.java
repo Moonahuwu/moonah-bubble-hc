@@ -103,7 +103,7 @@ final class Ragdolls {
 
 	/** Just before a run-ending death empties `p`'s inventory: remember their gear for the corpse. */
 	static void rememberOutfit(ServerPlayer p) {
-		if (!corpses()) {
+		if (!available()) {
 			return;
 		}
 		try {
@@ -120,7 +120,7 @@ final class Ragdolls {
 			return;
 		}
 		try {
-			UUID corpse = RagdollCompat.corpse(p);
+			UUID corpse = CorpseCompat.corpse(p);
 			if (corpse != null) {
 				RagdollCompat.dress(p.serverLevel(), corpse, outfit);
 			}
@@ -139,9 +139,10 @@ final class Ragdolls {
 			return outfit;
 		}
 		try {
-			UUID corpse = RagdollCompat.corpse(p);
+			UUID corpse = CorpseCompat.corpse(p);
 			if (corpse != null) {
-				RagdollCompat.remove(p.serverLevel(), corpse, p);
+				RagdollCompat.remove(p.serverLevel(), corpse);
+				CorpseCompat.forget(p);
 			}
 		} catch (Throwable t) {
 			failed(t);
@@ -150,14 +151,15 @@ final class Ragdolls {
 	}
 
 	/** The kill cam reached the moment of death: the body drops there. */
-	static void dropBody(ServerLevel level, Vec3 pos, float yaw, GameProfile profile, Vec3 velocity, Object outfit) {
+	static boolean dropBody(ServerLevel level, Vec3 pos, float yaw, GameProfile profile, Vec3 velocity, Object outfit) {
 		if (!available()) {
-			return;
+			return false;
 		}
 		try {
-			RagdollCompat.body(level, pos, yaw, profile, velocity, outfit);
+			return RagdollCompat.body(level, pos, yaw, profile, velocity, outfit);
 		} catch (Throwable t) {
 			failed(t);
+			return false;
 		}
 	}
 

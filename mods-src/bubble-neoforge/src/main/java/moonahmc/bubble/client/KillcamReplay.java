@@ -30,6 +30,9 @@ final class KillcamReplay {
 
 	/** Sable Ragdolls: deaths end in a real ragdoll, not the stand-in falling over. */
 	static final boolean RAGDOLLS = net.neoforged.fml.ModList.get().isLoaded("sable_player_ragdoll");
+	/** The server dropped the ragdoll (KillcamDrop): the stand-in goes, and a replay running behind skips to the end. */
+	static boolean dropped;
+	private static boolean ghostGone;
 	private static Payloads.Killcam pending;
 	private static int pendingAge;
 	private static Payloads.Killcam active;
@@ -48,6 +51,7 @@ final class KillcamReplay {
 		}
 		pending = replay;
 		pendingAge = 0;
+		dropped = false;
 	}
 
 	static void tick(Minecraft mc) {
@@ -70,6 +74,9 @@ final class KillcamReplay {
 		t++;
 		List<Payloads.Frame> frames = active.frames();
 		int end = Payloads.Killcam.replayTicks(frames.size());
+		if (RAGDOLLS && dropped && t < end) {
+			t = end; // we're behind the server: catch up to the moment of death, where the ragdoll is
+		}
 		if (actors != null) {
 			actors.show(Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
 		}
@@ -95,17 +102,26 @@ final class KillcamReplay {
 			lastFrame = Math.max(lastFrame, (int) idx);
 		}
 		BulletCam.update("kill", active, Payloads.Killcam.frameAt(Math.min(t, end), frames.size()));
-		if (t == end && RAGDOLLS) {
-			// the server drops their ragdoll right here now: the stand-in just goes (the rest plays on)
-			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_DEATH, SoundSource.PLAYERS, 1f, 0.9f, false);
-			mc.level.removeEntity(ghost.getId(), Entity.RemovalReason.DISCARDED);
+		if (RAGDOLLS) {
+			// hold the last pose until the server's ragdoll drops, then the stand-in goes (the rest plays on); if no
+			// ragdoll comes, it falls over like it would without the mod
+			if (!ghostGone && t >= end && (dropped || t >= end + 15)) {
+				ghostGone = true;
+				mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_DEATH, SoundSource.PLAYERS, 1f, 0.9f, false);
+				if (dropped) {
+					mc.level.removeEntity(ghost.getId(), Entity.RemovalReason.DISCARDED);
+				} else {
+					ghost.setHealth(0);
+					ghost.hurtTime = ghost.hurtDuration = 10;
+				}
+			}
 		} else if (t == end) {
 			ghost.setHealth(0);
 			ghost.hurtTime = ghost.hurtDuration = 10;
 			mc.level.playLocalSound(ghost.getX(), ghost.getY(), ghost.getZ(), SoundEvents.PLAYER_DEATH, SoundSource.PLAYERS, 1f, 0.9f, false);
 		}
-		if (t >= end + 22) {
-			for (int i = 0; i < (RAGDOLLS ? 0 : 20); i++) {
+		if (t >= end + (RAGDOLLS && !ghostGone ? 37 : 22)) {
+			for (int i = 0; i < (RAGDOLLS && dropped ? 0 : 20); i++) {
 				double dx = ghost.getRandom().nextGaussian() * 0.02;
 				double dy = ghost.getRandom().nextGaussian() * 0.02;
 				double dz = ghost.getRandom().nextGaussian() * 0.02;
@@ -131,6 +147,7 @@ final class KillcamReplay {
 		actors = new ReplayActors(world, replay.scene());
 		actors.show(0);
 		active = replay;
+		ghostGone = false;
 		t = 0;
 		lastFrame = 0;
 	}

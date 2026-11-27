@@ -1038,7 +1038,8 @@ public final class BubbleServer {
 				}
 			}
 		}
-		if (!bodyDropped && phaseTicks >= Payloads.Killcam.replayTicks(killFrames.size())) {
+		// a couple of ticks after the replay's moment of death, so everyone's replay has got there
+		if (!bodyDropped && phaseTicks >= Payloads.Killcam.replayTicks(killFrames.size()) + 2) {
 			bodyDropped = true;
 			// how they were moving at the end (m/s), a little up
 			Vec3 vel = Vec3.ZERO;
@@ -1053,7 +1054,13 @@ public final class BubbleServer {
 			if (vel.length() > 12) {
 				vel = vel.normalize().scale(12);
 			}
-			Ragdolls.dropBody(deathWorld, deathPos, yaw, killProfile, vel, killOutfit);
+			if (Ragdolls.dropBody(deathWorld, deathPos, yaw, killProfile, vel, killOutfit)) {
+				for (ServerPlayer q : players()) {
+					if (ServerPlayNetworking.canSend(q, Payloads.KillcamDrop.ID)) {
+						ServerPlayNetworking.send(q, new Payloads.KillcamDrop());
+					}
+				}
+			}
 			killOutfit = null;
 		}
 		if (phaseTicks >= KILLCAM_TICKS) {

@@ -510,6 +510,17 @@ public final class Payloads {
 		}
 	}
 
+	/** Server to client: the kill cam's ragdoll has just dropped, so the replay's stand-in goes now (in step with it). */
+	public record KillcamDrop() implements CustomPacketPayload {
+		public static final Type<KillcamDrop> ID = id("killcam_drop");
+		public static final StreamCodec<RegistryFriendlyByteBuf, KillcamDrop> CODEC = StreamCodec.unit(new KillcamDrop());
+
+		@Override
+		public Type<? extends CustomPacketPayload> type() {
+			return ID;
+		}
+	}
+
 	/** Server to client: you just went down; here's how it happened (your own short replay, your camera only). */
 	public record DownCam(Killcam clip) implements CustomPacketPayload {
 		public static final Type<DownCam> ID = id("down_cam");
@@ -527,6 +538,7 @@ public final class Payloads {
 		var c2s = PayloadTypeRegistry.playC2S();
 		s2c.register(Killcam.ID, Killcam.CODEC);
 		s2c.register(DownCam.ID, DownCam.CODEC);
+		s2c.register(KillcamDrop.ID, KillcamDrop.CODEC);
 		s2c.register(BossCam.ID, BossCam.CODEC);
 		s2c.register(State.ID, State.CODEC);
 		s2c.register(Open.ID, Open.CODEC);

@@ -1,7 +1,6 @@
 package moonahmc.bubble;
 
 import com.mojang.authlib.GameProfile;
-import dev.leo.ragdollcorpse.corpse.CorpseDeathHandler;
 import dev.leo.sableplayerragdoll.api.DespawnCondition;
 import dev.leo.sableplayerragdoll.api.PlayerlessDespawnRule;
 import dev.leo.sableplayerragdoll.api.PlayerlessRagdollSession;
@@ -58,27 +57,19 @@ final class RagdollCompat {
 		return RagdollAPI.captureEquipment(p, RagdollEquipmentScope.ALL);
 	}
 
-	/** The corpse Ragdoll Corpse just made for `p`, or null. */
-	static UUID corpse(ServerPlayer p) {
-		return CorpseDeathHandler.peekPendingCorpse(p.getUUID());
-	}
-
 	static void dress(ServerLevel level, UUID corpse, Object outfit) {
 		RagdollAPI.applyEquipmentSnapshot(level, corpse, (RagdollEquipmentSnapshot) outfit);
 	}
 
-	static void remove(ServerLevel level, UUID corpse, ServerPlayer owner) {
+	static void remove(ServerLevel level, UUID corpse) {
 		RagdollAPI.remove(level, corpse);
-		if (owner != null) {
-			CorpseDeathHandler.takePendingCorpse(owner.getUUID());
-		}
 	}
 
 	/** A body (no player in it) that stays where it lands. */
-	static void body(ServerLevel level, Vec3 pos, float yaw, GameProfile profile, Vec3 velocity, Object outfit) {
+	static boolean body(ServerLevel level, Vec3 pos, float yaw, GameProfile profile, Vec3 velocity, Object outfit) {
 		PlayerlessRagdollSession s = RagdollAPI.spawnPlayerless(level, pos, yaw, profile, velocity, PlayerlessDespawnRule.never());
 		if (s == null) {
-			return;
+			return false;
 		}
 		RagdollAPI.setCorpse(level, s.id(), true);
 		UUID torso = RagdollAPI.torsoSubLevelId(s.id());
@@ -88,5 +79,6 @@ final class RagdollCompat {
 		if (outfit != null) {
 			RagdollAPI.applyEquipmentSnapshot(level, s.id(), (RagdollEquipmentSnapshot) outfit);
 		}
+		return true;
 	}
 }

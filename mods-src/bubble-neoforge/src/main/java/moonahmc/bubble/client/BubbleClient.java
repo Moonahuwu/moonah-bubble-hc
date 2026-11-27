@@ -186,6 +186,7 @@ public final class BubbleClient {
 				s.refresh();
 			}
 		}));
+		ClientPlayNetworking.registerGlobalReceiver(Payloads.KillcamDrop.ID, (payload, context) -> context.client().execute(() -> KillcamReplay.dropped = true));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.DownCam.ID, (payload, context) -> context.client().execute(() -> DownCam.start(payload.clip())));
 		ClientPlayNetworking.registerGlobalReceiver(Payloads.BossCam.ID, (payload, context) -> context.client().execute(() -> DownCam.start(payload.clip(), payload.boss())));
 		bus.addListener((net.neoforged.neoforge.client.event.RenderGuiEvent.Post e) -> {
