@@ -29,7 +29,82 @@ final class Ragdolls {
 	/** What run-ending deaths were wearing (a RagdollEquipmentSnapshot), taken before Bubble keeps the inventory. */
 	private static final Map<UUID, Object> outfits = new HashMap<>();
 
+	/**
+	 * The body Ragdoll Corpse just made for each player who died, noted straight after it makes it: by the time the
+	 * player has finished dying, its own item-drop step has already taken it off its list, so asking then finds nothing
+	 * (that's why the kill cam showed two bodies, and why run-ending corpses came out bare).
+	 */
+	private static final Map<UUID, UUID> corpseIds = new HashMap<>();
+
+	/** From LivingDeathEvent (LOW, so after Ragdoll Corpse's HIGH): remember the body it just made. */
+	static void noteCorpse(ServerPlayer p) {
+		if (!corpses()) {
+			return;
+		}
+		try {
+			UUID id = CorpseCompat.corpse(p);
+			if (id != null) {
+				corpseIds.put(p.getUUID(), id);
+			}
+		} catch (Throwable t) {
+			failed(t);
+		}
+	}
+
+	/** Bodies to take away that weren't there yet when asked (still being put together): id -> {level, ticks left}. */
+	private static final Map<UUID, Object[]> toRemove = new HashMap<>();
+	private static boolean ticking;
+
 	private Ragdolls() {
+	}
+
+	/**
+	 * Takes a body away now, or as soon as it exists: a new ragdoll is queued and only put together a tick or two later,
+	 * and removing it before then does nothing (which is how the kill cam ended up with two bodies).
+	 */
+	static void removeSoon(ServerLevel level, UUID id) {
+		boolean gone = false;
+		try {
+			gone = RagdollCompat.remove(level, id);
+		} catch (Throwable t) {
+			failed(t);
+			return;
+		}
+		if (gone) {
+			return;
+		}
+		toRemove.put(id, new Object[] {level, 100});
+		if (!ticking) {
+			ticking = true;
+			net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.event.tick.ServerTickEvent.Post e) -> retryRemovals());
+		}
+	}
+
+	private static void retryRemovals() {
+		if (toRemove.isEmpty() || broken) {
+			return;
+		}
+		for (var it = toRemove.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			ServerLevel level = (ServerLevel) e.getValue()[0];
+			int left = (Integer) e.getValue()[1] - 1;
+			boolean gone;
+			try {
+				gone = RagdollCompat.remove(level, e.getKey());
+			} catch (Throwable t) {
+				failed(t);
+				return;
+			}
+			if (gone) {
+				Bubble.LOG.info("Ragdolls: took the body away once it was there ({} ticks later)", 100 - left);
+				it.remove();
+			} else if (left <= 0) {
+				Bubble.LOG.warn("Ragdolls: couldn't take a body away ({}), it never turned up", e.getKey());
+				it.remove();
+			} else {
+				e.getValue()[1] = left;
+			}
+		}
 	}
 
 	static boolean available() {
@@ -150,7 +225,7 @@ final class Ragdolls {
 			return;
 		}
 		try {
-			UUID corpse = CorpseCompat.corpse(p);
+			UUID corpse = corpseIds.get(p.getUUID());
 			if (corpse != null) {
 				RagdollCompat.dress(p.serverLevel(), corpse, outfit);
 			}
@@ -169,10 +244,12 @@ final class Ragdolls {
 			return outfit;
 		}
 		try {
-			UUID corpse = CorpseCompat.corpse(p);
+			UUID corpse = corpseIds.remove(p.getUUID());
 			if (corpse != null) {
-				RagdollCompat.remove(p.serverLevel(), corpse);
+				removeSoon(p.serverLevel(), corpse);
 				CorpseCompat.forget(p);
+			} else {
+				Bubble.LOG.info("Ragdolls: no Ragdoll Corpse body found for {} to hold back for the kill cam", p.getGameProfile().getName());
 			}
 		} catch (Throwable t) {
 			failed(t);
@@ -195,11 +272,29 @@ final class Ragdolls {
 
 	static void clear() {
 		outfits.clear();
+		corpseIds.clear();
 	}
 
 	/** /bubble ragdolltest: drops a body where the command runs (checks Bubble can talk to Sable Ragdolls). */
 	static com.mojang.brigadier.builder.LiteralArgumentBuilder<net.minecraft.commands.CommandSourceStack> command() {
-		return net.minecraft.commands.Commands.literal("ragdolltest").requires(s -> s.hasPermission(2)).executes(c -> {
+		return net.minecraft.commands.Commands.literal("ragdolltest").requires(s -> s.hasPermission(2))
+				.then(net.minecraft.commands.Commands.literal("remove").executes(c -> {
+					// a body made the way Ragdoll Corpse makes one, taken away straight after (what the kill cam does)
+					var src = c.getSource();
+					if (!available()) {
+						src.sendFailure(net.minecraft.network.chat.Component.literal("Sable Ragdolls isn't installed"));
+						return 0;
+					}
+					UUID id = RagdollCompat.corpseLike(src.getLevel(), src.getPosition(), new GameProfile(UUID.randomUUID(), "RagdollTest"));
+					boolean now = id != null && RagdollCompat.remove(src.getLevel(), id);
+					if (id != null && !now) {
+						removeSoon(src.getLevel(), id);
+					}
+					src.sendSuccess(() -> net.minecraft.network.chat.Component.literal("ragdolltest remove: " + (id == null ? "no body made"
+							: now ? "gone straight away" : "not there yet, retrying (see the log)")), false);
+					return 1;
+				}))
+				.executes(c -> {
 			var src = c.getSource();
 			if (!available()) {
 				src.sendFailure(net.minecraft.network.chat.Component.literal("Sable Ragdolls isn't installed (or failed earlier)"));

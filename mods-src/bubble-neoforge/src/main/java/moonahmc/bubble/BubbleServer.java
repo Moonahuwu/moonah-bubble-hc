@@ -255,6 +255,12 @@ public final class BubbleServer {
 				beforeDeath(player);
 			}
 		});
+		// Ragdoll Corpse makes its body at HIGH; note which one it is before its drop step forgets (see Ragdolls)
+		bus.addListener(EventPriority.LOW, (LivingDeathEvent e) -> {
+			if (e.getEntity() instanceof ServerPlayer player) {
+				Ragdolls.noteCorpse(player);
+			}
+		});
 		bus.addListener((PlayerEvent.PlayerRespawnEvent e) -> {
 			if (e.getEntity() instanceof ServerPlayer player) {
 				onRespawn(player);

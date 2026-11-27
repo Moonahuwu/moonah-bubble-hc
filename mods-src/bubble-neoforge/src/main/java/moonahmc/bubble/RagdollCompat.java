@@ -73,8 +73,15 @@ final class RagdollCompat {
 		RagdollAPI.applyEquipmentSnapshot(level, corpse, (RagdollEquipmentSnapshot) outfit);
 	}
 
-	static void remove(ServerLevel level, UUID corpse) {
-		RagdollAPI.remove(level, corpse);
+	/** True if it was there and is gone now (a body that's still being put together isn't there yet). */
+	static boolean remove(ServerLevel level, UUID corpse) {
+		return RagdollAPI.remove(level, corpse);
+	}
+
+	/** A body like Ragdoll Corpse makes (for /bubble ragdolltest remove): its id, or null. */
+	static UUID corpseLike(ServerLevel level, Vec3 pos, GameProfile profile) {
+		PlayerlessRagdollSession s = RagdollAPI.spawnPlayerless(level, pos, 0, profile, Vec3.ZERO, PlayerlessDespawnRule.never());
+		return s == null ? null : s.id();
 	}
 
 	/** A body (no player in it) that stays where it lands. */
